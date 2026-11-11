@@ -25,16 +25,17 @@ enum CommonPhraseKeyGlyph: Equatable {
 
 struct CommonPhraseKeyGlyphView: View {
     let button: RemoteButton
-    var size: CGFloat
+    var symbolSize: CGFloat
+    var textSize: CGFloat
 
     var body: some View {
         switch CommonPhraseKeyGlyph.glyph(for: button) {
         case let .text(value):
-            Text(value).font(.system(size: size * 0.75, weight: .bold))
+            Text(value).font(.system(size: textSize, weight: .bold))
                 .lineLimit(1).minimumScaleFactor(0.5)
         case let .symbol(name):
             Image(systemName: name).symbolVariant(.fill)
-                .font(.system(size: size, weight: .semibold))
+                .font(.system(size: symbolSize, weight: .semibold))
         }
     }
 }
@@ -65,8 +66,10 @@ struct CommonPhraseKeyGrid: View {
         let selected = selectedButton == button
         return Button { onSelect(button) } label: {
             VStack(spacing: 5) {
-                CommonPhraseKeyGlyphView(button: button, size: keyDiameter * 0.38)
+                CommonPhraseKeyGlyphView(button: button, symbolSize: keyDiameter * 0.38,
+                                         textSize: keyDiameter * 0.27)
                     .foregroundStyle(.white)
+                    .padding(.horizontal, 5)
                     .frame(width: keyDiameter, height: keyDiameter)
                     .background(
                         LinearGradient(colors: [Color(white: 0.19), Color(white: 0.085)],
