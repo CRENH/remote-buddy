@@ -44,21 +44,23 @@ struct CommonPhraseSettingsView: View {
                 Text(localization.text("common_phrases.adjust"))
                     .font(.system(size: 25, weight: .semibold))
                 Spacer(minLength: 0)
-                Button(localization.text("common_phrases.restore_clipboard")) {
-                    messageKey = clipboardPaste.restorePreviousClipboard()
-                        ? "common_phrases.clipboard_restored" : "common_phrases.error.clipboard_restore_failed"
+                // Stacked at the trailing edge: the header stays one row and the columns keep their height.
+                VStack(alignment: .trailing, spacing: 8) {
+                    Button(localization.text("common_phrases.restore_clipboard")) {
+                        messageKey = clipboardPaste.restorePreviousClipboard()
+                            ? "common_phrases.clipboard_restored" : "common_phrases.error.clipboard_restore_failed"
+                    }
+                    .disabled(!clipboardPaste.canRestoreClipboard)
+                    .help(localization.text("common_phrases.restore_clipboard_hint"))
+                    HStack(spacing: 8) {
+                        Text(localization.text("common_phrases.import_hint"))
+                            .foregroundStyle(.secondary).multilineTextAlignment(.trailing)
+                            .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                        backupButtons
+                    }
+                    .font(.system(size: 12))
                 }
-                .disabled(!clipboardPaste.canRestoreClipboard)
-                .help(localization.text("common_phrases.restore_clipboard_hint"))
-            }.padding([.horizontal, .top], 22).padding(.bottom, 10)
-            // A row of its own, so longer translations neither truncate the hint nor the header.
-            HStack(spacing: 12) {
-                HStack(spacing: 8) { backupButtons }
-                Text(localization.text("common_phrases.import_hint"))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2).fixedSize(horizontal: false, vertical: true)
-            }
-            .font(.system(size: 12)).padding(.horizontal, 22).padding(.bottom, 16)
+            }.padding(.horizontal, 22).padding(.vertical, 14)
             GeometryReader { geometry in
                 let available = geometry.size.width - 44 - 28
                 let padWidth = min(300, max(230, available * 0.34))
