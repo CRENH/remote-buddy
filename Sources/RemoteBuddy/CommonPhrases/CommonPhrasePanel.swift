@@ -191,7 +191,10 @@ final class CommonPhraseController: ObservableObject {
 
 struct CommonPhrasePanelView: View {
     static func size(for buttons: [RemoteButton]) -> CGSize {
-        CGSize(width: 300, height: buttons.contains { CommonPhraseStore.chromecastButtons.contains($0) } ? 620 : 360)
+        CGSize(width: 300, height: chromecastKeys(in: buttons).isEmpty ? 360 : 640)
+    }
+    static func chromecastKeys(in buttons: [RemoteButton]) -> [RemoteButton] {
+        buttons.filter { CommonPhraseStore.chromecastButtons.contains($0) }
     }
     @ObservedObject var controller: CommonPhraseController
     @EnvironmentObject private var localization: LocalizationStore
@@ -205,6 +208,12 @@ struct CommonPhrasePanelView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, minHeight: 48, alignment: .top)
             CommonPhrasePad(store: controller.store, diameter: 272, onSelect: controller.insert)
+            let extraKeys = Self.chromecastKeys(in: controller.phraseButtons)
+            if !extraKeys.isEmpty {
+                CommonPhraseKeyGrid(store: controller.store, buttons: extraKeys, keyDiameter: 44,
+                                    onSelect: controller.insert)
+            }
+            Spacer(minLength: 0)
         }
         .padding(14)
         .frame(width: Self.size(for: controller.phraseButtons).width,
