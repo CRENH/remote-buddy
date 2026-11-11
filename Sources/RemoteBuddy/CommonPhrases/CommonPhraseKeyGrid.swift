@@ -4,6 +4,7 @@ import SwiftUI
 enum CommonPhraseKeyGlyph: Equatable {
     case text(String)
     case symbol(String)
+    case input
 
     static func glyph(for button: RemoteButton) -> CommonPhraseKeyGlyph {
         switch button {
@@ -17,7 +18,7 @@ enum CommonPhraseKeyGlyph: Equatable {
         case .home: .symbol("house")
         case .mute: .symbol("speaker.slash")
         case .power: .symbol("power")
-        case .input: .symbol("rectangle.on.rectangle")
+        case .input: .input
         default: .symbol("circle")
         }
     }
@@ -36,6 +37,8 @@ struct CommonPhraseKeyGlyphView: View {
         case let .symbol(name):
             Image(systemName: name).symbolVariant(.fill)
                 .font(.system(size: symbolSize, weight: .semibold))
+        case .input:
+            RemoteInputGlyph(size: symbolSize * 1.15)
         }
     }
 }
