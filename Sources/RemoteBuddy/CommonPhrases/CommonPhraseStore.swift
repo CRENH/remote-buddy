@@ -56,7 +56,14 @@ struct CommonPhraseArchive: Codable, Equatable {
 final class CommonPhraseStore: ObservableObject {
     enum StoreError: Error { case invalidData, unavailable }
     static let maximumImportBytes = 4_000_000
-    static let buttons: [RemoteButton] = [.ok, .left, .up, .right, .down]
+    static let baseButtons: [RemoteButton] = [.ok, .left, .up, .right, .down]
+    /// Row order of the panel grid: Home | Mute, YouTube | Netflix, Power | Input,
+    /// matching the physical Chromecast remote.
+    static let chromecastButtons: [RemoteButton] = [.home, .mute, .youtube, .netflix, .power, .input]
+    static let buttons = baseButtons + chromecastButtons
+    static func buttons(chromecast: Bool) -> [RemoteButton] {
+        chromecast ? buttons : baseButtons
+    }
     static let exportWebsite = AppLinks.chineseWebsite.absoluteString
     static let exportGitHub = AppLinks.githubRepository.absoluteString
     private static let defaultsKey = "commonPhrases.archive.v2"
@@ -93,6 +100,15 @@ final class CommonPhraseStore: ObservableObject {
                     }
                     savedCandidate.entries += builtIns.filter { !known.contains($0.id) }
                     savedCandidate.bindings = savedCandidate.bindings.filter { _, id in savedCandidate.entries.contains { $0.id == id } }
+                    // Phrases saved on this Mac before the Chromecast keys existed
+                    // have none of them assigned; give those keys the bundled defaults.
+                    let chromecastKeys = Set(Self.chromecastButtons.map(\.rawValue))
+                    if savedCandidate.bindings.keys.allSatisfy({ !chromecastKeys.contains($0) }) {
+                        for (key, id) in candidate.bindings where chromecastKeys.contains(key)
+                            && savedCandidate.entries.contains(where: { $0.id == id }) {
+                            savedCandidate.bindings[key] = id
+                        }
+                    }
                     try savedCandidate.validate()
                     candidate = savedCandidate
                 } catch {
@@ -235,13 +251,13 @@ struct CommonPhraseRouting {
     }
     func claims(_ button: RemoteButton, source: String) -> Bool {
         held.contains(Input(source: source, button: button)) ||
-            (owner == source && (CommonPhraseStore.buttons.contains(button) || button == .back))
+            (owner == source && (CommonPhraseStore.baseButtons.contains(button) || button == .back))
     }
     mutating func handle(_ button: RemoteButton, phase: RemoteButtonPhase, source: String) -> Decision {
         let input = Input(source: source, button: button)
         if phase == .release { return held.remove(input) != nil ? .consumed : .unhandled }
         if held.contains(input) { return .consumed }
-        guard owner == source, CommonPhraseStore.buttons.contains(button) || button == .back
+        guard owner == source, CommonPhraseStore.baseButtons.contains(button) || button == .back
         else { return .unhandled }
         held.insert(input)
         owner = nil

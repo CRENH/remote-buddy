@@ -10,7 +10,7 @@ struct CommonPhraseStorageTests {
     }
     private var bundled: CommonPhraseArchive {
         CommonPhraseArchive(entries: [phrase("builtin-one"), phrase("builtin-two", text: "第二项")],
-            bindings: ["ok": "builtin-one", "left": "builtin-one", "up": "builtin-two"])
+            bindings: ["ok": "builtin-one", "left": "builtin-one", "up": "builtin-two", "home": "builtin-two"])
     }
     private func run(_ body: (CommonPhraseStore, UserDefaults, Data) throws -> Void) throws {
         let name = "phrase-unit-" + UUID().uuidString
@@ -117,7 +117,7 @@ struct CommonPhraseStorageTests {
             var invalid = phrase("user-invalid")
             invalid.text = "  "
             #expect(throws: CommonPhraseStore.StoreError.self) { try store.save(invalid, replacing: nil) }
-            #expect(throws: CommonPhraseStore.StoreError.self) { try store.assign(.power, to: "builtin-one") }
+            #expect(throws: CommonPhraseStore.StoreError.self) { try store.assign(.tv, to: "builtin-one") }
             #expect(throws: CommonPhraseStore.StoreError.self) { try store.assign(.ok, to: "missing") }
             #expect(throws: CommonPhraseStore.StoreError.self) { try store.save(phrase("builtin-one"), replacing: nil) }
             #expect(store.archive == original)
@@ -143,6 +143,33 @@ struct CommonPhraseStorageTests {
             #expect(store.phrase(for: .left)?.id == id)
             #expect(CommonPhraseStore(defaults: defaults, builtInData: data).phrase(for: .ok)?.text == "外部编辑")
         }
+    }
+
+    @Test func savedBindingsWithoutChromecastKeysGainBundledDefaults() throws {
+        try run { _, defaults, data in
+            let saved = CommonPhraseArchive(entries: bundled.entries, bindings: ["ok": "builtin-two"])
+            defaults.set(try JSONEncoder().encode(saved), forKey: "commonPhrases.archive.v2")
+            let reopened = CommonPhraseStore(defaults: defaults, builtInData: data)
+            #expect(reopened.phrase(for: .home)?.id == "builtin-two")
+            #expect(reopened.phrase(for: .ok)?.id == "builtin-two")
+            #expect(reopened.phrase(for: .left) == nil)
+        }
+    }
+
+    @Test func savedChromecastAssignmentIsNotOverwritten() throws {
+        try run { store, defaults, data in
+            try store.assign(.home, to: "builtin-one")
+            let reopened = CommonPhraseStore(defaults: defaults, builtInData: data)
+            #expect(reopened.phrase(for: .home)?.id == "builtin-one")
+        }
+    }
+
+    @Test func archiveValidatesChromecastKeysAndRejectsUnknownKeys() throws {
+        var archive = bundled
+        archive.bindings["youtube"] = "builtin-one"
+        try archive.validate()
+        archive.bindings["tv"] = "builtin-one"
+        #expect(throws: CommonPhraseStore.StoreError.self) { try archive.validate() }
     }
 
     @Test func deletingBundledPhraseStaysDeletedOnReload() throws {
