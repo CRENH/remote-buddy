@@ -18,7 +18,10 @@ extension BridgeAppModel {
 
     func bluetoothBridgeDidStartVoice(_ bridge: BluetoothRemoteBridge) {
         guard let identifier = bridge.deviceIdentifier else { return }
-        if !longRecordingRequested, commonPhrases.closeForVoiceKey() {
+        let voiceProfile = settings.profileID(forBluetoothIdentifier: identifier)
+            .flatMap { id in settings.remoteDeviceProfiles.first { $0.id == id } }
+        if let source = Self.commonPhraseVoiceKeySource(profile: voiceProfile, longRecordingRequested: longRecordingRequested),
+           commonPhrases.closeForVoiceKey(source: source) {
             _ = bridge.requestMicrophoneClose()
             AppLogger.shared.write("ATVV STREAM rejected reason=common_phrase_panel_closed")
             return

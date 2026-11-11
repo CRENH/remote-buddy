@@ -73,6 +73,7 @@ final class CommonPhraseStore: ObservableObject {
     private let defaults: UserDefaults
     private var builtInIDs: [String] = []
     private var builtInEntries: [CommonPhrase] = []
+    private var builtInBindings: [String: String] = [:]
     private var operation: UInt64 = 0
 
     init(defaults: UserDefaults = .standard, builtInData: Data? = nil) {
@@ -90,6 +91,7 @@ final class CommonPhraseStore: ObservableObject {
             let builtIns = candidate.entries
             builtInEntries = builtIns
             builtInIDs = builtIns.map(\.id)
+            builtInBindings = candidate.bindings
             if let saved = defaults.data(forKey: Self.defaultsKey) {
                 do {
                     var savedCandidate = try JSONDecoder().decode(CommonPhraseArchive.self, from: saved)
@@ -100,15 +102,7 @@ final class CommonPhraseStore: ObservableObject {
                     }
                     savedCandidate.entries += builtIns.filter { !known.contains($0.id) }
                     savedCandidate.bindings = savedCandidate.bindings.filter { _, id in savedCandidate.entries.contains { $0.id == id } }
-                    // Phrases saved on this Mac before the Chromecast keys existed
-                    // have none of them assigned; give those keys the bundled defaults.
-                    let chromecastKeys = Set(Self.chromecastButtons.map(\.rawValue))
-                    if savedCandidate.bindings.keys.allSatisfy({ !chromecastKeys.contains($0) }) {
-                        for (key, id) in candidate.bindings where chromecastKeys.contains(key)
-                            && savedCandidate.entries.contains(where: { $0.id == id }) {
-                            savedCandidate.bindings[key] = id
-                        }
-                    }
+                    savedCandidate = fillingChromecastDefaults(savedCandidate)
                     try savedCandidate.validate()
                     candidate = savedCandidate
                 } catch {
@@ -203,10 +197,23 @@ final class CommonPhraseStore: ObservableObject {
                 candidate.entries[index] = copy
                 for (key, id) in candidate.bindings where id == phrase.id { candidate.bindings[key] = copy.id }
             }
-            return candidate
+            return fillingChromecastDefaults(candidate)
         }
         isAvailable = true
         loadFailed = false
+    }
+
+    /// Phrases saved or exported before the Chromecast keys existed have none of
+    /// them assigned; give those keys the bundled defaults that still exist.
+    private func fillingChromecastDefaults(_ archive: CommonPhraseArchive) -> CommonPhraseArchive {
+        let chromecastKeys = Set(Self.chromecastButtons.map(\.rawValue))
+        guard archive.bindings.keys.allSatisfy({ !chromecastKeys.contains($0) }) else { return archive }
+        var filled = archive
+        for (key, id) in builtInBindings where chromecastKeys.contains(key)
+            && archive.entries.contains(where: { $0.id == id }) {
+            filled.bindings[key] = id
+        }
+        return filled
     }
 
     func exportData() throws -> Data {

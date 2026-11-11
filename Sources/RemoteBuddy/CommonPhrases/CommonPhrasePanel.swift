@@ -127,9 +127,9 @@ final class CommonPhraseController: ObservableObject {
 
     func claims(_ button: RemoteButton, source: String) -> Bool { routing.claims(button, source: source) }
 
-    /// The voice key closes a visible panel like Back; it does not start voice input.
-    func closeForVoiceKey() -> Bool {
-        guard isVisible else { return false }
+    /// The owner's voice key closes a visible panel like Back; it does not start voice input.
+    func closeForVoiceKey(source: String) -> Bool {
+        guard isVisible, routing.owner == source else { return false }
         close(reason: "voice_key")
         return true
     }

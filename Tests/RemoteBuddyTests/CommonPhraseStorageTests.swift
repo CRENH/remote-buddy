@@ -156,6 +156,15 @@ struct CommonPhraseStorageTests {
         }
     }
 
+    @Test func importedBackupWithoutChromecastKeysGainsBundledDefaults() throws {
+        try run { store, _, _ in
+            let backup = CommonPhraseArchive(entries: bundled.entries, bindings: ["ok": "builtin-one"])
+            try store.importData(JSONEncoder().encode(backup))
+            #expect(store.phrase(for: .home)?.id == "builtin-two")
+            #expect(store.phrase(for: .left) == nil)
+        }
+    }
+
     @Test func savedChromecastAssignmentIsNotOverwritten() throws {
         try run { store, defaults, data in
             try store.assign(.home, to: "builtin-one")
@@ -206,6 +215,45 @@ struct CommonPhraseStorageTests {
             #expect(throws: CommonPhraseStore.StoreError.self) { try store.save(phrase("user-extra"), replacing: nil) }
             #expect(store.archive == original)
         }
+    }
+}
+
+@Suite("Common phrase voice key")
+@MainActor
+struct CommonPhraseVoiceKeyTests {
+    private func profile(_ model: RemoteModel) throws -> (RemoteDeviceProfile, () -> Void) {
+        let name = "phrase-voice-key-" + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: name))
+        let settings = AppSettings(defaults: defaults)
+        let id = settings.registerBluetoothRemote(identifier: UUID(), model: model)
+        let profile = try #require(settings.remoteDeviceProfiles.first { $0.id == id })
+        return (profile, { defaults.removePersistentDomain(forName: name) })
+    }
+
+    @Test func chromecastVoiceKeyTargetsItsOwnPanel() throws {
+        let (chromecast, cleanup) = try profile(.chromecastVoiceRemote)
+        defer { cleanup() }
+        #expect(BridgeAppModel.commonPhraseVoiceKeySource(profile: chromecast, longRecordingRequested: false)
+            == BridgeAppModel.commonPhraseHIDSource(chromecast.id))
+        #expect(BridgeAppModel.commonPhraseVoiceKeySource(profile: chromecast, longRecordingRequested: true) == nil)
+    }
+
+    @Test(arguments: [RemoteModel.rc001, .rc003])
+    func otherRemotesKeepVoiceKeyBehavior(model: RemoteModel) throws {
+        let (other, cleanup) = try profile(model)
+        defer { cleanup() }
+        #expect(BridgeAppModel.commonPhraseVoiceKeySource(profile: other, longRecordingRequested: false) == nil)
+        #expect(BridgeAppModel.commonPhraseVoiceKeySource(profile: nil, longRecordingRequested: false) == nil)
+    }
+
+    @Test func hiddenPanelIgnoresVoiceKey() throws {
+        let name = "phrase-voice-hidden-" + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        let data = try JSONEncoder().encode(CommonPhraseArchive(
+            entries: [CommonPhrase(id: "builtin-one", text: "好的", label: "好的")], bindings: [:]))
+        let controller = CommonPhraseController(store: CommonPhraseStore(defaults: defaults, builtInData: data))
+        #expect(!controller.closeForVoiceKey(source: "hid:any"))
     }
 }
 
