@@ -213,7 +213,7 @@ struct CommonPhraseStorageTests {
 struct CommonPhraseOwnershipTests {
     @Test func foreignRemoteCannotChooseOrReleaseOwnersPhrase() {
         var routing = CommonPhraseRouting()
-        routing.open(source: "first")
+        routing.open(source: "first", buttons: CommonPhraseStore.baseButtons)
         #expect(routing.handle(.up, phase: .press, source: "second") == .unhandled)
         #expect(routing.owner == "first")
         #expect(routing.handle(.up, phase: .press, source: "first") == .insert(.up))
@@ -225,9 +225,9 @@ struct CommonPhraseOwnershipTests {
     }
     @Test func reopeningDoesNotLeakHeldReleaseFromPreviousOwner() {
         var routing = CommonPhraseRouting()
-        routing.open(source: "first")
+        routing.open(source: "first", buttons: CommonPhraseStore.baseButtons)
         #expect(routing.handle(.back, phase: .press, source: "first") == .close)
-        routing.open(source: "second")
+        routing.open(source: "second", buttons: CommonPhraseStore.baseButtons)
         routing.reset(source: "unrelated")
         #expect(routing.claims(.back, source: "first"))
         #expect(routing.handle(.back, phase: .release, source: "first") == .consumed)
@@ -236,10 +236,27 @@ struct CommonPhraseOwnershipTests {
         routing.reset(source: "second")
         #expect(!routing.claims(.ok, source: "second"))
     }
-    @Test(arguments: [RemoteButton.power, .tv, .volumeUp])
-    func unrelatedButtonsDoNotClosePanel(button: RemoteButton) {
+    @Test(arguments: [RemoteButton.power, .home, .tv, .volumeUp])
+    func baseRemoteKeepsUnrelatedButtonsUnhandled(button: RemoteButton) {
         var routing = CommonPhraseRouting()
-        routing.open(source: "first")
+        routing.open(source: "first", buttons: CommonPhraseStore.baseButtons)
+        #expect(!routing.claims(button, source: "first"))
+        #expect(routing.handle(button, phase: .press, source: "first") == .unhandled)
+        #expect(routing.owner == "first")
+    }
+    @Test(arguments: CommonPhraseStore.chromecastButtons)
+    func chromecastKeysInsertWhenPanelIsOpen(button: RemoteButton) {
+        var routing = CommonPhraseRouting()
+        routing.open(source: "first", buttons: CommonPhraseStore.buttons(chromecast: true))
+        #expect(routing.claims(button, source: "first"))
+        #expect(routing.handle(button, phase: .press, source: "first") == .insert(button))
+        #expect(routing.handle(button, phase: .release, source: "first") == .consumed)
+    }
+    @Test(arguments: [RemoteButton.volumeUp, .volumeDown])
+    func chromecastVolumeKeysStayUnhandled(button: RemoteButton) {
+        var routing = CommonPhraseRouting()
+        routing.open(source: "first", buttons: CommonPhraseStore.buttons(chromecast: true))
+        #expect(!routing.claims(button, source: "first"))
         #expect(routing.handle(button, phase: .press, source: "first") == .unhandled)
         #expect(routing.owner == "first")
     }

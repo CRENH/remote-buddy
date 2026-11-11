@@ -72,7 +72,11 @@ extension BridgeAppModel {
         if action == .openCommonPhrases {
             guard Thread.isMainThread else { return false }
             return MainActor.assumeIsolated {
-                commonPhrases.open(source: source, localization: LocalizationStore(settings: settings))
+                commonPhrases.open(
+                    source: source,
+                    buttons: CommonPhraseStore.buttons(
+                        chromecast: settings.selectedRemoteProfile?.model.isChromecastRemote == true),
+                    localization: LocalizationStore(settings: settings))
             }
         }
         guard action == .toggleLongRecording else { return false }
