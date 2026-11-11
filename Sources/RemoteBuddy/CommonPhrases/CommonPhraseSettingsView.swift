@@ -43,11 +43,6 @@ struct CommonPhraseSettingsView: View {
                 .accessibilityIdentifier("common-phrases-return")
                 Text(localization.text("common_phrases.adjust"))
                     .font(.system(size: 25, weight: .semibold))
-                HStack(spacing: 8) { backupButtons }
-                    .font(.system(size: 12)).padding(.leading, 12)
-                Text(localization.text("common_phrases.import_hint"))
-                    .font(.system(size: 12)).foregroundStyle(.secondary)
-                    .lineLimit(2).fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
                 Button(localization.text("common_phrases.restore_clipboard")) {
                     messageKey = clipboardPaste.restorePreviousClipboard()
@@ -55,7 +50,15 @@ struct CommonPhraseSettingsView: View {
                 }
                 .disabled(!clipboardPaste.canRestoreClipboard)
                 .help(localization.text("common_phrases.restore_clipboard_hint"))
-            }.padding(22)
+            }.padding([.horizontal, .top], 22).padding(.bottom, 10)
+            // A row of its own, so longer translations neither truncate the hint nor the header.
+            HStack(spacing: 12) {
+                HStack(spacing: 8) { backupButtons }
+                Text(localization.text("common_phrases.import_hint"))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+            }
+            .font(.system(size: 12)).padding(.horizontal, 22).padding(.bottom, 16)
             GeometryReader { geometry in
                 let available = geometry.size.width - 44 - 28
                 let padWidth = min(300, max(230, available * 0.34))
