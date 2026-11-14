@@ -100,10 +100,6 @@ final class BluetoothAudioPipeline: @unchecked Sendable {
         }
     }
 
-    func configureFormat(lowNibbleFirst: Bool) {
-        queue.async { [self] in decoder.configureFormat(lowNibbleFirst: lowNibbleFirst) }
-    }
-
     func synchronize(predictor: Int, stepIndex: Int) {
         let token = lock.withLock { generation }
         queue.async { [self] in
