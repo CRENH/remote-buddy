@@ -5,6 +5,7 @@ import SwiftUI
 
 extension OnboardingView {
     func prepareForStep(_ step: OnboardingStep) {
+        buttonHelpExpanded = false
         refreshPermissionStates()
         model.applyHIDSettings(allowVoiceKeyModeFallback: false)
         switch step {

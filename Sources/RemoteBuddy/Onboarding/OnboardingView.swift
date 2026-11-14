@@ -56,6 +56,7 @@ struct OnboardingView: View {
     @State var secureInputActive: Bool?
     @State var secureInputWaitStartedAtUptime: TimeInterval?
     @State var lastLoggedSecureInputState: Bool?
+    @State var buttonHelpExpanded = false
     @State var microphonePreparationInProgress = false
     @State var aiPromptCopyResult: Bool?
     @State var isPermissionRelaunchConfirmationPresented = false

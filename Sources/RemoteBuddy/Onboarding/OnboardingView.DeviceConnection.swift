@@ -15,6 +15,8 @@ extension OnboardingView {
     }
 
     private func learnSelectedHIDIdentity() {
+        guard selectedControlConnected, let profile = settings.selectedRemoteProfile,
+              BridgeAppModel.canLearnHIDIdentity(model: profile.model, source: settings.onboardingControlSource) else { return }
         if let bridge = model.selectedBluetoothBridge { model.learnSelectedRemoteHIDIdentity(bridge) }
     }
 
@@ -108,15 +110,6 @@ extension OnboardingView {
                 compact: true
             )
 
-            if let profile = settings.selectedRemoteProfile,
-               selectedControlConnected,
-               BridgeAppModel.canLearnHIDIdentity(model: profile.model, source: settings.onboardingControlSource) {
-                Button(localization.text("remote.hid_binding.open")) { hidBindingProfile = profile }
-                    .buttonStyle(.bordered)
-                    .onAppear { learnSelectedHIDIdentity() }
-                    .onChange(of: settings.selectedRemoteProfileID) { _, _ in learnSelectedHIDIdentity() }
-            }
-
             if shouldShowSecureInputWarning {
                 secureInputWarningCard
             }
@@ -125,7 +118,14 @@ extension OnboardingView {
                 openBluetoothSettingsButton
             }
         }
-        .onAppear { model.selectOnboardingRemoteIfNeeded() }
+        .onAppear {
+            model.selectOnboardingRemoteIfNeeded()
+            learnSelectedHIDIdentity()
+        }
+        .onChange(of: settings.selectedRemoteProfileID) { _, _ in learnSelectedHIDIdentity() }
+        .onChange(of: selectedControlConnected) { _, connected in
+            if connected { learnSelectedHIDIdentity() }
+        }
         .onChange(of: model.onboardingRemoteProfiles.map(\.id)) { _, _ in
             model.selectOnboardingRemoteIfNeeded()
         }

@@ -239,27 +239,49 @@ extension OnboardingView {
     }
 
     func buttonTroubleshooting(for failure: FirstUseFailureReason) -> some View {
-        DisclosureGroup(localization.text("onboarding.button_help.title")) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(localization.text("onboarding.button_help.steps"))
-                    .font(.callout).foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                HStack(spacing: 10) {
-                    onboardingActionButton(id: "recovery.\(failure.rawValue)") {
-                        performRecovery(for: failure)
-                    } label: {
-                        Text(localization.text(recoveryActionKey(for: failure)))
-                    }
-                    .buttonStyle(.bordered)
-                    onboardingActionButton(id: "diagnostics.copy") {
-                        copyDiagnosticSummary()
-                    } label: {
-                        Text(localization.text("onboarding.button_help.copy"))
-                    }
-                    .buttonStyle(.bordered)
+        VStack(alignment: .leading, spacing: 0) {
+            onboardingActionButton(id: "button-help.toggle") {
+                buttonHelpExpanded.toggle()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: buttonHelpExpanded ? "chevron.down" : "chevron.right")
+                    Text(localization.text("onboarding.button_help.title"))
+                    Spacer(minLength: 0)
                 }
+                .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
+                .contentShape(Rectangle())
             }
-            .padding(.top, 8)
+            .buttonStyle(.plain)
+            .accessibilityValue(localization.text(buttonHelpExpanded
+                ? "onboarding.button_help.expanded" : "onboarding.button_help.collapsed"))
+            if buttonHelpExpanded {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(localization.text("onboarding.button_help.steps"))
+                        .font(.callout).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 10) {
+                        onboardingActionButton(id: "recovery.\(failure.rawValue)") {
+                            performRecovery(for: failure)
+                        } label: {
+                            Text(localization.text(recoveryActionKey(for: failure)))
+                        }
+                        .buttonStyle(.bordered)
+                        onboardingActionButton(id: "diagnostics.copy") {
+                            copyDiagnosticSummary()
+                        } label: {
+                            Text(localization.text("onboarding.button_help.copy"))
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                    if settings.onboardingStep == .remote,
+                       let profile = settings.selectedRemoteProfile, selectedControlConnected,
+                       BridgeAppModel.canLearnHIDIdentity(model: profile.model, source: settings.onboardingControlSource) {
+                        Button(localization.text("remote.hid_binding.open")) { hidBindingProfile = profile }
+                            .buttonStyle(.bordered)
+                    }
+                }
+                .padding(.top, 8)
+            }
         }
         .id(settings.onboardingStep)
     }

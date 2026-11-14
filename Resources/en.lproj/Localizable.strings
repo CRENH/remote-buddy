@@ -1258,3 +1258,5 @@
 "onboarding.audio.retry" = "Check Again";
 "onboarding.audio.failure_help" = "Check again. If the microphone is still unavailable, see the driver installation guide.";
 "onboarding.permission.not_enabled" = "Not Enabled";
+"onboarding.button_help.expanded" = "Expanded";
+"onboarding.button_help.collapsed" = "Collapsed";
