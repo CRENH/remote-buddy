@@ -84,6 +84,10 @@ final class AppSettings: ObservableObject {
         bindings.append(UnifiedButtonBinding(remoteProfileID: profileID, button: button,
                                             trigger: trigger, configured: configured))
         unifiedBaseBindings = bindings
+        AppLogger.shared.write(
+            "SETTINGS MAPPING updated button=\(button.rawValue) trigger=\(trigger.rawValue) " +
+                "action=\(configured.action.rawValue) profile_scoped=\(profileID != nil)"
+        )
 
         if let profileID {
             if let index = remoteDeviceProfiles.firstIndex(where: { $0.id == profileID }) {

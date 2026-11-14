@@ -639,6 +639,7 @@ extension AppSettings {
         }
         saveSelectedRemoteProfileMappings()
         encodeAndSave(unifiedBaseBindings, forKey: "unifiedBaseBindings")
+        AppLogger.shared.write("SETTINGS MAPPING reset profile_scoped=\(selectedRemoteProfileID != nil)")
     }
 }
 

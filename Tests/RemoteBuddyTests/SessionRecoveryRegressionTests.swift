@@ -895,4 +895,39 @@ struct SessionRecoveryRegressionTests {
         monitor.handleSimulatedReport(reportID: 1, data: release)
         monitor.disconnectSimulatedDevice()
     }
+
+    @Test func rawGesturePathLogsSecondaryTriggerAndProfileBindingDiagnostics() throws {
+        let clock = ControlledTestScheduler()
+        let (prefs, suite) = makeDefaults()
+        defer { prefs.removePersistentDomain(forName: suite) }
+        let settings = AppSettings(defaults: prefs)
+        settings.customMappingEnabled = true
+        let profile = UUID()
+        settings.setBaseBinding(.init(action: .returnKey, shortcut: nil), for: .ok, trigger: .singleClick, profileID: profile)
+        settings.setBaseBinding(.disabled, for: .ok, trigger: .doubleClick, profileID: profile)
+        settings.setBaseBinding(.disabled, for: .ok, trigger: .longPress, profileID: profile)
+
+        var logs: [String] = []
+        let monitor = HIDRemoteMonitor(
+            settings: settings,
+            profileID: profile,
+            scheduler: clock,
+            runtimePermissions: { true },
+            actionPerformer: { _, _, _ in true },
+            diagnosticLogger: { logs.append($0) }
+        )
+        monitor.connectSimulatedDevice(fingerprint: "gesture-raw-log-test", profileID: profile)
+        let usage = RemoteButton.ok.hidUsage
+        monitor.handleSimulatedReport(reportID: 1, data: Data([UInt8(usage & 255), UInt8(usage >> 8)]))
+        monitor.handleSimulatedReport(reportID: 1, data: Data([0, 0]))
+        monitor.disconnectSimulatedDevice()
+
+        #expect(logs.contains {
+            $0.contains("HID GESTURE button=ok trigger=singleClick path=raw") &&
+                $0.contains("long_press=disabled") &&
+                $0.contains("double_click=disabled") &&
+                $0.contains("hold_repeat=false") &&
+                $0.contains("preflight_bound=true")
+        })
+    }
 }
