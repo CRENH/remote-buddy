@@ -1138,7 +1138,11 @@ final class HIDRemoteMonitor {
                     frontmostBundleIdentifier: frontmostBundleIdentifier()
                 ) else { continue }
                 diagnosticLogger(
-                    "HID GESTURE button=\(button.rawValue) trigger=singleClick path=raw"
+                    "HID GESTURE button=\(button.rawValue) trigger=singleClick path=raw " +
+                        "long_press=\(settings.configuredAction(for: button, trigger: .longPress, profileID: profileID).action.rawValue) " +
+                        "double_click=\(settings.configuredAction(for: button, trigger: .doubleClick, profileID: profileID).action.rawValue) " +
+                        "hold_repeat=\(settings.allowsHoldRepeat(for: button, profileID: profileID)) " +
+                        "preflight_bound=\(preflightProfileID != nil)"
                 )
                 guard performConfiguredAction(for: button, trigger: .singleClick) else { continue }
             }
