@@ -652,9 +652,8 @@
 "onboarding.voice_tool.binding.no_documented_default" = "没有可安全自动采用的默认快捷键。";
 "onboarding.voice_tool.binding.evidence_verified" = "推荐";
 "onboarding.voice_tool.binding.evidence_pending" = "测试通过后保存";
-"onboarding.control_source.title" = "选择控制设备";
+"onboarding.control_source.title" = "选择遥控器型号";
 "onboarding.control_source.detail" = "请选择要使用的遥控器，然后点击“继续”。";
-"onboarding.control_source.hardware" = "实体遥控器";
 "onboarding.control_source.alternatives" = "备用方式";
 "onboarding.control_source.more" = "更多控制方式";
 "onboarding.control_source.recommended" = "推荐";
@@ -1027,7 +1026,7 @@
 "onboarding.voice_tool.guide.screenshot.macos_dictation_microphone" = "在“系统设置 → 键盘 → 听写 → 麦克风来源”中明确选择 Remote Buddy Mic，不要选择“自动”。红框标出的是听写的麦克风设置，无需更改系统默认麦克风。";
 
 "onboarding.step.welcome" = "欢迎";
-"onboarding.step.remoteAvailability" = "准备设备";
+"onboarding.step.remoteAvailability" = "选择遥控器型号";
 "onboarding.step.permissions" = "权限与麦克风";
 "onboarding.step.remote" = "连接遥控器";
 "onboarding.step.voiceTool" = "输入工具";

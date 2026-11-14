@@ -11,8 +11,6 @@ extension OnboardingView {
                 .font(.system(size: 14))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Text(localization.text("onboarding.control_source.hardware"))
-                .font(.system(size: 13, weight: .semibold))
             ForEach(RemoteSetupDevice.allCases) { device in
                 deviceSelectionCard(device)
             }

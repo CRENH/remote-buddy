@@ -2,7 +2,7 @@
 
 从本项目 GitHub Releases 下载适合 Mac 架构的 PKG，一次安装 App 与虚拟麦克风驱动；打开 `/Applications/Remote Buddy.app`。
 
-首次向导依次检查权限与麦克风、准备设备、连接遥控器、按键测试、语音热键、输入工具、语音测试和完成。按需授予蓝牙、输入监控和辅助功能权限。小米 RC001／RC003 与 G9N9N 有连接适配；GY3LE 和 Siri Remote 尚未完成适配。
+首次向导依次检查权限与麦克风、选择遥控器型号、连接遥控器、按键测试、语音热键、输入工具、语音测试和完成。按需授予蓝牙、输入监控和辅助功能权限。小米 RC001／RC003 与 G9N9N 有连接适配；GY3LE 和 Siri Remote 尚未完成适配。
 
 **关于 G9N9N 遥控器：** 因其按键报文不符合 macOS 规范，**不支持普通单键映射**（语音输入正常）。在首次向导中，按键检测请使用双键完成：初始验证同时按 OK＋上，后续测试依次按 OK＋上和返回＋上。设置完成后，开启按键映射并由应用独占时，短按 OK＋任意方向键可发送 Enter。详情见 [独立测试报告](https://github.com/zfdang/remote-buddy/blob/main/docs/g9n9n-compatibility.md)。
 

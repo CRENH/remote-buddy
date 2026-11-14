@@ -653,9 +653,8 @@
 "onboarding.voice_tool.binding.no_documented_default" = "There is no safe documented default.";
 "onboarding.voice_tool.binding.evidence_verified" = "Recommended";
 "onboarding.voice_tool.binding.evidence_pending" = "Saved after testing";
-"onboarding.control_source.title" = "Choose How to Control Your Mac";
+"onboarding.control_source.title" = "Choose Your Remote Model";
 "onboarding.control_source.detail" = "Choose your remote, then click Continue.";
-"onboarding.control_source.hardware" = "Physical remotes";
 "onboarding.control_source.alternatives" = "Alternatives";
 "onboarding.control_source.more" = "More control methods";
 "onboarding.control_source.recommended" = "Recommended";
@@ -1030,7 +1029,7 @@
 "onboarding.voice_tool.guide.screenshot.macos_dictation_microphone" = "In System Settings → Keyboard → Dictation → Microphone source, select Remote Buddy Mic explicitly, rather than Automatic. The highlighted setting belongs to Dictation, not the system's default microphone.";
 
 "onboarding.step.welcome" = "Welcome";
-"onboarding.step.remoteAvailability" = "Your device";
+"onboarding.step.remoteAvailability" = "Remote Model";
 "onboarding.step.permissions" = "Permissions & Mic";
 "onboarding.step.remote" = "Connect remote";
 "onboarding.step.voiceTool" = "Input tool";
