@@ -1252,3 +1252,10 @@
 "onboarding.button_help.title" = "按键没反应？";
 "onboarding.button_help.steps" = "1. 确认遥控器有电，并已通过蓝牙连接到这台 Mac。\n2. 点击“重新检测按键”，再按上方提示的普通按键；按键测试页请尝试三个不同按键。\n3. 仍无反应时，检查“系统设置 → 隐私与安全性 → 输入监控”中是否允许遥控搭子。";
 "onboarding.button_help.copy" = "复制诊断信息以反馈问题";
+"onboarding.audio.state.missing" = "未检测到 Remote Buddy Mic";
+"onboarding.audio.state.preparing" = "正在准备 Remote Buddy Mic…";
+"onboarding.audio.state.failed" = "Remote Buddy Mic 未能就绪";
+"onboarding.audio.state.ready" = "Remote Buddy Mic 已就绪";
+"onboarding.audio.retry" = "重新检测";
+"onboarding.audio.failure_help" = "请重新检测；若仍未就绪，请查看驱动安装说明。";
+"onboarding.permission.not_enabled" = "未开启";

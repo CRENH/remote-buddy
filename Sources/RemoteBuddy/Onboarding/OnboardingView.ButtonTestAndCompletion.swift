@@ -318,6 +318,8 @@ extension OnboardingView {
     }
 
     func shouldShowStandaloneRecoveryCard(_ failure: FirstUseFailureReason) -> Bool {
+        // The first page owns inline permission and microphone recovery actions.
+        if settings.onboardingStep == .permissions && failure != .permissionDesynced { return false }
         if settings.onboardingStep == .remote,
            settings.onboardingControlMethod == .physicalRemote,
            failure == .remoteNotFound {

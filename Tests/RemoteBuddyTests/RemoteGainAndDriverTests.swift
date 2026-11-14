@@ -78,6 +78,13 @@ struct RemoteGainAndDriverTests {
         #expect(!OnboardingAudioSelectionPolicy.isSupportedDevice(uid: "BlackHole2ch_UID", name: "BlackHole 2ch"))
     }
 
+    @Test func microphoneSetupDistinguishesPreparationFromFailure() {
+        #expect(OnboardingView.microphoneSetupState(installed: false, ready: false, preparing: true) == .preparing)
+        #expect(OnboardingView.microphoneSetupState(installed: false, ready: false, preparing: false) == .missing)
+        #expect(OnboardingView.microphoneSetupState(installed: true, ready: false, preparing: false) == .failed)
+        #expect(OnboardingView.microphoneSetupState(installed: true, ready: true, preparing: false) == .ready)
+    }
+
     @Test func driverStepRequiresAConfiguredOutput() {
         var capabilities = OnboardingCapabilities(bluetoothGranted: true, inputMonitoringGranted: true, accessibilityGranted: true, microphoneDriverInstalled: true, audioOutputSelected: true)
         #expect(!OnboardingFlowPolicy.canContinue(from: .permissions, voiceTool: .unselected,

@@ -172,6 +172,10 @@ extension OnboardingView {
                         .foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 10)
+                if !granted {
+                    Text(localization.text("onboarding.permission.not_enabled"))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 Image(systemName: granted ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 19))
                     .foregroundStyle(granted ? Color.green : Color.secondary)
