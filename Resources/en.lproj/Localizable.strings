@@ -771,13 +771,13 @@
 "onboarding.controls.siri.detail" = "Press three different control buttons on the Apple Remote, such as an arrow, center, Back, TV, Play, or volume.";
 "onboarding.controls.chromecast.detail" = "Press three different control buttons on Chromecast Voice Remote, such as an arrow, OK, Back, Home, Mute, or volume.";
 "onboarding.controls.t1.detail" = "Press three different customizable buttons on the front of T1-Remote, such as Back, Home, Menu, Mute, Volume, or Power.";
-"onboarding.controls.g9n9n.detail" = "For G9N9N, test using two-button pairs: press OK + Up, release both; then press Back + Up, release both. Detecting 3 distinct buttons lets you continue.";
+"onboarding.controls.g9n9n.detail" = "Test these two combinations in order. Release each before trying the next.";
 "onboarding.controls.g9n9n.ready" = "Button checks passed; continue setup";
 "onboarding.side.g9n9n_test_enabled" = "Button test enabled";
 "onboarding.complete.g9n9n.voice_only" = "G9N9N supports voice input and OK + direction for Enter (single-button mapping unsupported)";
 "onboarding.controls.mobile_slot" = "Control %@";
 "onboarding.controls.waiting" = "Try another button";
-"onboarding.controls.ready" = "Your button controls are working";
+"onboarding.controls.ready" = "Button detection passed";
 "onboarding.secure_input.title" = "System security may be blocking remote buttons";
 "onboarding.secure_input.detail" = "Quit apps that are asking for a password or using a secure keyboard, then check again.";
 "onboarding.secure_input.recheck" = "Check again";
@@ -808,7 +808,7 @@
 "onboarding.side.voice_key" = "Voice session started and ended";
 "onboarding.side.samples" = "Voice audio received";
 "onboarding.side.transcript" = "Text appeared";
-"onboarding.side.three_buttons" = "Everyday buttons tried";
+"onboarding.side.three_buttons" = "Three different buttons detected";
 "onboarding.side.mapping_enabled" = "Custom buttons enabled";
 "onboarding.diagnostics.copy" = "Copy Setup Diagnostics";
 "onboarding.recovery.permission.bluetooth_denied.title" = "Bluetooth access is still needed";
@@ -1260,3 +1260,6 @@
 "onboarding.permission.not_enabled" = "Not Enabled";
 "onboarding.button_help.expanded" = "Expanded";
 "onboarding.button_help.collapsed" = "Collapsed";
+"onboarding.controls.progress" = "Detected %@/3 different buttons";
+"onboarding.controls.g9n9n.first" = "Press OK + Up together, then release";
+"onboarding.controls.g9n9n.second" = "Press Back + Up together, then release";

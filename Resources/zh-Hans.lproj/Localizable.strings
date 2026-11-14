@@ -768,13 +768,13 @@
 "onboarding.controls.siri.detail" = "在苹果遥控器上连续按下三个不同的普通按键，例如方向、中心、返回、TV、播放或音量。";
 "onboarding.controls.chromecast.detail" = "在 Chromecast 遥控器上连续按下三个不同的普通按键，例如方向、确定、返回、主页、静音或音量。";
 "onboarding.controls.t1.detail" = "在 T1 遥控器正面连续按下三个不同的可映射按键，例如返回、主页、菜单、静音、音量或电源键。";
-"onboarding.controls.g9n9n.detail" = "G9N9N 请使用双键测试：先同时按 OK＋上，松开；再同时按返回＋上，松开。累计检测到 3 个按键即可继续。";
+"onboarding.controls.g9n9n.detail" = "依次测试下面两组组合键，每组松开后再进行下一组。";
 "onboarding.controls.g9n9n.ready" = "已完成按键检测，可继续设置";
 "onboarding.side.g9n9n_test_enabled" = "按键测试已开启";
 "onboarding.complete.g9n9n.voice_only" = "G9N9N 支持语音输入与 OK＋方向键发送 Enter（普通单键映射不受支持）";
 "onboarding.controls.mobile_slot" = "第 %@ 个不同控制";
 "onboarding.controls.waiting" = "继续按下不同的按键";
-"onboarding.controls.ready" = "常用按键已经可以使用";
+"onboarding.controls.ready" = "按键检测通过";
 "onboarding.secure_input.title" = "系统安全输入可能影响遥控器按键";
 "onboarding.secure_input.detail" = "请退出正在输入密码或使用安全键盘输入的应用，然后重新检测。";
 "onboarding.secure_input.recheck" = "重新检测";
@@ -805,7 +805,7 @@
 "onboarding.side.voice_key" = "语音键已按下并松开";
 "onboarding.side.samples" = "语音声音已收到";
 "onboarding.side.transcript" = "文字已经出现";
-"onboarding.side.three_buttons" = "常用按键已体验";
+"onboarding.side.three_buttons" = "已检测到三个不同按键";
 "onboarding.side.mapping_enabled" = "自定义按键已启用";
 "onboarding.diagnostics.copy" = "复制设置诊断";
 "onboarding.recovery.permission.bluetooth_denied.title" = "还需要蓝牙权限";
@@ -1261,3 +1261,6 @@
 "onboarding.permission.not_enabled" = "未开启";
 "onboarding.button_help.expanded" = "已展开";
 "onboarding.button_help.collapsed" = "已收起";
+"onboarding.controls.progress" = "已检测到 %@/3 个不同按键";
+"onboarding.controls.g9n9n.first" = "同时按 OK＋上，然后松开";
+"onboarding.controls.g9n9n.second" = "同时按返回＋上，然后松开";

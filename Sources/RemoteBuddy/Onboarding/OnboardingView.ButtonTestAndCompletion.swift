@@ -21,7 +21,13 @@ extension OnboardingView {
                 secureInputWarningCard
             }
 
-            if let buttons = displayedControlButtons {
+            if usesG9N9NButtonTestWorkaround {
+                VStack(alignment: .leading, spacing: 12) {
+                    Label(localization.text("onboarding.controls.g9n9n.first"), systemImage: "1.circle")
+                    Label(localization.text("onboarding.controls.g9n9n.second"), systemImage: "2.circle")
+                }
+                .font(.callout)
+            } else if let buttons = displayedControlButtons {
                 LazyVGrid(
                     columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3),
                     spacing: 8
@@ -76,13 +82,9 @@ extension OnboardingView {
                         .font(.system(size: 18))
                         .foregroundStyle(testedControlButtons.count > index ? Color.green : Color.secondary)
                 }
-                Text(verbatim: localization.text(
-                    testedControlButtons.count >= 3
-                        ? usesG9N9NButtonTestWorkaround
-                            ? "onboarding.controls.g9n9n.ready"
-                            : "onboarding.controls.ready"
-                        : "onboarding.controls.waiting"
-                ))
+                Text(testedControlButtons.count >= 3
+                    ? localization.text("onboarding.controls.ready")
+                    : LocalizedMessage("onboarding.controls.progress", arguments: [String(min(3, testedControlButtons.count))]).text(using: localization))
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.secondary)
             }
