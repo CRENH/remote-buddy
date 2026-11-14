@@ -104,7 +104,7 @@ extension OnboardingView {
                     .accessibilityIdentifier("onboarding.language")
                 }
                 Spacer(minLength: 0)
-                if settings.canDismissOnboarding {
+                if settings.onboardingStep != .complete && settings.canDismissOnboarding {
                     onboardingActionButton(id: "dismiss") {
                         model.dismissOnboardingSetup()
                     } label: {
@@ -117,7 +117,7 @@ extension OnboardingView {
                     .disabled(model.isVoiceConfigurationBusy)
                     .accessibilityIdentifier("onboarding.dismiss")
                 }
-                if !settings.canDismissOnboarding {
+                if settings.onboardingStep != .complete && !settings.canDismissOnboarding {
                     onboardingActionButton(id: "pause", action: pauseIncompleteSetup) {
                         Text(localization.text("onboarding.action.pause"))
                     }
