@@ -8,6 +8,7 @@ enum SettingsScreenshotRenderer {
         case invalidSize(String)
         case invalidAppearance(String)
         case invalidLanguage(String)
+        case invalidIntegrationStatus(String)
         case bitmapCreationFailed
         case pngCreationFailed
 
@@ -19,6 +20,8 @@ enum SettingsScreenshotRenderer {
                 return "Unsupported settings screenshot appearance: \(value)."
             case let .invalidLanguage(value):
                 return "Unsupported settings screenshot language: \(value)."
+            case let .invalidIntegrationStatus(value):
+                return "Unsupported integration screenshot status: \(value)."
             case .bitmapCreationFailed:
                 return "The settings screenshot bitmap could not be created."
             case .pngCreationFailed:
@@ -27,9 +30,7 @@ enum SettingsScreenshotRenderer {
         }
     }
 
-    private static let sections: [SettingsSection] = [
-        .connection, .mapping, .integration, .permissions, .general, .about, .commonPhrases,
-    ]
+    private static let sections = SettingsPageBehavior.sidebarSectionOrder + [.commonPhrases]
 
     static func renderAll(
         to outputDirectory: URL,
@@ -110,8 +111,34 @@ enum SettingsScreenshotRenderer {
         }
         let model = BridgeAppModel(
             settings: settings,
-            initialAudioDevices: screenshotAudioDevices
+            initialAudioDevices: screenshotAudioDevices,
+            permissionSnapshotProvider: {
+                HIDPermissionSnapshot(
+                    inputMonitoringGranted: permissionsOverride?.inputMonitoring ?? true,
+                    accessibilityGranted: permissionsOverride?.accessibility ?? true
+                )
+            }
         )
+        let integrationScreenshotState = try integrationState(from: ProcessInfo.processInfo.environment[
+            "REMOTE_BUDDY_SETTINGS_SCREENSHOT_INTEGRATION_STATUS"
+        ])
+        if integrationScreenshotState != nil {
+            settings.setApplicationIntegration(.workBuddy, enabled: true)
+        }
+        switch ProcessInfo.processInfo.environment["REMOTE_BUDDY_SETTINGS_SCREENSHOT_RUNTIME_PERMISSION_ISSUE"] {
+        case "desync":
+            model.connectionStatus = LocalizedMessage(BluetoothStatusKeys.permissionDenied)
+            model.hidStatus = LocalizedMessage(HIDStatusKeys.notPermitted)
+            model.refreshRuntimePermissionDiagnosis(trigger: "screenshot_harness", bluetoothGranted: true)
+        case "bluetooth_denied":
+            model.connectionStatus = LocalizedMessage(BluetoothStatusKeys.permissionDenied)
+            model.refreshRuntimePermissionDiagnosis(trigger: "screenshot_harness", bluetoothGranted: false)
+        case "not_permitted":
+            model.hidStatus = LocalizedMessage(HIDStatusKeys.notPermitted)
+            model.refreshRuntimePermissionDiagnosis(trigger: "screenshot_harness", bluetoothGranted: true)
+        default:
+            break
+        }
         if showsRemoteCards {
             settings.customMappingEnabled = true
             let xiaomiID = settings.registerBluetoothRemote(
@@ -260,10 +287,22 @@ enum SettingsScreenshotRenderer {
                 }
             }
             RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+            if section == .applicationIntegration, let state = integrationScreenshotState {
+                model.recordApplicationIntegrationStatus(state)
+            }
             window.contentView?.layoutSubtreeIfNeeded()
             scrollCanvasToEndIfRequested(in: window.contentView)
             window.contentView?.displayIfNeeded()
+            // Layout can enqueue another SwiftUI symbol-rendering pass. Let it
+            // finish before caching pixels from this newly created window.
+            RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+            window.contentView?.layoutSubtreeIfNeeded()
+            window.contentView?.displayIfNeeded()
 
+            if section == .applicationIntegration, let state = integrationScreenshotState,
+               model.applicationIntegrationStatus != state {
+                throw RenderingError.invalidIntegrationStatus("fixture cleared before capture")
+            }
             guard let contentView = window.contentView,
                   contentView.bounds.size == size,
                   let representation = contentView.bitmapImageRepForCachingDisplay(
@@ -353,6 +392,17 @@ enum SettingsScreenshotRenderer {
             throw RenderingError.invalidSize(value)
         }
         return NSSize(width: width, height: height)
+    }
+
+    static func integrationState(from value: String?) throws -> ApplicationIntegrationPreparationState? {
+        switch value {
+        case nil: return nil
+        case "preparing": return .waiting
+        case "preserved": return .preserved
+        case "ready": return .ready
+        case "unavailable": return .unavailable
+        case let value?: throw RenderingError.invalidIntegrationStatus(value)
+        }
     }
 
     private static func screenshotAppearance(from value: String?) throws -> NSAppearance? {

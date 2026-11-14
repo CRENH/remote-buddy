@@ -113,6 +113,7 @@ enum OnboardingControlMethod: String, CaseIterable, Codable, Identifiable {
 enum OnboardingControlSource: String, CaseIterable, Codable, Identifiable {
     case unselected
     case xiaomiRemote = "xiaomi_remote"
+    case t1Remote = "t1_remote"
     case siriRemote = "siri_remote"
     case chromecastRemote = "chromecast_remote"
 
@@ -125,18 +126,40 @@ enum OnboardingControlSource: String, CaseIterable, Codable, Identifiable {
         switch self {
         case .unselected:
             return []
-        case .xiaomiRemote, .siriRemote, .chromecastRemote:
+        case .xiaomiRemote, .t1Remote, .siriRemote, .chromecastRemote:
+            // From the input-tool / macOS Fn output perspective, Remote Buddy holds the configured
+            // voice key continuously until audio stops (even though T1's physical voice button
+            // operates as press-and-release to start / second-press to stop).
             return [.hold]
         }
     }
 
     var controlMethod: OnboardingControlMethod {
         switch self {
-        case .xiaomiRemote, .siriRemote, .chromecastRemote:
+        case .xiaomiRemote, .t1Remote, .siriRemote, .chromecastRemote:
             return .physicalRemote
         case .unselected:
             return .unselected
         }
+    }
+
+    func matches(_ model: RemoteModel) -> Bool {
+        switch self {
+        case .xiaomiRemote:
+            return !model.usesPrivateAdapter && !model.isATVVRemote
+        case .t1Remote:
+            return model.isT1Remote
+        case .siriRemote:
+            return model.usesPrivateAdapter
+        case .chromecastRemote:
+            return model.isChromecastRemote
+        case .unselected:
+            return false
+        }
+    }
+
+    func matchesConfirmedCandidate(_ model: RemoteModel) -> Bool {
+        model != .unknown && matches(model)
     }
 
     static func defaultSource(for method: OnboardingControlMethod) -> Self {

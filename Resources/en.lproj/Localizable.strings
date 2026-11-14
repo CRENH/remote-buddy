@@ -1,6 +1,6 @@
 "audio.output.none_selected" = "No audio output device selected";
 "audio.output.selected_unavailable" = "The selected audio output device is unavailable";
-"audio.output.core_audio_open_failed" = "Unable to open the Core Audio output unit";
+"audio.output.core_audio_open_failed" = "Unable to start virtual microphone audio output (Core Audio output unit failed to open)";
 "audio.output.select_failed" = "Unable to select the audio device (error %1$@)";
 "audio.output.current_format" = "Audio output: %1$@";
 "audio.output.start_failed" = "Failed to start audio output: %1$@";
@@ -52,6 +52,7 @@
 "button_mapping.error.device_read_failed" = "Unable to read remote buttons (error %1$@)";
 "button_mapping.error.exclusive_access" = "Another input tool is using the remote. Quit or pause keyboard, mouse, or device remapping tools, then try again. Common examples include Karabiner-Elements, BetterTouchTool, USB Overdrive, and SteerMouse.";
 "button_mapping.error.exclusive_access.karabiner" = "Another input tool is using the remote. If you use Karabiner-Elements, open Devices, find the Xiaomi Bluetooth Voice Remote, turn off “Modify events” or set the device to “Ignore”, then try again.";
+"button_mapping.error.not_permitted" = "macOS denied access to read remote buttons. Check Input Monitoring permission or restart Remote Buddy.";
 "button_mapping.error.power_suppression_failed" = "Unable to safely override the remote power button";
 "button_mapping.status.connected_fallback" = "Button controls connected";
 "button_mapping.status.connected_system_actions_may_remain" = "Button controls connected; some original system actions may still occur";
@@ -59,14 +60,14 @@
 "button_mapping.permission.accessibility_expired" = "Accessibility access is unavailable. Button controls have stopped.";
 "button_mapping.permission.system_expired" = "Required permissions are no longer available. Button controls have stopped.";
 "common.status.stopped" = "Stopped";
-"connection.status.searching" = "Looking for a Xiaomi remote";
+"connection.status.searching" = "Looking for a remote";
 "connection.status.connecting" = "Connecting to the remote";
 "connection.status.initializing_voice" = "Initializing the voice service";
-"connection.status.connected_to_device" = "Xiaomi remote connected";
+"connection.status.connected_to_device" = "Remote connected";
 "connection.status.apple_remote_connected" = "Apple Remote connected";
 "connection.status.chromecast_connected" = "Chromecast remote connected";
 "connection.status.reconnecting" = "Connection lost; preparing to reconnect";
-"connection.error.voice_service_timeout" = "Remote voice service initialization timed out";
+"connection.error.voice_service_timeout" = "Timed out connecting to the remote's Bluetooth voice service. Press a remote button to wake it and try again.";
 "connection.error.invalid_voice_response" = "The remote returned an invalid voice capability response";
 "connection.error.unsupported_16khz_codec" = "The remote did not provide a supported 16 kHz voice codec";
 "connection.error.unsupported_8khz_codec" = "The remote switched to an unsupported 8 kHz voice codec";
@@ -75,12 +76,12 @@
 "bluetooth.status.unsupported" = "This Mac does not support Bluetooth Low Energy";
 "bluetooth.status.resetting" = "Bluetooth is resetting";
 "bluetooth.status.unavailable" = "Bluetooth status is unavailable";
-"connection.error.voice_service_discovery_failed" = "Failed to discover the voice service: %1$@";
-"connection.error.voice_service_missing" = "The remote does not provide a supported voice service";
-"connection.error.voice_channel_discovery_failed" = "Failed to discover the voice channel: %1$@";
-"connection.error.voice_channel_incomplete" = "The remote voice channel is incomplete";
-"connection.error.voice_channel_subscription_failed" = "Failed to subscribe to the voice channel: %1$@";
-"connection.error.voice_channel_subscription_inactive" = "The remote voice notification subscription did not take effect";
+"connection.error.voice_service_discovery_failed" = "Failed to read the remote's Bluetooth voice service: %1$@";
+"connection.error.voice_service_missing" = "No supported Bluetooth voice service was found on this remote";
+"connection.error.voice_channel_discovery_failed" = "Failed to read the remote's voice audio channel: %1$@";
+"connection.error.voice_channel_incomplete" = "The remote's Bluetooth voice audio channel is incomplete. Reconnect and try again.";
+"connection.error.voice_channel_subscription_failed" = "Failed to enable the remote's voice audio channel: %1$@";
+"connection.error.voice_channel_subscription_inactive" = "Voice audio notifications from the remote did not take effect. Re-pair or reconnect the remote.";
 "remote.button.short.power" = "Power";
 "remote.button.short.up" = "Up";
 "remote.button.short.left" = "Left";
@@ -235,13 +236,13 @@
 "custom_application.accessibility.record_succeeded_title" = "Input Field Saved";
 "custom_application.accessibility.record_succeeded" = "The target input field was saved. Use Test Open and Focus to confirm the result.";
 "custom_application.accessibility.record_failed_title" = "Input Field Not Saved";
-"custom_application.accessibility.record_failed" = "No usable text input was detected in this app. Click the input field and verify Accessibility permission.";
+"custom_application.accessibility.record_failed" = "No usable text input field was detected in this app. Click the input field and verify Accessibility permission.";
 "custom_application.error.title" = "Unable to Configure App";
 "custom_application.error.not_installed" = "The target app was moved or uninstalled. Add it again.";
 "custom_application.error.open_failed" = "The target app could not be opened.";
 "settings.section.connection" = "Devices";
 "settings.section.buttons" = "Buttons";
-"settings.section.permissions" = "Permissions";
+"settings.section.permissions" = "Permissions & Microphone";
 "permission.status.enabled" = "Enabled";
 "permission.status.pending" = "Needs Permission";
 "connection.page.title" = "Device Connection";
@@ -287,8 +288,8 @@
 "common.status.ready" = "Ready";
 "connection.status.voice_trigger" = "Voice trigger";
 "connection.voice_fn_tap.enabled" = "Use Fn Taps for Voice Typing";
-"connection.voice_fn_tap.hint" = "Supported remotes only record audio while the voice button is held, stopping upon release. Tools like NetEase Bageshuo and Typeless require taps to toggle dictation. Tap conversion coordinates with recording: pressing sends an Fn tap to start recognition; releasing waits for buffered audio to drain, then sends a second Fn tap to finish recognition. Keep disabled for hold-to-talk tools (WeChat Input, Doubao Hold mode). Requires Accessibility permission.";
-"connection.voice_fn_tap.hint_short" = "For NetEase Bageshuo and Typeless: sends an Fn tap on hold to start, and another tap after audio drains on release.";
+"connection.voice_fn_tap.hint" = "Supported remotes only record audio while the voice button is held, stopping on release. Tools like NetEase Bageshuo and Typeless require single taps to toggle dictation. Tap conversion bridges this: pressing sends a single Fn click to start recognition; releasing waits for trailing audio to finish transferring, then sends a second Fn click to finish. Keep disabled for hold-to-talk tools (WeType, Doubao Hold mode). Requires Accessibility permission.";
+"connection.voice_fn_tap.hint_short" = "For tap-to-toggle tools like NetEase Bageshuo and Typeless: clicks Fn once on press to start, and again after trailing audio finishes on release.";
 "connection.voice_key_mode.title" = "Voice Trigger Key";
 "connection.voice_key.mode.fn" = "Fn/Globe";
 "connection.voice_key.mode.left_command" = "Left Command";
@@ -320,9 +321,11 @@
 "button_mapping.page.title" = "Button Mapping";
 "button_mapping.page.subtitle" = "Click a button to change its settings";
 "button_mapping.google.subtitle" = "G9N9N supports OK + direction for Enter; single-button mapping is unavailable";
+"button_mapping.t1.subtitle" = "Click Back, Home, Menu, Mute, Volume, or Power to customize; press and release Voice to start talking, then press again to stop (OK, arrows, air mouse, and back keyboard keep default system input)";
+"t1.remote.keyboard_airmouse_note" = "Back, Home, Menu, Mute, Volume, and Power support single, double, and long-press mapping. OK, direction keys, air mouse movement, and the back QWERTY keyboard keep default system input (typing and cursor control).";
 "button_mapping.google.enter.title" = "OK + direction → Enter (fixed)";
-"button_mapping.google.enter.detail" = "When Custom Buttons is enabled and the app has exclusive access, briefly press OK + any direction to send Enter. This fixed combination is not affected by the individual settings below.";
-"button_mapping.google.enter.limit" = "Because G9N9N key reports violate macOS specifications, single-key and release events are dropped by the system, making individual button mappings ineffective on this device. Only OK + direction sends Enter; holding may repeat input.";
+"button_mapping.google.enter.detail" = "When Custom Buttons is enabled and the app has captured remote input, briefly press OK + any direction to send Enter. This fixed combination is not affected by the individual settings below.";
+"button_mapping.google.enter.limit" = "Because G9N9N Bluetooth HID key reports do not follow macOS standards, single-key and release events are ignored by the system, making individual button mappings unavailable on this device. Only OK + direction sends Enter; holding may repeat input.";
 "button_mapping.toggle.enabled" = "Custom Buttons";
 "button_mapping.permission_prompt.title" = "Button Permissions Required";
 "button_mapping.permission_prompt.message" = "Custom button controls require Input Monitoring and Accessibility. Open the Permissions page to finish setup.";
@@ -340,6 +343,7 @@
 "button_mapping.voice_button.title" = "Voice Button";
 "button_mapping.voice_button.fixed" = "Voice Trigger Key";
 "button_mapping.voice_button.detail" = "Hold to talk. Choose Fn/Globe, Left or Right Command, or Left or Right Option as the trigger key. The voice button is separate from other button actions.";
+"button_mapping.voice_button.t1_detail" = "Press and release to start talking, then press again to stop. Choose Fn/Globe, Left or Right Command, or Left or Right Option; excluded from regular button actions.";
 "button_mapping.action.not_set" = "Not Set";
 "button_mapping.single_click.help" = "Runs after one press. It waits briefly when a double-click action is set.";
 "button_mapping.double_click.effect" = "A single press waits briefly to distinguish it from a double press. Long press can still use a separate action or Hold to Repeat.";
@@ -356,7 +360,7 @@
 "permissions.page.subtitle" = "Grant these permissions in order so the remote can connect and send button actions";
 "permissions.required.title" = "Required Permissions";
 "permission.bluetooth.title" = "Bluetooth";
-"permission.bluetooth.description" = "Connect Xiaomi Bluetooth Remote 2 Pro and receive voice input";
+"permission.bluetooth.description" = "Connect Bluetooth remotes and receive voice input";
 "permission.bluetooth.open_settings" = "Open Bluetooth Settings";
 "permission.input_monitoring.title" = "Input Monitoring";
 "permission.input_monitoring.description" = "Detect remote button presses and help prevent duplicate system actions";
@@ -455,6 +459,7 @@
 "status_item.accessibility_label" = "Xiaomi Bluetooth Remote 2 Pro";
 "status_item.state.disconnected" = "%@: No devices connected";
 "status_item.state.connected" = "%@: Device connected";
+"status_item.state.preparing" = "%@: Preparing voice input";
 "status_item.state.streaming" = "%@: Voice active";
 "status_item.accessibility.show_menu" = "Show Menu";
 "about.alert.description_with_version" = "Version %1$@\nTurn your remote into a voice typing buddy. Speak instead of typing, and keep everyday actions a button away.";
@@ -463,13 +468,25 @@
 "common.status.copied" = "Copied";
 "settings.section.about" = "About";
 "settings.section.general" = "General";
+
+"settings.overview.title" = "Readiness status";
+"settings.overview.remote" = "Remote connection";
+"settings.overview.mapping" = "Button mapping";
+"settings.overview.integration" = "Input integration";
+"settings.overview.disconnected" = "Disconnected";
+"settings.overview.optional" = "Optional · not enabled";
+"settings.overview.not_configured" = "Not configured";
+"settings.general.display_group" = "App display";
+"settings.general.language_group" = "Language";
+"settings.overview.ready" = "Permissions and microphone ready";
+"settings.overview.missing_requirements" = "Needs setup: %@";
+"settings.overview.open_section" = "Open %@ settings";
+
 "settings.section.settings" = "Settings";
 "settings.update_badge.accessibility_value" = "New version available";
 "settings.page.title" = "Settings";
 "settings.permissions.title" = "System Permissions";
-"settings.general.title" = "General";
 "settings.general.launch_behavior" = "Launch Behavior";
-"settings.general.launch_behavior_help" = "Choose whether to launch at login and open the main window when the app starts.";
 "settings.diagnostics.title" = "Diagnostics & Logs";
 "settings.application_updates.title" = "App & Updates";
 "settings.application.tagline" = "Voice within reach";
@@ -489,12 +506,17 @@
 "about.preferences.language" = "App Language";
 "about.preferences.rc003_voice_extension_test" = "Test extended voice feature";
 "about.page.hero_subtitle" = "Version, preferences, and support for your wireless voice workspace";
-"about.page.hero_description" = "Turn your remote into an always-ready voice and shortcut controller for your Mac.";
 "about.privacy.local_only" = "Data stays on this Mac";
 "about.preferences.title" = "App Preferences";
 "about.support.title" = "Updates & Support";
-"about.version.title" = "Version & Updates";
 "about.version.current" = "Current Version";
+"about.info.title" = "Version information";
+"about.info.build" = "Build";
+"about.info.architecture" = "Architecture";
+"about.info.updates" = "Software updates";
+"about.info.project" = "Project and links";
+"about.info.releases" = "Latest releases";
+"about.info.open_releases" = "View releases";
 "about.version.latest" = "Latest Version";
 "about.version.available" = "Update Available";
 "about.version.update_to" = "Update to %1$@";
@@ -503,21 +525,20 @@
 "about.version.information_idle" = "Available updates are checked automatically when this page opens.";
 "about.version.checking" = "Checking for available updates…";
 "about.version.up_to_date" = "You're Up to Date";
-"about.version.up_to_date_description" = "There is no newer version on the selected update channel.";
+"about.version.up_to_date_description" = "You already have the latest version installed.";
 "about.version.information_unavailable" = "Update Information Unavailable";
 "about.version.information_unavailable_description" = "Check again later. Your installed version is unaffected.";
 "about.version.release_notes_title" = "What's New in %1$@";
 "about.version.release_notes_unavailable" = "Release notes are not available for this version.";
-"about.version.check_prerelease" = "Check for pre-release updates";
-"about.version.check_prerelease_help" = "Off by default. When enabled, automatic and manual checks also include release candidates.";
-"about.version.check_prerelease_help_short" = "Include updates that have not reached the stable release channel.";
+"about.version.check_prerelease" = "Include preview updates";
+"about.version.check_prerelease_help" = "Off by default. When enabled, automatic and manual checks also include preview releases before general availability.";
+"about.version.check_prerelease_help_short" = "Include preview updates before they reach stable release.";
 "about.version.history" = "Version History";
 "help.glossary.open" = "Glossary";
 "about.support.github" = "GitHub";
 "about.support.website" = "Website";
 "about.support.feedback" = "Feedback";
 "about.support.feedback_action" = "Send Feedback";
-"about.support.feedback_description" = "Report a problem or suggest an improvement for Remote Buddy.";
 "share.action" = "Share";
 "share.sidebar.accessibility_label" = "Share Remote Buddy";
 "share.title" = "Share Remote Buddy";
@@ -552,8 +573,8 @@
 "about.preferences.language_description" = "Choose the app interface language.";
 "update.completed.title" = "Remote Buddy Updated";
 "update.completed.message" = "Successfully updated to version %1$@.";
-"update.prerelease.feed_unavailable.title" = "Unable to Check Pre-release Updates";
-"update.prerelease.feed_unavailable.message" = "The latest candidate information is unavailable. Check your network and try again. Stable updates are unaffected.";
+"update.prerelease.feed_unavailable.title" = "Unable to Check Preview Updates";
+"update.prerelease.feed_unavailable.message" = "The latest preview release information is unavailable. Check your network and try again. Stable updates are unaffected.";
 "onboarding.phase.prepare" = "Prepare";
 "onboarding.phase.setup" = "Set Up";
 "onboarding.phase.try_it" = "Try It";
@@ -607,11 +628,11 @@
 "onboarding.voice_tool.guide.open_bageshuo" = "Open NetEase Bageshuo Settings";
 "onboarding.voice_tool.guide.open_bageshuo.detail" = "Click the NetEase Bageshuo menu bar icon, then select Settings.";
 "onboarding.voice_tool.guide.configure_bageshuo" = "Set Voice Shortcut to Fn";
-"onboarding.voice_tool.guide.configure_bageshuo.detail" = "In Settings → Shortcuts, set Dictation shortcut to Fn (press once to start, press again to stop). Because remotes only record while held, Remote Buddy automatically converts gestures: pressing sends an Fn tap to start dictation, and releasing drains remaining audio then sends an Fn tap to finish. Simply hold to talk and release when done.";
+"onboarding.voice_tool.guide.configure_bageshuo.detail" = "In Settings → Shortcuts, set Dictation shortcut to Fn (press once to start, press again to stop). Because remotes only record while held, Remote Buddy automatically converts gestures: pressing clicks Fn once to start dictation, and releasing waits for trailing audio to finish before clicking Fn once to stop. Simply hold to talk and release when done.";
 "onboarding.voice_tool.guide.open_typeless" = "Open Typeless";
 "onboarding.voice_tool.guide.open_typeless.detail" = "Start Typeless and leave it running in the background.";
 "onboarding.voice_tool.guide.configure_typeless" = "Press to start and stop";
-"onboarding.voice_tool.guide.configure_typeless.detail" = "Set Typeless shortcut to Fn (press to start, press to stop). Because remotes only record while held, Remote Buddy automatically converts gestures: pressing sends an Fn tap to start dictation, and releasing drains audio then sends an Fn tap to finish. Simply hold to talk and release when done.";
+"onboarding.voice_tool.guide.configure_typeless.detail" = "Set Typeless shortcut to Fn (press to start, press to stop). Because remotes only record while held, Remote Buddy automatically converts gestures: pressing clicks Fn once to start dictation, and releasing waits for trailing audio to finish before clicking Fn once to stop. Simply hold to talk and release when done.";
 "onboarding.voice_tool.guide.open_other" = "Open your voice app";
 "onboarding.voice_tool.guide.open_other.detail" = "Start the app you want to use and confirm that it supports voice typing.";
 "onboarding.voice_tool.guide.configure_other" = "Set its voice shortcut to Fn";
@@ -635,7 +656,7 @@
 "onboarding.voice_tool.bageshuo.detail" = "NetEase AI voice dictation with real-time transcription and smart text polish.";
 "onboarding.voice_tool.bageshuo.install" = "Visit NetEase Bageshuo website";
 "onboarding.voice_tool.bageshuo.install_detail" = "NetEase Bageshuo is not detected on your Mac:";
-"onboarding.voice_tool.fn_tap_banner" = "Physical remotes only record audio while held. Because this tool uses tap-to-toggle, Fn Tap conversion is automatically enabled: pressing sends an Fn tap to start dictation, and releasing waits for audio to drain then sends an Fn tap to finish. Simply hold to talk and release when done.";
+"onboarding.voice_tool.fn_tap_banner" = "Physical remotes only record audio while held. Because this tool uses tap-to-toggle, Fn Tap conversion is automatically enabled: pressing clicks Fn once to start dictation, and releasing waits for trailing audio to finish before clicking Fn once to stop. Simply hold to talk and release when done.";
 "onboarding.voice_tool.status.unknown" = "Open the tool to continue";
 "onboarding.voice_tool.binding.title" = "Shortcut configuration";
 "onboarding.voice_tool.binding.recommended" = "Use Recommended";
@@ -653,6 +674,8 @@
 "onboarding.control_source.unselected.detail" = "Choose a controller.";
 "onboarding.control_source.xiaomi_remote.title" = "Xiaomi Bluetooth Remote 2 / 2 Pro";
 "onboarding.control_source.xiaomi_remote.detail" = "Hold the physical voice button and release it to stop.";
+"onboarding.control_source.t1_remote.title" = "T1-Remote Air Mouse & Keyboard";
+"onboarding.control_source.t1_remote.detail" = "Physical voice button: press and release to start speaking, then press again to stop. Back QWERTY keyboard types directly.";
 "onboarding.control_source.siri_remote.title" = "Apple Remote (6th / 7th Generation)";
 "onboarding.control_source.siri_remote.detail" = "Use the physical voice button: hold to speak and release to stop.";
 "onboarding.control_source.apple_remote.generation_6.title" = "Apple Remote (6th Generation)";
@@ -680,14 +703,14 @@
 "onboarding.remote_availability.title" = "Do you have a physical remote right now?";
 "onboarding.remote_availability.detail" = "A physical remote provides the most complete and reliable Remote Buddy experience. You can continue with a phone if one is not available.";
 "onboarding.remote_availability.has_remote.title" = "I Have a Remote";
-"onboarding.remote_availability.has_remote.detail" = "Connect a Xiaomi Bluetooth remote and use its physical buttons and microphone.";
+"onboarding.remote_availability.has_remote.detail" = "Connect a supported Bluetooth remote and use its physical buttons and microphone.";
 "onboarding.remote_availability.no_remote.title" = "No Remote Right Now";
 "onboarding.remote_availability.no_remote.detail" = "Choose the iPhone app or WeChat mini program next.";
 "onboarding.remote_availability.recommended" = "Preferred";
 "onboarding.remote_availability.illustration" = "Use a physical remote when available";
 "onboarding.control_method.title" = "Choose a phone option without a remote";
 "onboarding.control_method.physical_remote.title" = "Physical Remote";
-"onboarding.control_method.physical_remote.detail" = "Connect a Xiaomi Bluetooth remote and use its physical buttons and microphone.";
+"onboarding.control_method.physical_remote.detail" = "Connect a supported Bluetooth remote and use its physical buttons and microphone.";
 "onboarding.control_method.illustration" = "Choose the control method you can use now";
 "onboarding.permissions.title" = "Allow Remote Buddy to connect and control your Mac";
 "onboarding.permissions.detail" = "Enable all three permissions before choosing a device. The microphone driver is checked in step 4.";
@@ -706,6 +729,10 @@
 "onboarding.remote.chromecast_pairing.title" = "Pair a Google remote (G9N9N / GY3LE)";
 "onboarding.remote.chromecast_pairing.first" = "Open System Settings → Bluetooth and keep the remote near your Mac.";
 "onboarding.remote.chromecast_pairing.second" = "Hold Back + Home together for about 3 seconds until the indicator starts flashing.";
+"onboarding.remote.t1_pairing.title" = "Pair a T1-Remote (or compatible clone)";
+"onboarding.remote.t1_pairing.first" = "Open System Settings → Bluetooth and keep the remote near your Mac.";
+"onboarding.remote.t1_pairing.second" = "Hold Home + Back together until the indicator flashes slowly to enter Bluetooth pairing mode.";
+"onboarding.remote.t1_pairing.third" = "Connect “T1-Remote” (or your compatible clone’s Bluetooth name) in System Settings, then press OK or an arrow key.";
 "onboarding.remote.connected" = "Selected remote connected";
 "onboarding.remote.connected_detail" = "Remote Buddy has a working connection to the remote.";
 "onboarding.remote.hid_connected" = "Physical remote recognized";
@@ -714,7 +741,7 @@
 "onboarding.remote.searching_detail" = "Keep the remote near your Mac. For a first connection, follow the steps above; if already paired, press any button to wake it.";
 "onboarding.remote.button_waiting" = "Waiting for a control button";
 "onboarding.remote.button_waiting_detail" = "Press the center OK button or an arrow button. Do not press the microphone/voice button.";
-"onboarding.remote.g9n9n.button_waiting_detail" = "Because single-key reports violate system specs, press OK + Up together for G9N9N, then release both (do not press Voice).";
+"onboarding.remote.g9n9n.button_waiting_detail" = "Due to macOS compatibility limits on G9N9N single-key HID reports, press OK + Up together, then release both (do not press Voice).";
 "onboarding.remote.g9n9n.button_detail" = "Button input detected. Continue with voice setup.";
 "onboarding.remote.g9n9n_pairing.third" = "Connect the remote in Mac Bluetooth settings, then press OK + Up together for button detection.";
 "onboarding.remote.button_received" = "Button Press Detected";
@@ -754,7 +781,8 @@
 "onboarding.voice_test.microphone_confirmation.checkbox" = "I confirmed %@ uses “%@” as its microphone";
 "onboarding.voice_test.placeholder" = "Try saying: Remote Buddy is connected";
 "onboarding.voice_test.waiting_voice" = "Waiting for you to use the voice button as described above…";
-"onboarding.voice_test.fn_tap_explanation" = "Remote Recording & Fn Tap Conversion: Supported remotes only record audio while held, stopping upon release. Tap conversion coordinates with recording: pressing sends an Fn tap to start recognition; releasing waits for audio to drain, then sends a second Fn tap to finish. Simply hold to talk and release when done.";
+"onboarding.voice_test.fn_tap_explanation" = "Remote Recording & Fn Tap Conversion: Supported remotes only record audio while held, stopping on release. Tap conversion bridges this: pressing clicks Fn once to start recognition; releasing waits for trailing audio to finish, then clicks Fn once to finish. Simply hold to talk and release when done.";
+"onboarding.voice_test.t1_fn_tap_explanation" = "T1-Remote & Fn Tap Conversion: Pressing and releasing T1’s voice key starts continuous recording until you press it once more. Tap conversion clicks Fn once when recording starts, then waits for trailing audio to finish after the second press before clicking Fn once to stop.";
 "onboarding.voice_test.receiving" = "Receiving voice audio…";
 "onboarding.voice_test.waiting_text" = "Audio received. Waiting for text to appear…";
 "onboarding.voice_test.tool_not_running" = "Open the selected voice app before starting the test…";
@@ -765,6 +793,7 @@
 "onboarding.controls.xiaomi.detail" = "Press three different control buttons on the Xiaomi remote, such as an arrow, OK, Back, Home, or volume.";
 "onboarding.controls.siri.detail" = "Press three different control buttons on the Apple Remote, such as an arrow, center, Back, TV, Play, or volume.";
 "onboarding.controls.chromecast.detail" = "Press three different control buttons on Chromecast Voice Remote, such as an arrow, OK, Back, Home, Mute, or volume.";
+"onboarding.controls.t1.detail" = "Press three different customizable buttons on the front of T1-Remote, such as Back, Home, Menu, Mute, Volume, or Power.";
 "onboarding.controls.g9n9n.detail" = "For G9N9N, test using two-button pairs: press OK + Up, release both; then press Back + Up, release both. Detecting 3 distinct buttons lets you continue.";
 "onboarding.controls.g9n9n.ready" = "Button checks passed; continue setup";
 "onboarding.side.g9n9n_test_enabled" = "Button test enabled";
@@ -814,6 +843,24 @@
 "onboarding.recovery.permission.accessibility_denied.title" = "Action access is still needed";
 "onboarding.recovery.permission.accessibility_denied.detail" = "Allow Accessibility so Remote Buddy can run your configured voice and button actions.";
 "onboarding.recovery.permission.accessibility_denied.action" = "Allow Actions";
+"onboarding.recovery.permission.desynced.title" = "System permissions may need to be refreshed";
+"onboarding.recovery.permission.desynced.detail" = "macOS rejected Bluetooth or remote button access even though permissions look enabled. Open Privacy & Security Settings to toggle Bluetooth, Input Monitoring, and Accessibility off and back on, then recheck.";
+"onboarding.recovery.permission.desynced.detail.with_restart" = "macOS rejected Bluetooth or remote button access even though permissions look enabled. Open Privacy & Security Settings first to toggle Bluetooth, Input Monitoring, and Accessibility off and back on; if it persists, restart Remote Buddy.";
+"permission.desync.banner.title" = "System permissions may need to be refreshed";
+"permission.desync.banner.detail" = "macOS rejected Bluetooth or remote button access even though permissions appear granted (for example after updating the app, waking from sleep, or a system signature-trust refresh). Open Privacy & Security Settings to toggle the permission off and back on, then click Recheck.";
+"permission.desync.banner.detail.with_restart" = "macOS rejected Bluetooth or remote button access even though permissions appear granted (for example after updating the app, waking from sleep, or a system signature-trust refresh). Open Privacy & Security Settings first to toggle the permission off and back on; if the issue persists, restart Remote Buddy.";
+"permission.desync.action.restart" = "Restart Remote Buddy";
+"permission.desync.action.open_settings" = "Open Privacy & Security Settings";
+"permission.desync.restart_confirm.title" = "Restart Remote Buddy?";
+"permission.desync.restart_confirm.message" = "Restarting interrupts any active voice input and reopens Remote Buddy.";
+"onboarding.remote.permission_desync.title" = "System permissions may need to be refreshed";
+"onboarding.remote.permission_desync.detail" = "macOS is blocking Bluetooth or remote button access despite enabled permissions. Use Privacy & Security Settings below to toggle the permission off and back on.";
+"onboarding.remote.permission_desync.detail.with_restart" = "macOS is blocking Bluetooth or remote button access despite enabled permissions. Re-toggle the permission in Privacy & Security Settings below, or restart Remote Buddy if needed.";
+"onboarding.remote.bluetooth_denied.title" = "Bluetooth access is blocked for Remote Buddy";
+"onboarding.remote.bluetooth_denied.detail" = "Allow Bluetooth for Remote Buddy in System Settings -> Privacy & Security -> Bluetooth so it can connect to your remote.";
+"onboarding.remote.input_not_permitted.title" = "macOS blocked remote button access";
+"onboarding.remote.input_not_permitted.detail" = "Check Input Monitoring in System Settings, or restart Remote Buddy if permissions were recently updated.";
+"onboarding.remote.bluetooth_unavailable.detail" = "Make sure Bluetooth is turned on in System Settings so Remote Buddy can connect to your remote.";
 "onboarding.recovery.remote.not_found.title" = "The selected control method is not connected yet";
 "onboarding.recovery.remote.not_found.detail" = "Follow this page to reconnect the physical remote, iPhone, or mini program.";
 "onboarding.recovery.remote.not_found.physical_detail" = "Reconnect the selected remote on this page, then press any button except the voice button.";
@@ -837,10 +884,12 @@
 "onboarding.recovery.voice.no_samples.detail" = "Check the audio output device, then %@.";
 "onboarding.recovery.voice.no_samples.action" = "Retry Voice Audio";
 "onboarding.recovery.voice.session_not_ended.title" = "Finish the Voice Session";
+"onboarding.recovery.voice.session_not_ended.t1_title" = "Press the Voice Button Again to Finish";
 "onboarding.recovery.voice.session_not_ended.detail" = "%@ to finish voice input so Remote Buddy can check the result.";
 "onboarding.recovery.voice.session_not_ended.action" = "Start This Check Again";
 "onboarding.recovery.voice.gesture.hold" = "hold the voice button while speaking, then release it to finish";
 "onboarding.recovery.voice.gesture.toggle" = "press the voice button once to start, then again to stop";
+"onboarding.recovery.voice.gesture.t1" = "press and release the voice button to start speaking, then press it again to stop";
 "onboarding.recovery.voice.finish.hold" = "Release the voice button";
 "onboarding.recovery.voice.finish.toggle" = "Press the voice button again";
 "onboarding.recovery.voice.manual_input.title" = "Keyboard input cannot complete the voice check";
@@ -856,7 +905,7 @@
 "onboarding.recovery.voice.input_target_focus_lost.detail" = "Keep the Remote Buddy window in front. Retry, then start and stop voice input as shown above.";
 "onboarding.recovery.voice.input_target_focus_lost.action" = "Retry Voice Input";
 "onboarding.recovery.voice.audio_delivery_failed.title" = "Audio did not fully reach the selected virtual device";
-"onboarding.recovery.voice.audio_delivery_failed.detail" = "Remote Buddy received audio but could not send all of it to the selected device. Set up audio again, then retry.";
+"onboarding.recovery.voice.audio_delivery_failed.detail" = "Remote Buddy received audio from the remote, but could not deliver all of it to the virtual microphone (Remote Buddy Mic). Set up audio again, then retry.";
 "onboarding.recovery.voice.audio_delivery_failed.action" = "Retry Audio Output";
 "onboarding.recovery.voice.external_tool_no_commit.title" = "Audio worked, but the voice app did not enter text";
 "onboarding.recovery.voice.external_tool_no_commit.detail" = "Remote Buddy sent audio, and the text field was ready. Check your voice typing app’s settings. It must support voice input and use the selected audio output device as its microphone. Then try again.";
@@ -897,7 +946,6 @@
 "button_mapping.search_macros" = "Search action sequences";
 
 "button_mapping.manage_macros" = "Manage action sequences";
-
 
 "button_mapping.macro_step_count" = "%d-step sequence";
 
@@ -948,7 +996,7 @@
 "common_phrases.error.edit_failed" = "Could not save. Check the content or imported format. Existing data was kept.";
 "common_phrases.error.no_phrase" = "No phrase is assigned to this button. Assign one in Common Phrases.";
 "common_phrases.error.accessibility_required" = "Allow Remote Buddy in System Settings → Accessibility.";
-"common_phrases.error.input_unavailable" = "The current input location could not be verified. Click the target editor and try again; the app may not expose accessible input information.";
+"common_phrases.error.input_unavailable" = "The current input location could not be verified. Click the target input field and try again; some apps may not support macOS Accessibility field detection.";
 "common_phrases.error.target_changed" = "The input target changed. Open Common Phrases again.";
 "common_phrases.error.clipboard_write_failed" = "Could not safely save or write the clipboard. Allow clipboard access if prompted, then try again.";
 "common_phrases.error.clipboard_restore_failed" = "Could not restore the clipboard after pasting. Check your clipboard.";
@@ -971,12 +1019,12 @@
 
 // Independent setup sections.
 "settings.section.integration" = "Integration";
-"settings.permissions.page_title" = "Permissions & Environment";
-"settings.permissions.introduction" = "Check these requirements before connecting a device or configuring input tools.";
+"settings.permissions.page_title" = "Permissions & Microphone";
+"settings.permissions.introduction" = "Check system permissions and the virtual microphone driver before connecting a device or configuring input tools.";
 "settings.permissions.privacy_title" = "Privacy and data handling";
-"settings.permissions.privacy_detail" = "Remote Buddy does not collect usage statistics, save transcript history or audio recordings, or upload logs. Bluetooth receives remote audio; Input Monitoring reads remote buttons; Accessibility triggers configured actions. Speech recognition is provided by the selected input tool and follows its own privacy settings.";
+"settings.permissions.privacy_detail" = "Remote Buddy does not collect usage statistics, save transcript history or audio recordings, or upload logs. Bluetooth receives remote audio; Input Monitoring reads remote buttons; Accessibility triggers configured actions. The virtual microphone driver delivers remote audio to the selected input tool. Speech recognition is provided by the selected input tool and follows its own privacy settings.";
 "settings.driver.title" = "Virtual microphone driver";
-"settings.driver.detail" = "A loopback device carries remote audio to your input tool.";
+"settings.driver.detail" = "A virtual microphone (audio loopback driver) carries remote audio to your voice input tool.";
 "settings.driver.installed" = "Compatible microphone detected";
 "settings.driver.missing" = "Compatible microphone not detected";
 "settings.driver.reload_help" = "If Remote Buddy Mic is still missing after installation, restart your Mac or follow the installation guide.";
@@ -994,11 +1042,15 @@
 
 "remote.device.select_placeholder" = "Select a remote";
 
-"onboarding.voice_tool.voicecursor.title" = "VoiceCursor";
-"onboarding.voice_tool.voicecursor.detail" = "Use VoiceCursor with the virtual microphone and your configured voice shortcut.";
+"onboarding.voice_tool.voice_buddy.title" = "Voice Buddy";
+"onboarding.voice_tool.voice_buddy.detail" = "100% local offline AI voice input & polish for Apple Silicon (myvoicebuddy.com).";
+"onboarding.voice_tool.voice_buddy.intro" = "Voice Buddy runs 100% locally on Apple Silicon with on-device speech recognition and LLM text polish — zero audio or text leaves your Mac, using Fn hold-to-talk by default.";
+"onboarding.voice_tool.voice_buddy.install_detail" = "Voice Buddy was not found in Applications. Download it from ";
+"onboarding.voice_tool.voice_buddy.website" = "Visit myvoicebuddy.com ↗";
 "onboarding.voice_tool.macos_dictation.title" = "macOS Dictation";
 "onboarding.voice_tool.macos_dictation.detail" = "Use the built-in Dictation. You do not need a third-party app.";
-"onboarding.voice_tool.dictation_fn_tap_explanation" = "Hold the remote's voice key to talk and release when done. Remote Buddy sends two Fn taps to start macOS Dictation, then waits for the remaining audio to finish before sending one Fn tap to stop it. Fn Tap conversion is enabled automatically.";
+"onboarding.voice_tool.dictation_fn_tap_explanation" = "Hold the remote's voice key to talk and release when done. Remote Buddy clicks Fn twice to start macOS Dictation, then waits for trailing audio to finish before clicking Fn once to stop it. Fn Tap conversion is enabled automatically.";
+"onboarding.voice_tool.t1_dictation_fn_tap_explanation" = "Press and release T1’s voice key to start talking, then press it once more to finish. Remote Buddy clicks Fn twice to start macOS Dictation, and after the second press waits for trailing audio to finish before clicking Fn once to stop it. Fn Tap conversion is enabled automatically.";
 "onboarding.voice_tool.guide.enable_dictation" = "Turn on macOS Dictation";
 "onboarding.voice_tool.guide.screenshot.macos_dictation_enable" = "Open System Settings → Keyboard → Dictation. Turn on Dictation and confirm the system privacy prompt. Add the languages you speak and wait for any language downloads to finish.";
 "onboarding.voice_tool.guide.configure_dictation" = "Set the Dictation shortcut to Press 🌐 Twice";
@@ -1015,13 +1067,12 @@
 "onboarding.step.controls" = "Button test";
 "onboarding.step.complete" = "Done";
 
-
-
-
-"onboarding.voice_tool.guide.open_voicecursor" = "Open VoiceCursor";
-"onboarding.voice_tool.guide.open_voicecursor.detail" = "Open VoiceCursor → Settings → General to configure its hotkey and microphone.";
-"onboarding.voice_tool.guide.screenshot.voicecursor_setting_fn" = "In VoiceCursor → General → Hotkeys, set Dictation to Fn.";
-"onboarding.voice_tool.guide.screenshot.voicecursor_setting_mic" = "In VoiceCursor → Audio → Microphone, choose Remote Buddy Mic.";
+"onboarding.voice_tool.guide.open_voice_buddy" = "Open Voice Buddy";
+"onboarding.voice_tool.guide.open_voice_buddy.detail" = "Open Voice Buddy → General to configure its trigger key, matching recording mode, and microphone input source.";
+"onboarding.voice_tool.guide.configure_voice_buddy" = "Set Trigger key to Fn / 🌐 and Hold to talk";
+"onboarding.voice_tool.guide.screenshot.voicebuddy_setting_fn" = "In Voice Buddy → General → Shortcut & Recording, set Trigger key to Fn / 🌐 and Recording Mode to Hold to talk (as shown) so recording stays in sync with the remote.";
+"onboarding.voice_tool.guide.voice_buddy.match_toggle_mode" = "Since toggle mode is selected for this remote, set Voice Buddy’s Recording Mode to Press to start / stop instead.";
+"onboarding.voice_tool.guide.screenshot.voicebuddy_setting_mic" = "In Voice Buddy → General → Audio & Feedback, select Remote Buddy Mic as the Microphone input source.";
 
 "diagnostics.logs.open_failed" = "Unable to open the log file";
 "diagnostics.logs.open_failed.detail" = "Check that your Library/Logs/RemoteBuddy folder is writable, then try again.";
@@ -1038,7 +1089,7 @@
 "update.dialog.skip" = "Skip Version";
 "update.dialog.install" = "Update and Restart";
 "update.dialog.not_found" = "No compatible update is available";
-"update.dialog.not_found.detail" = "This update channel has no newer version available for this device. You can keep using the app.";
+"update.dialog.not_found.detail" = "No newer version is currently available for this device. You can keep using the app.";
 "update.dialog.error" = "The update could not be completed";
 "update.dialog.error.detail" = "Try again later. If the problem persists, check your connection or read the release notes.";
 "update.dialog.downloading" = "Downloading the update…";
@@ -1050,23 +1101,21 @@
 "update.dialog.retry_quit" = "Quit App and Continue";
 "update.dialog.history" = "Release Notes";
 
-
 "update.dialog.install_later" = "Install Later";
 
 "common_phrases.key.ok" = "Select button";
 
-"button_mapping.unsupported_device" = "This remote is not supported yet. Choose a Xiaomi or G9N9N remote to configure buttons.";
-
+"button_mapping.unsupported_device" = "This remote is not supported yet. Choose a Xiaomi, T1-Remote, or G9N9N remote to configure buttons.";
 
 "voice_button.status.cleanup_failed" = "Could not release Fn. Restore Accessibility permission and try again.";
 
-"button_mapping.error.filter_unavailable" = "Button mapping paused because original remote keys cannot be intercepted. Recheck remote input to retry.";
+"button_mapping.error.filter_unavailable" = "Button mapping paused because remote button input could not be captured. Recheck input permissions or reconnect the remote to retry.";
 
-"update.dialog.checking.detail" = "Checking the selected update channel. This will only take a moment.";
+"update.dialog.checking.detail" = "Checking the update server for new versions. This will only take a moment.";
 
 "update.dialog.up_to_date" = "You’re up to date";
 
-"update.dialog.up_to_date.detail" = "You have the latest version on the selected update channel.";
+"update.dialog.up_to_date.detail" = "You already have the latest version installed.";
 
 "update.dialog.error_code" = "Error code: %1$@ (%2$@)";
 
@@ -1080,7 +1129,6 @@
 
 "update.dialog.waiting_for_quit.detail" = "The app is still running. Quit it to continue installing.";
 
-
 "update.dialog.close" = "Close";
 
 "update.dialog.done" = "Done";
@@ -1089,11 +1137,11 @@
 
 "update.dialog.available_version" = "Update version";
 
-"update.dialog.latest_version" = "Latest on this channel";
+"update.dialog.latest_version" = "Latest available version";
 
-
-// Four-device product scope. Upcoming adapters show an inline notice on Continue.
+// Five-device product scope. Upcoming adapters show an inline notice on Continue.
 "remote.catalog.xiaomi.title" = "Xiaomi Bluetooth Remote 2 / 2 Pro";
+"remote.catalog.t1Remote.title" = "T1-Remote Air Mouse & Keyboard (and clones)";
 "remote.catalog.chromecastG9N9N.title" = "Chromecast Voice Remote (G9N9N)";
 "remote.catalog.googleStreamerGY3LE.title" = "Google TV Streamer Voice Remote (GY3LE)";
 "remote.catalog.siriRemote.title" = "Apple Siri Remote";
@@ -1101,9 +1149,11 @@
 "remote.catalog.unsupported_notice" = "Not supported yet. Stay tuned.";
 "google.remote.unsupported_protocol" = "This remote does not offer supported ATVV v1.0 / 16 kHz audio. Buttons and audio require separate validation.";
 "google.remote.unconfirmed_identity" = "The Bluetooth PnP identity could not be confirmed as Chromecast Remote (18D1:9450).";
+"t1.remote.unconfirmed_identity" = "The Bluetooth PnP identity could not be confirmed as a compatible T1-Remote.";
+"t1.remote.microphone_refused" = "The T1 remote refused to open its microphone. Pair it again in Bluetooth settings and retry.";
 "google.remote.microphone_refused" = "The remote refused to open its microphone. Pair it again and retry.";
-"google.remote.pairing_required" = "Bluetooth authentication is incomplete. Remove and pair the remote again in macOS Bluetooth settings, then reconnect.";
-"google.remote.ir_controls" = "Power and input can be mapped when Bluetooth reports are received. If the remote uses infrared for these keys, the app cannot receive them.";
+"google.remote.pairing_required" = "Bluetooth pairing authentication is incomplete. Remove and pair the remote again in macOS Bluetooth settings, then reconnect.";
+"google.remote.ir_controls" = "Power and input can be mapped when sent over Bluetooth. If the remote is set to use infrared for these keys (to control a TV), the Mac cannot receive them.";
 
 "connection.action.add_device" = "Add new device";
 "remote.hid_binding.title" = "Link remote button device";
@@ -1122,6 +1172,11 @@
 "onboarding.audio.automatic_ready" = "Driver and audio output are ready. Click Continue to proceed.";
 
 "onboarding.audio.checking" = "Checking the driver and audio output.";
+"onboarding.voice_prompt.t1.fn_tap" = "Press and release the T1 voice button to start speaking, then press it once more to stop (Fn tap conversion enabled).";
+"onboarding.voice_prompt.t1.hold" = "Press and release the T1 voice button to start speaking, then press it once more to stop (Remote Buddy holds the voice key for you while speaking).";
+"onboarding.voice_prompt.generic.fn_tap" = "Hold the voice button while speaking, then release it (Fn tap conversion enabled).";
+"onboarding.voice_prompt.generic.hold" = "Hold the voice button while speaking, then release it.";
+"onboarding.voice_prompt.generic.toggle" = "Press the voice button once to start, then once more to finish.";
 
 "onboarding.action.dismiss" = "Exit setup";
 "onboarding.add_device.complete.title" = "Device setup complete";
@@ -1161,7 +1216,7 @@
 "remote.remove.confirm_title" = "Remove this device?";
 "remote.remove.confirm_detail" = "Remove %@ and its saved button settings and gain from Remote Buddy, and stop automatically connecting to it. macOS Bluetooth pairing is not removed. Choosing Add Device may rediscover previously removed remotes.";
 "remote.rebind.title" = "Rebind remote";
-"remote.rebind.help" = "Pair the remote in macOS Bluetooth settings first. Select its new connected entry below. The original button mappings and gain will be preserved, and the selected replacement entry will be combined with this profile.";
+"remote.rebind.help" = "Pair the remote in macOS Bluetooth settings first. Select its new connected entry below. Your existing button mappings and microphone gain will be preserved and applied to the rebound remote.";
 "remote.rebind.empty" = "No compatible connected replacement is available.";
 "remote.rebind.failed" = "Could not rebind. Stop voice input and check that the replacement is still connected.";
 "remote.rebind.confirm" = "Rebind and keep settings";
@@ -1176,3 +1231,35 @@
 
 "action.repeat_single_click" = "Hold to Repeat";
 "button_mapping.hold_repeat.help" = "Choose Hold to Repeat to repeat the single-press action after holding for about 0.35 seconds, stopping on release. Choose another action below to run it once on a long press. Double-press settings remain independent.";
+
+// Foreground application integration at voice start
+"application_integration.title" = "App Integrations";
+"application_integration.introduction" = "Voice input uses the text box you have selected. If none is selected, it helps you find the conversation input in the current app.";
+"application_integration.supported" = "Supported apps";
+"application_integration.enable_all" = "Enable All";
+"application_integration.disable_all" = "Disable All";
+"application_integration.chatGPT.detail" = "The message box in the current conversation.";
+"application_integration.antigravity.detail" = "The Agent conversation input in the current window.";
+"application_integration.weChat.detail" = "The message box in the current conversation. Open a conversation first.";
+"application_integration.claude.detail" = "The input in the current chat or project. Open the relevant page first.";
+"application_integration.workBuddy.detail" = "The message box in the current conversation or new task.";
+"application_integration.accessibility_help" = "Voice input can continue if a text box cannot be found. If the text is not inserted automatically, press Command+V to paste it.";
+
+"application_integration.status.waiting" = "Preparing the input field…";
+"application_integration.status.ready" = "The text box is ready; preparing voice input…";
+"application_integration.status.failed" = "Could not locate a text box; preparing voice input…";
+"application_integration.status.timed_out" = "Input preparation timed out. Voice input was cancelled; try again.";
+"application_integration.status.cancelled" = "Voice input cancelled.";
+"application_integration.permission.missing" = "Allow Accessibility access to locate text boxes automatically.";
+"application_integration.permission.open" = "Open Accessibility Settings";
+
+
+"application_integration.status.focus_timed_out" = "Locating the text box took too long; preparing voice input…";
+
+"application_integration.status.triggered" = "Requested voice input.";
+"application_integration.status.triggered_without_focus" = "Could not locate a text box; requested voice input. Press Command+V if the text is not inserted automatically.";
+
+"application_integration.status.preserved" = "Keeping your selected text box; preparing voice input…";
+"application_integration.status.triggered_preserved" = "Kept your selected text box and sent the voice input request.";
+
+"application_integration.voice_key_note" = "When any app is enabled, Remote Buddy handles Fn hold-to-talk in all apps.";

@@ -6,22 +6,64 @@ import CoreBluetooth
 import Foundation
 
 extension BridgeAppModel {
+    /// Fn-tap pre-roll covers one shared four-second focus/destination budget.
+    /// Cancelling the returned wait is silent because the Fn session owns stop.
+    func prepareIntegratedVoiceInputDestination(
+        completion: @escaping (VoiceInputDestinationWaitResult) -> Void,
+        schedule: @escaping OperationScheduler = ScheduledOperation.mainQueue
+    ) -> VoiceInputDestinationWait {
+        clearApplicationIntegrationStatus()
+        guard !settings.enabledApplicationIntegrations.isEmpty else {
+            return voiceInputDestinationCoordinator.waitUntilReady(completion: completion)
+        }
+        let report: (VoiceInputDestinationWaitResult) -> Void = { [weak self] result in
+            if case let .cancelled(reason) = result {
+                self?.recordApplicationIntegrationStatus(.cancelled(reason))
+            }
+            completion(result)
+        }
+        let sequence = VoiceInputPreparationSequence(schedule: schedule)
+        let wait = sequence.start(stages: [
+            { [weak self] done in self?.applicationIntegrationController.prepareForVoiceInput(completion: done) ?? .cancelled(.superseded) },
+            { [weak self] done in self?.voiceInputDestinationCoordinator.waitUntilReady(completion: done) ?? .cancelled(.superseded) },
+        ], completion: report)
+        if case let .cancelled(reason) = wait {
+            recordApplicationIntegrationStatus(.cancelled(reason))
+        }
+        return wait
+    }
+
     // Main-queue lifecycle, like HID settings and the remote voice callbacks.
     func voiceToolDidChange() {
         pendingVoiceToolMappingRefresh = true
         flushPendingVoiceToolMappingRefresh()
     }
 
+    var canRefreshHIDMappingsNow: Bool {
+        started && !isTerminating && !audio.suspensionState.suspendsHIDMonitoring &&
+            !isStreaming && !voiceSession.isActive && !hasPendingBluetoothVoiceWork &&
+            voiceSession.pendingStart.identifier == nil && !voiceKeyLatch.isHeld &&
+            !voiceKeyActivationInProgress && !voiceFnTapSession.requiresCleanupBeforeMapping
+    }
+
     func flushPendingVoiceToolMappingRefresh(applyMappings: (() -> Void)? = nil) {
-        guard pendingVoiceToolMappingRefresh, started, !isStreaming,
-              !voiceSession.isActive, !hasPendingBluetoothVoiceWork,
-              !voiceKeyLatch.isHeld, !voiceKeyActivationInProgress,
-              !voiceFnTapSession.requiresCleanupBeforeMapping else { return }
-        pendingVoiceToolMappingRefresh = false
-        if let applyMappings { applyMappings() } else { applyHIDSettings() }
+        guard canRefreshHIDMappingsNow else { return }
+        if pendingVoiceToolMappingRefresh {
+            pendingVoiceToolMappingRefresh = false
+            if applyMappings == nil {
+                pendingHIDServiceMappingRefresh = false
+            }
+            if let applyMappings { applyMappings() } else { applyHIDSettings() }
+            if applyMappings != nil {
+                flushPendingHIDServiceMappingRefreshIfNeeded(applyMappings: applyMappings)
+            }
+            return
+        }
+        flushPendingHIDServiceMappingRefreshIfNeeded(applyMappings: applyMappings)
     }
     var requiresOrderedVoiceFn: Bool {
-        OrderedVoiceActivationPolicy.needsSoftwareFn(
+        (settings.voiceKeyMode == .function && !settings.voiceFnTapModeEnabled &&
+            !settings.enabledApplicationIntegrations.isEmpty) || OrderedVoiceActivationPolicy.needsSoftwareFn(
             mode: settings.voiceKeyMode,
             fnTapEnabled: settings.voiceFnTapModeEnabled,
             preferredInputSourceID: settings.onboardingVoiceTool.preferredInputSourceID
@@ -104,7 +146,7 @@ extension BridgeAppModel {
             return
         }
 
-        if settings.selectedRemoteProfile?.model.isChromecastRemote == true {
+        if settings.selectedRemoteProfile?.model.isATVVRemote == true {
             settings.voiceFnTapModeEnabled = true
             voiceFnTapSession.setEnabled(true)
             startHIDMonitors(powerKeySuppressed: applyVoiceFunctionMapping(

@@ -19,9 +19,12 @@ Supports **macOS 14 and later**, on Apple Silicon and Intel Macs. Windows suppor
 - Use a remote's microphone for voice input, without reaching for the keyboard.
 - Map Xiaomi remote control buttons to keyboard shortcuts, application actions, or common phrases, with category filtering, independent single/double/long-press actions, and individual trigger reset. Phrase content can mix languages and stays the same when the interface language changes.
 - Configure hold-to-talk or press-to-start/stop behavior for your input tool.
+- Optional app integrations preserve your selected editable input in WeChat, Antigravity, ChatGPT, Claude, and WorkBuddy, locating the conversation input only when needed, with individual and bulk switches.
 - Set up permissions, the microphone driver, device connection, and input integration in one guide.
 
 Remote Buddy does not collect usage statistics, save recordings or transcript history, or upload logs. Recognition and text cleanup are handled by your selected input tool, with that tool's own network and privacy settings.
+
+Enabling any app integration makes Remote Buddy send the Fn hold trigger for all foreground apps, requiring Accessibility permission so focus can finish first. Only enabled foreground apps have their focus adjusted. Focusing is optional: if it fails, voice input continues and you can use Command+V to paste the result if needed. Disable all integrations to restore the original trigger behavior. Antigravity integration targets the Agent desktop app, not the separate Antigravity IDE.
 
 ## How does it work?
 
@@ -50,14 +53,19 @@ Driver installation requires administrator authorization and briefly interrupts 
 
 ## Which devices are supported?
 
-| Device | Status |
-| --- | --- |
-| Xiaomi Bluetooth Remote 2 / 2 Pro | RC001 = 2; RC003 = 2 Pro. Both have ATVV and button adapters. 2 Pro buttons tested locally and audio confirmed by the user; complete Remote 2 audio acceptance is pending |
-| Google Chromecast Voice Remote (G9N9N) | **Partial support: voice input works normally; single-button mapping is unsupported.** Single-key reports are dropped by macOS due to non-compliant lengths; OK + direction sends Enter. See the [standalone test report](docs/g9n9n-compatibility.md) (Chinese) |
-| Google TV Streamer Voice Remote (GY3LE) | Planned; adapter implementation and hardware validation pending |
-| Apple Siri Remote | Planned; adapter implementation and hardware validation pending |
+| Device | Must the physical voice button stay held? | Status |
+| --- | --- | --- |
+| Xiaomi Bluetooth Remote 2 / 2 Pro | **Yes**; ~60s single-hold limit on 2 Pro | RC001 = 2; RC003 = 2 Pro. Protocol/button adapters present; 2 Pro buttons tested locally and audio confirmed by user. Full Remote 2 audio acceptance pending |
+| T1 Air-Mouse & Keyboard Voice Remote (and compatible clones) | **No** on the tested sample; press and release to start, press again to stop | Bluetooth sample verified: 7 remappable front buttons; OK/arrows, rear keyboard and air mouse pass through. Clones require individual verification. [Hardware notes](docs/t1-remote-hardware-debugging.md) (Chinese) |
+| Google Chromecast Voice Remote (G9N9N) | **Yes**; hold to talk, release to stop capture | **Partial support**: voice works; tested sample lacks single-button mapping. OK + direction sends Enter. [Test report](docs/g9n9n-compatibility.md) (Chinese) |
+| Google TV Streamer Voice Remote (GY3LE) | Not supported yet; Mac voice interaction unverified | Planned; adapter implementation and hardware validation pending |
+| Apple Siri Remote | Not supported yet; Mac voice interaction unverified | Planned; adapter implementation and hardware validation pending |
 
-The device scope is limited to these four entries. Google hardware model numbers follow [Google's regulatory documentation](https://support.google.com/product-documentation/answer/4541589?hl=en). Third-party replacements require separate validation; a seller's “compatible with G9N9N” label does not establish support.
+See the **[Remote device guide](devices/supported-devices.md)** (Chinese) for models, appearance, buttons, features, reference prices and purchase links, including the approximately CNY 15 G9N9N-compatible sample reported in issue #170. Changing the input tool to start/stop taps does not keep a push-to-talk remote recording after its physical button is released.
+
+Choosing between **Xiaomi 2 Pro** and **T1**? See our comparison guide with real photos, pricing, dimensions, and voice-input differences: [Xiaomi 2 Pro vs T1 Remote Comparison](devices/xiaomi-2pro-vs-t1-remote.md) (Chinese).
+
+The device scope is limited to these five entries. Google hardware model numbers follow [Google's regulatory documentation](https://support.google.com/product-documentation/answer/4541589?hl=en). Third-party replacements require separate validation; a seller's “compatible with G9N9N” label does not establish support.
 
 Bluetooth pairing alone does not establish compatibility: the remote must use a supported button and audio protocol.
 
@@ -67,9 +75,9 @@ Bluetooth pairing alone does not establish compatibility: the remote must use a 
 | --- | --- |
 | WeType / WeChat Input Method | Dedicated setup entry with virtual microphone and voice shortcut |
 | Doubao Input Method | Dedicated setup entry with hold and tap behavior |
+| [Voice Buddy](https://myvoicebuddy.com/en.html) | 100% local offline AI voice input & polish tool on Apple Silicon, supporting Hold and Toggle modes with virtual microphone and `Fn` trigger |
 | NetEase Bageshuo | Dedicated setup entry with voice shortcut and microphone configuration |
 | Typeless | Configure its voice shortcut and start/stop behavior |
-| VoiceCursor | Separate entry using the virtual microphone and a custom voice shortcut |
 | macOS Dictation | Built in, no third-party app; set the shortcut to Press 🌐 Twice. Holding the remote presses Fn twice to start, and releasing it presses Fn once to stop |
 | Other voice-input tools | Configure a custom shortcut under Other Tools |
 

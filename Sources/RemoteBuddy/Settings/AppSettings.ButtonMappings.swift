@@ -2,6 +2,9 @@ import Combine
 import Foundation
 
 extension AppSettings {
+    private static let forgottenBluetoothModelsKey = "forgottenRemoteModelsByBluetoothIdentifier"
+    private static let forgottenHIDModelsKey = "forgottenRemoteModelsByHIDFingerprint"
+
     // A forgotten remote must not immediately be recreated by background discovery.
     var forgottenBluetoothIdentifiers: Set<UUID> {
         Set((defaults.stringArray(forKey: "forgottenRemoteBluetoothIdentifiers") ?? []).compactMap(UUID.init(uuidString:)))
@@ -11,9 +14,130 @@ extension AppSettings {
         Set(defaults.stringArray(forKey: "forgottenRemoteHIDFingerprints") ?? [])
     }
 
-    func allowForgottenRemotesForSetup() {
-        defaults.removeObject(forKey: "forgottenRemoteBluetoothIdentifiers")
-        defaults.removeObject(forKey: "forgottenRemoteHIDFingerprints")
+    private var forgottenBluetoothModels: [String: String] {
+        defaults.dictionary(forKey: Self.forgottenBluetoothModelsKey) as? [String: String] ?? [:]
+    }
+
+    private var forgottenHIDModels: [String: String] {
+        defaults.dictionary(forKey: Self.forgottenHIDModelsKey) as? [String: String] ?? [:]
+    }
+
+    var allowsForgottenRemoteDuringActiveControlSetup: Bool {
+        !isOnboardingComplete && (onboardingStep == .remote || onboardingStep == .controls)
+    }
+
+    private var activeSetupSelectedProfile: RemoteDeviceProfile? {
+        guard !isOnboardingComplete,
+              let profile = selectedRemoteProfile else { return nil }
+        if onboardingControlSource != .unselected,
+           profile.model != .unknown,
+           !onboardingControlSource.matchesConfirmedCandidate(profile.model) {
+            return nil
+        }
+        return profile
+    }
+
+    func excludedForgottenBluetoothIdentifiers() -> Set<UUID> {
+        var forgotten = forgottenBluetoothIdentifiers
+        if let activeBluetoothID = activeSetupSelectedProfile?.bluetoothIdentifier {
+            forgotten.remove(activeBluetoothID)
+        }
+        guard allowsForgottenRemoteDuringActiveControlSetup else { return forgotten }
+        let models = forgottenBluetoothModels
+        return forgotten.filter { identifier in
+            guard let raw = models[identifier.uuidString],
+                  let storedModel = RemoteModel(rawValue: raw),
+                  storedModel != .unknown else { return false }
+            return !onboardingControlSource.matchesConfirmedCandidate(storedModel)
+        }
+    }
+
+    func excludedForgottenHIDFingerprints() -> Set<String> {
+        var forgotten = forgottenHIDFingerprints
+        if let activeHIDFingerprint = activeSetupSelectedProfile?.hidFingerprint {
+            forgotten.remove(activeHIDFingerprint)
+        }
+        guard allowsForgottenRemoteDuringActiveControlSetup else { return forgotten }
+        let models = forgottenHIDModels
+        return forgotten.filter { fingerprint in
+            if let raw = models[fingerprint],
+               let storedModel = RemoteModel(rawValue: raw),
+               storedModel != .unknown {
+                return !onboardingControlSource.matchesConfirmedCandidate(storedModel)
+            }
+            return onboardingControlSource != .xiaomiRemote
+        }
+    }
+
+    func allowsSetupCandidate(bluetoothIdentifier: UUID, model: RemoteModel?) -> Bool {
+        guard forgottenBluetoothIdentifiers.contains(bluetoothIdentifier) else { return true }
+        if activeSetupSelectedProfile?.bluetoothIdentifier == bluetoothIdentifier {
+            return true
+        }
+        guard allowsForgottenRemoteDuringActiveControlSetup else { return false }
+        if let raw = forgottenBluetoothModels[bluetoothIdentifier.uuidString],
+           let storedModel = RemoteModel(rawValue: raw),
+           storedModel != .unknown {
+            return onboardingControlSource.matchesConfirmedCandidate(storedModel)
+        }
+        guard let model else { return false }
+        return onboardingControlSource.matchesConfirmedCandidate(model)
+    }
+
+    func allowsSetupCandidate(hidFingerprint: String, model: RemoteModel?) -> Bool {
+        guard forgottenHIDFingerprints.contains(hidFingerprint) else { return true }
+        if activeSetupSelectedProfile?.hidFingerprint == hidFingerprint {
+            return true
+        }
+        guard allowsForgottenRemoteDuringActiveControlSetup else { return false }
+        if let raw = forgottenHIDModels[hidFingerprint],
+           let storedModel = RemoteModel(rawValue: raw),
+           storedModel != .unknown {
+            return onboardingControlSource.matchesConfirmedCandidate(storedModel)
+        }
+        if let model, model != .unknown {
+            return onboardingControlSource.matchesConfirmedCandidate(model)
+        }
+        return onboardingControlSource == .xiaomiRemote
+    }
+
+    func unforgetRemotes(_ profiles: [RemoteDeviceProfile]) {
+        let identifiers = Set(profiles.compactMap(\.bluetoothIdentifier))
+        let fingerprints = Set(profiles.compactMap(\.hidFingerprint))
+        if !identifiers.isEmpty {
+            let remaining = forgottenBluetoothIdentifiers.subtracting(identifiers)
+            if remaining.isEmpty {
+                defaults.removeObject(forKey: "forgottenRemoteBluetoothIdentifiers")
+            } else {
+                defaults.set(remaining.map(\.uuidString), forKey: "forgottenRemoteBluetoothIdentifiers")
+            }
+            var models = forgottenBluetoothModels
+            for identifier in identifiers {
+                models.removeValue(forKey: identifier.uuidString)
+            }
+            if models.isEmpty {
+                defaults.removeObject(forKey: Self.forgottenBluetoothModelsKey)
+            } else {
+                defaults.set(models, forKey: Self.forgottenBluetoothModelsKey)
+            }
+        }
+        if !fingerprints.isEmpty {
+            let remaining = forgottenHIDFingerprints.subtracting(fingerprints)
+            if remaining.isEmpty {
+                defaults.removeObject(forKey: "forgottenRemoteHIDFingerprints")
+            } else {
+                defaults.set(Array(remaining), forKey: "forgottenRemoteHIDFingerprints")
+            }
+            var models = forgottenHIDModels
+            for fingerprint in fingerprints {
+                models.removeValue(forKey: fingerprint)
+            }
+            if models.isEmpty {
+                defaults.removeObject(forKey: Self.forgottenHIDModelsKey)
+            } else {
+                defaults.set(models, forKey: Self.forgottenHIDModelsKey)
+            }
+        }
     }
 
     @discardableResult
@@ -22,10 +146,16 @@ extension AppSettings {
         if let identifier = profile.bluetoothIdentifier {
             defaults.set(forgottenBluetoothIdentifiers.union([identifier]).map(\.uuidString),
                          forKey: "forgottenRemoteBluetoothIdentifiers")
+            var models = forgottenBluetoothModels
+            models[identifier.uuidString] = profile.model.rawValue
+            defaults.set(models, forKey: Self.forgottenBluetoothModelsKey)
         }
         if let fingerprint = profile.hidFingerprint {
             defaults.set(Array(forgottenHIDFingerprints.union([fingerprint])),
                          forKey: "forgottenRemoteHIDFingerprints")
+            var models = forgottenHIDModels
+            models[fingerprint] = profile.model.rawValue
+            defaults.set(models, forKey: Self.forgottenHIDModelsKey)
         }
         if selectedRemoteProfileID == profileID {
             if let replacement = remoteDeviceProfiles.first(where: { $0.id != profileID }) {
@@ -251,11 +381,16 @@ extension AppSettings {
         }
     }
 
-    func compatibleHIDIdentities(includeXiaomi: Bool, includeGoogle: Bool) -> [RemoteHIDIdentity] {
+    func compatibleHIDIdentities(
+        includeXiaomi: Bool,
+        includeGoogle: Bool,
+        includeT1: Bool = false
+    ) -> [RemoteHIDIdentity] {
         let valid = compatibleHIDBindings
         return remoteDeviceProfiles.compactMap { profile in
             guard let binding = profile.compatibleHIDBinding, valid.contains(binding),
                   (includeGoogle && profile.model.isChromecastRemote) ||
+                    (includeT1 && profile.model.isT1Remote) ||
                     (includeXiaomi && (profile.model == .rc001 || profile.model == .rc003)) else { return nil }
             return binding.identity
         }
@@ -264,9 +399,10 @@ extension AppSettings {
     @discardableResult
     func bindCompatibleHID(_ binding: RemoteHIDBinding, to profileID: UUID) -> Bool {
         guard let index = remoteDeviceProfiles.firstIndex(where: { $0.id == profileID }),
-              [RemoteModel.rc001, .rc003, .chromecastVoiceRemote].contains(remoteDeviceProfiles[index].model),
-              binding.identity != .xiaomi || !remoteDeviceProfiles[index].model.isChromecastRemote,
+              [RemoteModel.rc001, .rc003, .chromecastVoiceRemote, .t1Remote].contains(remoteDeviceProfiles[index].model),
+              binding.identity != .xiaomi || (!remoteDeviceProfiles[index].model.isChromecastRemote && !remoteDeviceProfiles[index].model.isT1Remote),
               binding.identity != .chromecast || remoteDeviceProfiles[index].model.isChromecastRemote,
+              binding.identity != .t1Remote || remoteDeviceProfiles[index].model.isT1Remote,
               binding.identity.vendorID != 0, !binding.fingerprint.isEmpty,
               !remoteDeviceProfiles.contains(where: {
                   $0.id != profileID && $0.hidFingerprint == binding.fingerprint
@@ -288,11 +424,11 @@ extension AppSettings {
         let matching = remoteDeviceProfiles.indices.filter {
             remoteDeviceProfiles[$0].bluetoothIdentifier == nil && remoteDeviceProfiles[$0].model == model
         }
-        let matchingIndex = model.isChromecastRemote
+        let matchingIndex = model.isATVVRemote
             ? (matching.count == 1 ? matching.first : nil) : matching.first
         let emptyIndex = remoteDeviceProfiles.firstIndex {
             $0.bluetoothIdentifier == nil && $0.model == .unknown &&
-                (!model.isChromecastRemote || $0.hidFingerprint == nil)
+                (!model.isATVVRemote || $0.hidFingerprint == nil)
         }
         if let index = matchingIndex ?? emptyIndex {
             remoteDeviceProfiles[index].bluetoothIdentifier = identifier
@@ -314,7 +450,7 @@ extension AppSettings {
         if let existing = remoteDeviceProfiles.first(where: { $0.hidFingerprint == fingerprint }) {
             return existing.id
         }
-        if model.isChromecastRemote {
+        if model.isATVVRemote {
             let candidates = remoteDeviceProfiles.indices.filter {
                 remoteDeviceProfiles[$0].model == model && remoteDeviceProfiles[$0].hidFingerprint == nil
             }
