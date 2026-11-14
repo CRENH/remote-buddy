@@ -306,6 +306,7 @@ extension OnboardingView {
                         }
                         .buttonStyle(.bordered)
                     }
+                    diagnosticCopyFeedback
                     if settings.onboardingStep == .remote,
                        let profile = settings.selectedRemoteProfile, selectedControlConnected,
                        BridgeAppModel.canLearnHIDIdentity(model: profile.model, source: settings.onboardingControlSource) {
@@ -363,12 +364,22 @@ extension OnboardingView {
                 }
                 .buttonStyle(.bordered)
             }
+            diagnosticCopyFeedback
         }
         .padding(14)
         .background(Color.orange.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
         .overlay {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(Color.orange.opacity(0.25), lineWidth: 1)
+        }
+    }
+
+    @ViewBuilder
+    private var diagnosticCopyFeedback: some View {
+        if let copied = diagnosticCopySucceeded {
+            Text(localization.text(copied ? "onboarding.diagnostics.copied" : "onboarding.diagnostics.copy_failed"))
+                .font(.caption).foregroundStyle(copied ? Color.secondary : Color.orange)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 

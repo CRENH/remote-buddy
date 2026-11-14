@@ -5,7 +5,7 @@ import SwiftUI
 
 extension OnboardingView {
     func copyDiagnosticSummary() {
-        guard interactionProbe == nil else { return }
+        guard interactionProbe == nil else { diagnosticCopySucceeded = true; return }
         var diagnosticVoiceAttempt = voiceAttempt
         diagnosticVoiceAttempt.audioDelivery = model.voiceAudioDeliveryDiagnosticSnapshot()
         let snapshot = FirstUseDiagnosticSnapshot(
@@ -27,7 +27,7 @@ extension OnboardingView {
             voiceBinding: settings.stagedVoiceToolBinding ?? settings.verifiedVoiceToolBinding
         )
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(snapshot.redactedText, forType: .string)
+        diagnosticCopySucceeded = NSPasteboard.general.setString(snapshot.redactedText, forType: .string)
         AppLogger.shared.write(
             "ONBOARDING DIAGNOSTICS copied step=\(settings.onboardingStep.rawValue) " +
                 "failure=\(failureReason?.rawValue ?? "none")"

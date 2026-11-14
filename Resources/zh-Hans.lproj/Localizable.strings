@@ -1277,3 +1277,5 @@
 "onboarding.summary.passed" = "已通过";
 "onboarding.summary.not_tested" = "尚未验证";
 "onboarding.summary.not_ready" = "未就绪";
+"onboarding.diagnostics.copied" = "诊断信息已复制，可粘贴到问题反馈中。";
+"onboarding.diagnostics.copy_failed" = "未能复制诊断信息，请重试。";

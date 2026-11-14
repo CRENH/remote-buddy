@@ -1276,3 +1276,5 @@
 "onboarding.summary.passed" = "Passed";
 "onboarding.summary.not_tested" = "Not Verified";
 "onboarding.summary.not_ready" = "Not Ready";
+"onboarding.diagnostics.copied" = "Diagnostics copied. Paste them into your issue report.";
+"onboarding.diagnostics.copy_failed" = "Could not copy diagnostics. Please try again.";
