@@ -179,6 +179,18 @@ struct VoiceTriggerConfigurationTests {
         }
     }
 
+    @Test func testStatusWaitsForRecordingToEndBeforeWaitingForText() {
+        func key(started: Bool, samples: Bool, ended: Bool, result: FirstUseVoiceAttemptResult = .none) -> String {
+            OnboardingView.voiceTestStatusKey(toolReady: true, manualInput: false, result: result,
+                sessionStarted: started, samplesReceived: samples, sessionEnded: ended)
+        }
+        #expect(key(started: false, samples: false, ended: false) == "onboarding.voice_test.waiting_voice")
+        #expect(key(started: true, samples: true, ended: false) == "onboarding.voice_test.receiving")
+        #expect(key(started: true, samples: true, ended: true) == "onboarding.voice_test.waiting_text")
+        #expect(key(started: true, samples: true, ended: true, result: .passed) == "onboarding.voice_test.success")
+        #expect(key(started: true, samples: true, ended: true, result: .audioDeliveryFailed) == "onboarding.recovery.voice.audio_delivery_failed.title")
+    }
+
     @Test func voiceShortcutPresetsMatchTheSupportedMenuChoices() {
         let expected: [NSEvent.ModifierFlags] = [[.control, .shift], [.control, .option], [.control, .command]]
         #expect(VoiceKeyMode.shortcutPresets == expected.map {

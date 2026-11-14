@@ -105,25 +105,21 @@ extension OnboardingView {
     }
 
     var voiceTestStatusText: String {
-        if !selectedVoiceToolRuntimeReady {
-            return localization.text("onboarding.voice_test.tool_not_running")
-        }
-        if manualTranscriptInputObserved {
-            return localization.text("onboarding.voice_test.manual_input")
-        }
-        if voiceAttempt.result == .audioDeliveryFailed {
-            return localization.text("onboarding.recovery.voice.audio_delivery_failed.title")
-        }
-        if voiceAttempt.result == .passed {
-            return localization.text("onboarding.voice_test.success")
-        }
-        if voiceSamplesReceived {
-            return localization.text("onboarding.voice_test.waiting_text")
-        }
-        if voiceSessionStarted {
-            return localization.text("onboarding.voice_test.receiving")
-        }
-        return localization.text("onboarding.voice_test.waiting_voice")
+        localization.text(Self.voiceTestStatusKey(toolReady: selectedVoiceToolRuntimeReady,
+            manualInput: manualTranscriptInputObserved, result: voiceAttempt.result,
+            sessionStarted: voiceSessionStarted, samplesReceived: voiceSamplesReceived,
+            sessionEnded: voiceSessionEnded))
+    }
+
+    static func voiceTestStatusKey(toolReady: Bool, manualInput: Bool, result: FirstUseVoiceAttemptResult,
+                                   sessionStarted: Bool, samplesReceived: Bool, sessionEnded: Bool) -> String {
+        if !toolReady { return "onboarding.voice_test.tool_not_running" }
+        if manualInput { return "onboarding.voice_test.manual_input" }
+        if result == .passed { return "onboarding.voice_test.success" }
+        if let failure = result.failureReason { return "onboarding.recovery.\(failure.rawValue).title" }
+        if !sessionEnded && (sessionStarted || samplesReceived) { return "onboarding.voice_test.receiving" }
+        if sessionEnded && samplesReceived { return "onboarding.voice_test.waiting_text" }
+        return "onboarding.voice_test.waiting_voice"
     }
 
     func bundledRemoteImage(resourceName: String) -> NSImage? {

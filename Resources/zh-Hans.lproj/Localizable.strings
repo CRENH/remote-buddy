@@ -737,7 +737,7 @@
 "onboarding.audio.refresh" = "重新检查";
 "onboarding.audio.on_demand_detail" = "手机开始语音时会自动连接所选设备；下一步将通过真实声音和文字进行验证。";
 "onboarding.voice_test.title" = "亲自说一句，确认真的能用";
-"onboarding.voice_test.detail" = "点一下下面的输入框，按照上方提示使用语音键说一句话。";
+"onboarding.voice_test.detail" = "点击下面的输入框，按提示说一句话。";
 "onboarding.voice_test.gain.title" = "调整声音增益";
 "onboarding.voice_test.gain.detail" = "增益会放大遥控搭子送到语音工具的声音。小声或气声不容易识别时，可先试 6–12 dB；过高也会放大环境噪声，调节后再说一句测试。";
 "onboarding.voice_test.gain.help" = "调整会立即用于后续语音。";
@@ -754,11 +754,11 @@
 "onboarding.voice_test.microphone_confirmation.detail" = "遥控搭子选择“%@”只负责输出遥控器声音，不会修改%@自己的麦克风设置。请先在该工具设置中把麦克风也改为“%@”。";
 "onboarding.voice_test.microphone_confirmation.checkbox" = "我已确认%@的麦克风是“%@”";
 "onboarding.voice_test.placeholder" = "试着说：遥控搭子已经连接成功";
-"onboarding.voice_test.waiting_voice" = "等待你按照上方提示使用语音键…";
+"onboarding.voice_test.waiting_voice" = "等待开始收音…";
 "onboarding.voice_test.fn_tap_explanation" = "按住语音键说话，松开结束。开始时会点按一次“%@”启动识别，松开并送完尾部音频后再点按一次结束识别。";
 "onboarding.voice_test.t1_fn_tap_explanation" = "按一下 T1 语音键开始说话，再按一下结束。应用会在开始和送完尾部音频后，分别点按一次“%@”。";
 "onboarding.voice_test.receiving" = "正在接收声音…";
-"onboarding.voice_test.waiting_text" = "已收到声音，正在等待文字出现…";
+"onboarding.voice_test.waiting_text" = "收音结束，正在等待文字…";
 "onboarding.voice_test.tool_not_running" = "请先打开所选语音工具，再开始测试…";
 "onboarding.voice_test.manual_input" = "检测到键盘输入，请重新用语音键说一句";
 "onboarding.voice_test.success" = "语音与文字输入都已确认";
@@ -802,7 +802,7 @@
 "onboarding.side.device_selected" = "已自动指定 Remote Buddy Mic";
 "onboarding.side.audio_ready" = "音频输出正常";
 "onboarding.side.audio_on_demand" = "语音开始时连接音频";
-"onboarding.side.voice_key" = "语音键已按下并松开";
+"onboarding.side.voice_key" = "收音已开始并结束";
 "onboarding.side.samples" = "语音声音已收到";
 "onboarding.side.transcript" = "文字已经出现";
 "onboarding.side.three_buttons" = "已检测到三个不同按键";

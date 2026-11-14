@@ -738,7 +738,7 @@
 "onboarding.audio.refresh" = "Check Again";
 "onboarding.audio.on_demand_detail" = "The selected device will connect automatically when phone voice input starts. The next step verifies real audio and text.";
 "onboarding.voice_test.title" = "Test voice typing";
-"onboarding.voice_test.detail" = "Click the field, then use the voice button as shown.";
+"onboarding.voice_test.detail" = "Click the field below, then speak as shown.";
 "onboarding.voice_test.gain.title" = "Adjust microphone gain";
 "onboarding.voice_test.gain.detail" = "Gain boosts quiet or breathy speech. Try 6–12 dB; too much also raises background noise.";
 "onboarding.voice_test.gain.help" = "The new value applies to subsequent voice input immediately.";
@@ -757,11 +757,11 @@
 "onboarding.voice_test.microphone_confirmation.detail" = "Selecting “%@” in Remote Buddy only routes remote audio; it does not change %@’s own microphone setting. In that tool, set the microphone to “%@” too.";
 "onboarding.voice_test.microphone_confirmation.checkbox" = "I confirmed %@ uses “%@” as its microphone";
 "onboarding.voice_test.placeholder" = "Try saying: Remote Buddy is connected";
-"onboarding.voice_test.waiting_voice" = "Waiting for you to use the voice button as described above…";
+"onboarding.voice_test.waiting_voice" = "Waiting to start recording…";
 "onboarding.voice_test.fn_tap_explanation" = "Hold the voice button to talk and release to finish. The app taps “%@” to start recognition, then taps it again after release and buffered audio delivery.";
 "onboarding.voice_test.t1_fn_tap_explanation" = "Press the T1 voice button to start and again to finish. The app taps “%@” at the start and again after buffered audio drains.";
 "onboarding.voice_test.receiving" = "Receiving voice audio…";
-"onboarding.voice_test.waiting_text" = "Audio received. Waiting for text to appear…";
+"onboarding.voice_test.waiting_text" = "Recording ended. Waiting for text…";
 "onboarding.voice_test.tool_not_running" = "Open the selected voice app before starting the test…";
 "onboarding.voice_test.manual_input" = "Keyboard input detected. Try again with the voice button.";
 "onboarding.voice_test.success" = "Voice and text input are confirmed";
@@ -805,7 +805,7 @@
 "onboarding.side.device_selected" = "Remote Buddy Mic assigned automatically";
 "onboarding.side.audio_ready" = "Audio output ready";
 "onboarding.side.audio_on_demand" = "Audio connects when voice starts";
-"onboarding.side.voice_key" = "Voice session started and ended";
+"onboarding.side.voice_key" = "Recording started and ended";
 "onboarding.side.samples" = "Voice audio received";
 "onboarding.side.transcript" = "Text appeared";
 "onboarding.side.three_buttons" = "Three different buttons detected";
