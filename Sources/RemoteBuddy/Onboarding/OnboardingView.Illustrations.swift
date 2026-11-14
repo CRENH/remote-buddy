@@ -165,13 +165,13 @@ extension OnboardingView {
         VStack(spacing: 22) {
             ZStack {
                 Circle()
-                    .fill(Color.green.opacity(0.14))
+                    .fill((canContinue ? Color.green : Color.orange).opacity(0.14))
                     .frame(width: 170, height: 170)
-                Image(systemName: "checkmark")
+                Image(systemName: canContinue ? "checkmark" : "exclamationmark")
                     .font(.system(size: 74, weight: .bold))
-                    .foregroundStyle(Color.green)
+                    .foregroundStyle(canContinue ? Color.green : Color.orange)
             }
-                Text(verbatim: localization.text("onboarding.complete.illustration"))
+                Text(verbatim: localization.text(canContinue ? "onboarding.complete.illustration" : "onboarding.complete.runtime_changed"))
                 .font(.system(size: 18, weight: .semibold))
         }
     }

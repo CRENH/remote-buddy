@@ -1269,3 +1269,10 @@
 "onboarding.voice_tool.enable_tap" = "Enable Tap Mode";
 "onboarding.voice_tool.choose_another" = "Choose Another Tool";
 "onboarding.guide.viewed" = "Viewed";
+"onboarding.summary.detail" = "Review this configuration, then click Open Remote Buddy to finish.";
+"onboarding.summary.remote" = "Remote";
+"onboarding.summary.remote_missing" = "No remote selected";
+"onboarding.summary.buttons" = "Button detection";
+"onboarding.summary.passed" = "Passed";
+"onboarding.summary.not_tested" = "Not Verified";
+"onboarding.summary.not_ready" = "Not Ready";

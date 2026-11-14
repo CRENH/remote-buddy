@@ -197,47 +197,78 @@ extension OnboardingView {
         }
     }
 
-    private var completionDetailKey: String {
-        switch settings.onboardingPurpose {
-        case .initialSetup: return "onboarding.complete.detail"
-        case .addDevice: return "onboarding.add_device.complete.detail"
-        case .integration: return "onboarding.integration.complete.detail"
+    var completionSummary: OnboardingCompletionSummary {
+        let profile = settings.selectedRemoteProfile
+        let name = profile.flatMap { model.systemDeviceName(for: $0) }
+            ?? profile.map { localization.text($0.model.localizationKey) }
+            ?? settings.onboardingDevice.map { localization.text($0.titleKey) }
+            ?? localization.text("onboarding.summary.remote_missing")
+        let lastButtonEvent = settings.firstUseEvents.last { event in
+            event.step == .controls && [.entered, .passed, .blocked, .retry].contains(event.kind)
         }
+        return OnboardingCompletionSummary(purpose: settings.onboardingPurpose,
+            remoteName: name, buttonsVerified: testedControlButtons.count >= 3 || lastButtonEvent?.kind == .passed,
+            microphoneReady: onboardingAudioReady, voiceKeyMode: settings.voiceKeyMode,
+            tapModeEnabled: settings.voiceFnTapModeEnabled, voiceTool: settings.onboardingVoiceTool,
+            binding: settings.verifiedVoiceToolBinding)
     }
 
     var completeContent: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Image(systemName: "checkmark.circle.fill")
+        let summary = completionSummary
+        return VStack(alignment: .leading, spacing: 18) {
+            Image(systemName: canContinue ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                 .font(.system(size: 46))
-                .foregroundStyle(Color.green)
-            onboardingTitle(completionTitleKey)
-            Text(verbatim: localization.text(completionDetailKey))
-                .font(.system(size: 15))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
+                .foregroundStyle(canContinue ? Color.green : Color.orange)
+            onboardingTitle(canContinue ? completionTitleKey : "onboarding.complete.runtime_changed")
+            Text(localization.text("onboarding.summary.detail"))
+                .font(.system(size: 14)).foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 12) {
-                if settings.onboardingPurpose != .addDevice {
-                    featureLine("mic.fill", "onboarding.complete.voice")
+                if let name = summary.remoteName {
+                    completionSummaryLine("appletvremote.gen4", "onboarding.summary.remote", value: name)
                 }
-                if usesG9N9NButtonTestWorkaround {
-                    featureLine("mic.fill", "onboarding.complete.g9n9n.voice_only")
-                } else if settings.onboardingPurpose != .integration {
-                    featureLine("button.programmable", "onboarding.complete.controls")
+                if let verified = summary.buttonsVerified {
+                    completionSummaryLine("button.programmable", "onboarding.summary.buttons",
+                        value: localization.text(verified ? "onboarding.summary.passed" : "onboarding.summary.not_tested"))
                 }
-                featureLine("gearshape", "onboarding.complete.settings")
+                if let ready = summary.microphoneReady {
+                    completionSummaryLine("mic.fill", "onboarding.side.microphone",
+                        value: localization.text(ready ? "common.status.ready" : "onboarding.summary.not_ready"))
+                }
+                if let mode = summary.voiceKeyMode {
+                    completionSummaryLine("keyboard", "connection.voice_key_mode.title", value: mode.displayName(using: localization))
+                }
+                if let tap = summary.tapModeEnabled {
+                    completionSummaryLine("hand.tap", "connection.voice_fn_tap.enabled",
+                        value: localization.text(tap ? "common.status.enabled" : "common.status.disabled"))
+                }
+                if let tool = summary.voiceTool {
+                    completionSummaryLine("waveform", "onboarding.step.voiceTool", value: localization.text(tool.titleKey))
+                }
+                if let verified = summary.voiceVerified {
+                    completionSummaryLine("checkmark.bubble", "onboarding.step.voiceTest",
+                        value: localization.text(verified ? "onboarding.summary.passed" : "onboarding.summary.not_tested"))
+                }
+                if usesG9N9NButtonTestWorkaround && settings.onboardingPurpose != .integration {
+                    Text(localization.text("onboarding.complete.g9n9n.voice_only"))
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
-            .padding(.top, 8)
-
             if !canContinue {
-                statusCard(
-                    icon: "exclamationmark.triangle.fill",
-                    title: localization.text("onboarding.complete.runtime_changed"),
-                    detail: localization.text("onboarding.complete.runtime_changed_detail"),
-                    isComplete: false
-                )
+                Text(localization.text("onboarding.complete.runtime_changed_detail"))
+                    .foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
             }
         }
+    }
+
+    private func completionSummaryLine(_ icon: String, _ titleKey: String, value: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon).foregroundStyle(Color.accentColor).frame(width: 22)
+            Text(localization.text(titleKey)).foregroundStyle(.secondary)
+            Spacer(minLength: 12)
+            Text(value).multilineTextAlignment(.trailing).fixedSize(horizontal: false, vertical: true)
+        }
+        .font(.system(size: 13))
     }
 
     func buttonTroubleshooting(for failure: FirstUseFailureReason) -> some View {

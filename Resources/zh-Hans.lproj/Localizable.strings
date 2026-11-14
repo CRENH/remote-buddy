@@ -1270,3 +1270,10 @@
 "onboarding.voice_tool.enable_tap" = "开启点按模式";
 "onboarding.voice_tool.choose_another" = "返回选择工具";
 "onboarding.guide.viewed" = "已查看";
+"onboarding.summary.detail" = "请核对本次配置，点击“打开遥控搭子”完成设置。";
+"onboarding.summary.remote" = "遥控器";
+"onboarding.summary.remote_missing" = "未选择遥控器";
+"onboarding.summary.buttons" = "按键检测";
+"onboarding.summary.passed" = "已通过";
+"onboarding.summary.not_tested" = "尚未验证";
+"onboarding.summary.not_ready" = "未就绪";
