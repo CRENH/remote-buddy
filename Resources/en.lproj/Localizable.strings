@@ -1001,13 +1001,11 @@
 "settings.driver.reload_help" = "If Remote Buddy Mic is still missing after installation, restart your Mac or follow the installation guide.";
 "settings.integration.title" = "Input Method & Voice Tool Integration";
 "settings.integration.introduction" = "Configure the tool that receives your remote audio and voice shortcut. Use the setup guide to verify the complete path, rather than assuming a detected device is ready for dictation.";
-"settings.integration.current" = "Current integration";
-"settings.integration.microphone_help" = "Choose the same virtual microphone in your input tool, and match the shortcut and press/release behavior configured on this page.";
+"settings.integration.current" = "Current Input Tool";
 "settings.integration.other_title" = "Other Tools";
 "settings.integration.configure" = "Configure & Test with Guide";
 "settings.integration.select_tool" = "Choose an input tool";
 "settings.integration.shortcut_title" = "Voice trigger";
-"settings.integration.shortcut_help" = "Select an input tool below, then use the wizard to change and test the trigger and tap mode. Cancelling or failing the test keeps the committed configuration.";
 
 "remote.device.illustration" = "Remote control illustration";
 

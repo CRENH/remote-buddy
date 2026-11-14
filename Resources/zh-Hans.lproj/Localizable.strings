@@ -998,13 +998,11 @@
 "settings.driver.reload_help" = "如果安装驱动后仍未检测到 Remote Buddy Mic，请重启 Mac，或查看安装说明。";
 "settings.integration.title" = "输入法与语音工具集成";
 "settings.integration.introduction" = "在这里配置接收遥控器音频与语音快捷键的工具。通过向导验证完整输入流程，避免设备已连接却仍无法输入。";
-"settings.integration.current" = "当前集成";
-"settings.integration.microphone_help" = "在输入工具中选择相同的虚拟麦克风，并让语音快捷键、按下与松开行为和本页设置保持一致。";
+"settings.integration.current" = "当前集成工具";
 "settings.integration.other_title" = "其他工具";
 "settings.integration.configure" = "通过向导配置并测试";
 "settings.integration.select_tool" = "选择输入工具";
 "settings.integration.shortcut_title" = "语音触发方式";
-"settings.integration.shortcut_help" = "选择下方输入工具，进入向导修改并测试语音热键及点按模式。取消或测试未通过时，保留原配置。";
 
 "remote.device.illustration" = "遥控器示意图";
 
