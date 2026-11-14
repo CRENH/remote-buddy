@@ -181,6 +181,7 @@ struct SessionRecoveryRegressionTests {
         var actions = 0, releases = 0
         let monitor = HIDRemoteMonitor(settings: settings, profileID: profile, scheduler: clock,
             runtimePermissions: { true }, actionPerformer: { _, _, _ in actions += 1; return true },
+            frontmostBundleIdentifier: { "test.editor" },
             diagnosticLogger: { _ in })
         monitor.onRuntimeButton = { _, _, phase in
             if phase == .release { releases += 1 }
@@ -248,7 +249,8 @@ struct SessionRecoveryRegressionTests {
         let profile = UUID()
         var failActions = false, releases = 0
         let monitor = HIDRemoteMonitor(settings: settings, profileID: profile, scheduler: clock,
-            runtimePermissions: { true }, actionPerformer: { _, _, _ in !failActions }, diagnosticLogger: { _ in })
+            runtimePermissions: { true }, actionPerformer: { _, _, _ in !failActions },
+            frontmostBundleIdentifier: { "test.editor" }, diagnosticLogger: { _ in })
         monitor.onRuntimeButton = { _, _, phase in
             if phase == .release { releases += 1 }; return false
         }
