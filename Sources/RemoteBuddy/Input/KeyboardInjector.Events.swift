@@ -87,10 +87,17 @@ extension KeyboardInjector {
               let event = CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: isDown)
         else { return nil }
         event.type = keyEventType(code: code, isDown: isDown)
-        // Posting Fn down can make the HID snapshot retain Fn. Re-inheriting
-        // that bit on key-up turns every tap into a continuous hold.
-        let inheritedFlags = code == VoiceKeyMode.function.keyCode
-            ? hardwareFlags().subtracting(.maskSecondaryFn) : hardwareFlags()
+        // Voice modifiers must not re-inherit their own HID state on release.
+        // Preserve other physical modifiers, including the opposite-side key.
+        let observedFlags = hardwareFlags()
+        let inheritedFlags: CGEventFlags
+        if marker == orderedVoiceEventMarker {
+            inheritedFlags = ShortcutEventSequence.hardwareFlags(observedFlags,
+                excludingOwned: ShortcutEventSequence.modifierFlags(for: code))
+        } else {
+            inheritedFlags = code == VoiceKeyMode.function.keyCode
+                ? observedFlags.subtracting(.maskSecondaryFn) : observedFlags
+        }
         event.flags = flags.union(inheritedFlags)
         event.setIntegerValueField(.eventSourceUserData, value: marker)
         return event

@@ -12,6 +12,7 @@ final class HeldVoiceShortcut {
     private let lock = NSRecursiveLock()
     private var held: [HeldKey] = []
     private var shortcut: CustomKeyboardShortcut?
+    private var ownedModifierFlags: CGEventFlags = []
     private var post: KeyboardInjector.KeyStatePoster?
     private var readHardware: (() -> CGEventFlags)?
     private var recovery: ScheduledOperation?
@@ -36,6 +37,7 @@ final class HeldVoiceShortcut {
                 ? physical.contains(modifier.deviceBit) : physical.contains(modifier.flag)
             if alreadyHeld { continue }
             let key = HeldKey(code: modifier.key, flags: modifier.flag.union(modifier.deviceBit))
+            ownedModifierFlags.formUnion(key.flags)
             held.append(key) // Even a failed submission must be cleaned up.
             if !post(key.code, true, flags()) {
                 recover(schedule: schedule)
@@ -51,8 +53,12 @@ final class HeldVoiceShortcut {
         return true
     }
 
+    private func physicalFlags() -> CGEventFlags {
+        ShortcutEventSequence.hardwareFlags(readHardware?() ?? [], excludingOwned: ownedModifierFlags)
+    }
+
     private func flags() -> CGEventFlags {
-        held.reduce(readHardware?() ?? []) { $0.union($1.flags) }
+        held.reduce(physicalFlags()) { $0.union($1.flags) }
     }
 
     private func release() -> Bool {
@@ -61,7 +67,7 @@ final class HeldVoiceShortcut {
         guard let post else { return held.isEmpty }
         for index in held.indices.reversed() {
             let key = held[index]
-            let releaseFlags = held.enumerated().reduce(readHardware?() ?? []) {
+            let releaseFlags = held.enumerated().reduce(physicalFlags()) {
                 $1.offset == index ? $0 : $0.union($1.element.flags)
             }
             if post(key.code, false, releaseFlags) || post(key.code, false, releaseFlags) {
@@ -69,7 +75,7 @@ final class HeldVoiceShortcut {
             }
         }
         shortcut = nil
-        if held.isEmpty { self.post = nil; readHardware = nil }
+        if held.isEmpty { self.post = nil; readHardware = nil; ownedModifierFlags = [] }
         return held.isEmpty
     }
 

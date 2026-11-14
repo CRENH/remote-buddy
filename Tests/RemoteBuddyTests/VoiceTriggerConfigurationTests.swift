@@ -221,6 +221,45 @@ struct HeldVoiceShortcutTests {
         #expect(edges.last?.2.isEmpty == true)
     }
 
+    @Test(arguments: [false, true])
+    func hidSnapshotsDoNotReintroduceOwnedModifiersDuringRelease(laggingSnapshot: Bool) {
+        let session = HeldVoiceShortcut()
+        let chord = CustomKeyboardShortcut(keyCode: 9, modifierFlags: [.control, .shift], keyLabel: "V")
+        var observed: CGEventFlags = []
+        var events: [(UInt16, Bool, CGEventFlags)] = []
+        let post: KeyboardInjector.KeyStatePoster = { code, down, flags in
+            events.append((code, down, flags))
+            if down || !laggingSnapshot { observed = flags }
+            return true
+        }
+        #expect(session.setPressed(true, shortcut: chord, post: post, hardwareFlags: { observed }))
+        #expect(session.setPressed(false, shortcut: chord, post: post))
+        #expect(events.map(\.0) == [59, 56, 9, 9, 56, 59])
+        #expect(events[3].2.contains([.maskControl, .maskShift]))
+        #expect(events[4].2.contains(.maskControl))
+        #expect(!events[4].2.contains(.maskShift))
+        #expect(events[5].2.isEmpty)
+    }
+
+    @Test func oppositePhysicalModifierRemainsHeldWhileOwnedSideReleases() {
+        let session = HeldVoiceShortcut()
+        let chord = CustomKeyboardShortcut(keyCode: 9, modifierFlags: [.control], keyLabel: "V")
+        var observed: CGEventFlags = []
+        var lastFlags: CGEventFlags = []
+        let post: KeyboardInjector.KeyStatePoster = { _, _, flags in
+            observed = flags
+            lastFlags = flags
+            return true
+        }
+        #expect(session.setPressed(true, shortcut: chord, post: post, hardwareFlags: { observed }))
+        // The user presses right Control while synthetic left Control is held.
+        observed.formUnion(CGEventFlags(rawValue: 0x2000))
+        #expect(session.setPressed(false, shortcut: chord, post: post))
+        #expect(lastFlags.contains(.maskControl))
+        #expect(lastFlags.contains(CGEventFlags(rawValue: 0x2000)))
+        #expect(!lastFlags.contains(CGEventFlags(rawValue: 0x0001)))
+    }
+
     @Test func physicalModifiersAreNotAcquiredAndRemainSetDuringCleanup() {
         let session = HeldVoiceShortcut()
         var physical: CGEventFlags = .maskAlternate

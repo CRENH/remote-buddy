@@ -4,10 +4,10 @@ import Testing
 
 @Suite("Bluetooth held dictation tail") @MainActor
 struct BluetoothVoiceHoldStopTests {
-    private func makeModel(_ defaults: UserDefaults) -> BridgeAppModel {
+    private func makeModel(_ defaults: UserDefaults, mode: VoiceKeyMode = .function) -> BridgeAppModel {
         let model = BridgeAppModel(settings: AppSettings(defaults: defaults))
         _ = model.voiceKeyLatch.transition(streaming: true, owner: .bluetooth)
-        model.heldVoiceKeyMode = .function
+        model.heldVoiceKeyMode = mode
         model.isStreaming = true
         return model
     }
@@ -38,12 +38,15 @@ struct BluetoothVoiceHoldStopTests {
         model.endVoiceSessionIfNeeded(flushAudio: false)
     }
 
-    @Test(arguments: [VirtualAudioDrainOutcome.normal, .forced])
-    func releasesKeyOnlyAfterPlaybackCompletes(outcome: VirtualAudioDrainOutcome) throws {
+    @Test(arguments: [VirtualAudioDrainOutcome.normal, .forced], [
+        VoiceKeyMode.function, .rightOption,
+        .shortcut(CustomKeyboardShortcut(keyCode: 9, modifierFlags: [.control, .shift], keyLabel: "V")),
+    ])
+    func releasesKeyOnlyAfterPlaybackCompletes(outcome: VirtualAudioDrainOutcome, mode: VoiceKeyMode) throws {
         let suite = "hold-tail-" + UUID().uuidString
         let defaults = try #require(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
-        let model = makeModel(defaults)
+        let model = makeModel(defaults, mode: mode)
         var completion: ((VirtualAudioDrainOutcome) -> Void)?
         var releases = 0
         model.finishBluetoothVoicePlayback(deviceIdentifier: UUID(), handledByFnTapMode: false,
