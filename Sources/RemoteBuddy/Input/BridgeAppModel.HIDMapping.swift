@@ -493,7 +493,7 @@ extension BridgeAppModel {
         guard canRefreshHIDMappingsNow else { return }
         let generation = hidServiceMappingRefreshGeneration
         // Defer outside IOHIDManager callbacks before probing/reapplying IOHIDEventSystem mappings.
-        DispatchQueue.main.async { [weak self] in
+        _ = scheduleHIDServiceMappingRefresh(0) { [weak self] in
             guard let self,
                   self.started,
                   !self.isTerminating,

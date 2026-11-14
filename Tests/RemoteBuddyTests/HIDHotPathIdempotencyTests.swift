@@ -1252,7 +1252,7 @@ struct HIDHotPathIdempotencyTests {
         #expect(mapper.needsReapply(suppressPowerKey: true, neutralizeVoiceKey: false))
     }
 
-    @Test func candidateAvailableAndConnectedRefreshCoalescesDefersFlushesAndCancelsStaleWork() async throws {
+    @Test func candidateAvailableAndConnectedRefreshCoalescesDefersFlushesAndCancelsStaleWork() throws {
         let harness = try makeHarness(
             customMappingEnabled: true,
             voiceKeyMode: .leftCommand,
@@ -1263,6 +1263,8 @@ struct HIDHotPathIdempotencyTests {
         defer { harness.cleanup() }
         let model = harness.model
         let counters = harness.counters
+        let refreshScheduler = ControlledTestScheduler()
+        model.scheduleHIDServiceMappingRefresh = refreshScheduler.voiceSchedule
 
         #expect(counters.hidMappings.contains(RemoteHIDKeyMappingPolicy.neutralRemoteVoiceKey))
 
@@ -1297,9 +1299,8 @@ struct HIDHotPathIdempotencyTests {
         monitor.onDeviceConnected?(profileID, "test-remote")
         #expect(model.pendingHIDServiceMappingRefresh)
 
-        await withCheckedContinuation { continuation in
-            DispatchQueue.main.async { continuation.resume() }
-        }
+        #expect(refreshScheduler.activeCount == 1)
+        refreshScheduler.runAll()
 
         #expect(!model.pendingHIDServiceMappingRefresh)
         #expect(counters.secondaryService.mappings.contains(RemoteHIDKeyMappingPolicy.neutralRemoteVoiceKey))
@@ -1326,9 +1327,8 @@ struct HIDHotPathIdempotencyTests {
         let writesAfterStop = counters.setMappingsCount
         model.started = true
         model.pendingHIDServiceMappingRefresh = true
-        await withCheckedContinuation { continuation in
-            DispatchQueue.main.async { continuation.resume() }
-        }
+        #expect(refreshScheduler.activeCount == 1)
+        refreshScheduler.runAll()
         #expect(counters.setMappingsCount == writesAfterStop)
         #expect(model.pendingHIDServiceMappingRefresh)
         #expect(counters.secondaryService.mappings.isEmpty)
@@ -1338,9 +1338,10 @@ struct HIDHotPathIdempotencyTests {
         model.prepareForTermination()
         monitor.onCandidateAvailable?()
         #expect(!model.pendingHIDServiceMappingRefresh)
+        #expect(refreshScheduler.activeCount == 0)
     }
 
-    @Test func dualPendingFlagsCoalesceAndEmptyServiceRefreshSchedulesRecovery() async throws {
+    @Test func dualPendingFlagsCoalesceAndEmptyServiceRefreshSchedulesRecovery() throws {
         let harness = try makeHarness(
             customMappingEnabled: true,
             voiceKeyMode: .function,
@@ -1351,6 +1352,8 @@ struct HIDHotPathIdempotencyTests {
         defer { harness.cleanup() }
         let model = harness.model
         let counters = harness.counters
+        let refreshScheduler = ControlledTestScheduler()
+        model.scheduleHIDServiceMappingRefresh = refreshScheduler.voiceSchedule
         let monitor = try #require(model.hidMonitors["test-remote"])
 
         // 1. Both pendingVoiceToolMappingRefresh and pendingHIDServiceMappingRefresh set while streaming
@@ -1380,9 +1383,8 @@ struct HIDHotPathIdempotencyTests {
         #expect(model.hidMappingRecoveryWorkItem == nil)
         monitor.onCandidateAvailable?()
         #expect(model.pendingHIDServiceMappingRefresh)
-        await withCheckedContinuation { continuation in
-            DispatchQueue.main.async { continuation.resume() }
-        }
+        #expect(refreshScheduler.activeCount == 1)
+        refreshScheduler.runAll()
         #expect(!model.pendingHIDServiceMappingRefresh)
         #expect(model.hidMappingRecoveryWorkItem != nil)
         #expect(model.hidMappingRecoveryAttempt == 1)

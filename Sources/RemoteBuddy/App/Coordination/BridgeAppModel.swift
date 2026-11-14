@@ -227,6 +227,7 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
     var appliedHIDMonitoringConfiguration: HIDMonitoringConfiguration?
     var pendingHIDServiceMappingRefresh = false
     var hidServiceMappingRefreshGeneration: UInt64 = 0
+    var scheduleHIDServiceMappingRefresh: OperationScheduler = ScheduledOperation.mainQueue
     private var terminationObserver: NSObjectProtocol?
     var completedUpdateHIDRecoveryWorkItem: DispatchWorkItem?
     var hidFilterRetryWorkItem: DispatchWorkItem?
