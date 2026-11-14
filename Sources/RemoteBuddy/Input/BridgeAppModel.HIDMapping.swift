@@ -402,10 +402,38 @@ extension BridgeAppModel {
         AppLogger.shared.write("BUTTON CONFIGURATION phase=completed result=interactions_cancelled")
     }
 
-    func stopHIDMonitors() {
-        // Detach the blocking event tap before any synchronous IOKit close.
+    func scheduleHIDFilterRetry(
+        after delay: TimeInterval = 30,
+        schedule: (TimeInterval, DispatchWorkItem) -> Void = { delay, work in
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+        }
+    ) {
+        cancelHIDFilterRetry()
+        let token = UUID()
+        hidFilterRetryToken = token
+        let retry = DispatchWorkItem { [weak self] in
+            guard let self, self.hidFilterRetryToken == token else { return }
+            self.hidFilterRetryToken = nil
+            self.hidFilterRetryWorkItem = nil
+            guard self.started,
+                  self.hidMonitoringInterrupted,
+                  self.hidFilterFailureState == .systemDisabled
+            else { return }
+            self.refreshHIDAfterPermissionChange()
+        }
+        hidFilterRetryWorkItem = retry
+        schedule(delay, retry)
+    }
+
+    func cancelHIDFilterRetry() {
+        hidFilterRetryToken = nil
         hidFilterRetryWorkItem?.cancel()
         hidFilterRetryWorkItem = nil
+    }
+
+    func stopHIDMonitors() {
+        // Detach the blocking event tap before any synchronous IOKit close.
+        cancelHIDFilterRetry()
         appliedHIDMonitoringConfiguration = nil
         hidEventSuppressor.stop()
         hidMonitors.values.forEach { $0.stop() }
