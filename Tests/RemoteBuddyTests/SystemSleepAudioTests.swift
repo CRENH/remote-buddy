@@ -512,4 +512,66 @@ struct SystemSleepAudioTests {
             #expect(scheduledReconnects().isEmpty)
         }
     }
+
+    @Test func suspendActiveAudioEndsLocalStreamEvenIfRemoteStopNeverArrives() throws {
+        try withReadyBridgeModel { model, bridge, _ in
+            var written: [Data] = []
+            bridge.simulateT1ReadyStateForTesting()
+            bridge.testingControlWriteHandler = { data in
+                written.append(data)
+                return true
+            }
+            bridge.simulateControlPacketForTesting(Data([0x04, 0x03, 0x02, 0x01]))
+            #expect(!bridge.requestMicrophoneOpen())
+
+            model.handleSystemAudioLifecycle(.sessionDidResignActive)
+
+            #expect(written == [Data([0x0D, 0x01])])
+            #expect(!bridge.hasPendingVoiceWork)
+            #expect(!bridge.isMicrophoneOpen)
+            #expect(!bridge.isMicrophoneClosePending)
+            #expect(isReady(bridge.state))
+
+            model.handleSystemAudioLifecycle(.sessionDidBecomeActive)
+            #expect(isReady(bridge.state))
+            #expect(bridge.requestMicrophoneOpen())
+        }
+    }
+
+    @Test func suspendActiveAudioRecoversConnectionWhenRemoteCloseFailsOrRemainsQueued() throws {
+        try withReadyBridgeModel { model, bridge, _ in
+            bridge.simulateT1ReadyStateForTesting()
+            bridge.testingControlWriteHandler = { _ in false }
+            bridge.simulateControlPacketForTesting(Data([0x04, 0x03, 0x02, 0x01]))
+
+            model.handleSystemAudioLifecycle(.sessionDidResignActive)
+
+            #expect(!bridge.hasPendingVoiceWork)
+            #expect(!bridge.isMicrophoneOpen)
+            #expect(!bridge.isMicrophoneClosePending)
+            #expect(!bridge.isLifecycleReadyForTesting)
+            #expect(isReconnecting(bridge.state))
+            #expect(bridge.isConnectionCycleNeededForTesting)
+
+            model.handleSystemAudioLifecycle(.sessionDidBecomeActive)
+            #expect(!bridge.isConnectionCycleNeededForTesting)
+            #expect(bridge.state != .stopped)
+        }
+
+        try withReadyBridgeModel { model, bridge, _ in
+            bridge.simulateT1ReadyStateForTesting()
+            bridge.testingControlWriteHandler = { _ in true }
+            bridge.simulateControlPacketForTesting(Data([0x04, 0x03, 0x02, 0x01]))
+            #expect(bridge.enqueueUnacknowledgedWriteForTesting(Data([0x0D, 0x01])))
+            #expect(bridge.hasPendingWriteWorkForTesting)
+
+            model.handleSystemAudioLifecycle(.sessionDidResignActive)
+
+            #expect(!bridge.hasPendingVoiceWork)
+            #expect(!bridge.hasPendingWriteWorkForTesting)
+            #expect(!bridge.isLifecycleReadyForTesting)
+            #expect(isReconnecting(bridge.state))
+            #expect(bridge.isConnectionCycleNeededForTesting)
+        }
+    }
 }
