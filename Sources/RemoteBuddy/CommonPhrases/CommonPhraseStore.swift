@@ -235,7 +235,7 @@ struct CommonPhraseRouting {
     private(set) var owner: String?
     private var held = Set<Input>()
     private var phraseButtons = Set<RemoteButton>()
-    mutating func open(source: String, buttons: [RemoteButton]) {
+    mutating func open(source: String, buttons: [RemoteButton] = CommonPhraseStore.baseButtons) {
         owner = source
         phraseButtons = Set(buttons)
     }
