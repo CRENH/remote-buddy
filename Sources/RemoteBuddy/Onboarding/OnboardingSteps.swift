@@ -49,7 +49,7 @@ enum OnboardingPurpose: String, Codable {
         switch self {
         case .initialSetup: return OnboardingStep.visibleCases
         case .addDevice: return [.remoteAvailability, .remote, .controls, .complete]
-        case .integration: return [.permissions, .voiceTrigger, .voiceTool, .voiceTest, .complete]
+        case .integration: return [.voiceTrigger, .voiceTool, .voiceTest, .complete]
         }
     }
 

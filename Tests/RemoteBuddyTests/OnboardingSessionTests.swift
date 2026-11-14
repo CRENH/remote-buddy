@@ -160,13 +160,13 @@ struct OnboardingSessionTests {
         #expect(device.progress(at: .controls) == 2.0 / 3.0)
         #expect(device.progress(at: .complete) == 1)
         let integration = OnboardingPurpose.integration
-        #expect(integration.steps == [.permissions, .voiceTrigger, .voiceTool, .voiceTest, .complete])
-        #expect(integration.previousStep(before: .permissions) == nil)
+        #expect(integration.steps == [.voiceTrigger, .voiceTool, .voiceTest, .complete])
+        #expect(integration.previousStep(before: .voiceTrigger) == nil)
         #expect(integration.previousStep(before: .voiceTool) == .voiceTrigger)
         #expect(integration.nextStep(after: .voiceTool) == .voiceTest)
         #expect(integration.previousStep(before: .complete) == .voiceTest)
         #expect(integration.nextStep(after: .complete) == nil)
-        #expect(integration.progress(at: .voiceTest) == 0.75)
+        #expect(integration.progress(at: .voiceTest) == 2.0 / 3.0)
         #expect(OnboardingPurpose.initialSetup.steps == OnboardingStep.visibleCases)
     }
 

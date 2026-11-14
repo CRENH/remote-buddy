@@ -161,10 +161,10 @@ struct VoiceTriggerConfigurationTests {
             settings.voiceKeyMode = .rightOption
             settings.completeOnboarding()
             SettingsPageBehavior.beginIntegrationSetup(tool: .typeless, settings: settings)
-            #expect(settings.onboardingStep == .permissions)
+            #expect(settings.onboardingStep == .voiceTrigger)
             #expect(settings.voiceKeyMode == .rightOption)
             #expect(!settings.voiceFnTapModeEnabled)
-            #expect(OnboardingPurpose.integration.nextStep(after: .permissions) == .voiceTrigger)
+            #expect(OnboardingPurpose.integration.previousStep(before: .voiceTrigger) == nil)
             #expect(OnboardingPurpose.integration.nextStep(after: .voiceTrigger) == .voiceTool)
         }
     }

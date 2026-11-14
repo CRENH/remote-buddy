@@ -219,7 +219,7 @@ struct ProductBoundaryTests {
         #expect(settings.onboardingVoiceTool == .voiceBuddy)
         #expect(settings.onboardingControlSource == .chromecastRemote)
         #expect(settings.onboardingPurpose == .integration)
-        #expect(settings.onboardingStep == .permissions)
+        #expect(settings.onboardingStep == .voiceTrigger)
         #expect(!settings.isOnboardingComplete)
         let restored = AppSettings(defaults: defaults)
         #expect(restored.onboardingVoiceTool == .voiceBuddy)

@@ -299,7 +299,7 @@ enum SettingsPageBehavior {
             ? .integration : .initialSetup
         settings.onboardingCompletedVersion = 0
         settings.setOnboardingVoiceTool(tool)
-        let start: OnboardingStep = settings.onboardingPurpose == .integration ? .permissions
+        let start: OnboardingStep = settings.onboardingPurpose == .integration ? .voiceTrigger
             : (settings.canDismissOnboarding ? .remoteAvailability : .permissions)
         settings.setOnboardingStep(start)
     }
