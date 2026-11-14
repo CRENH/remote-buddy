@@ -32,13 +32,16 @@ extension OnboardingView {
             Text(localization.text("onboarding.voice_tool.selected_trigger_help"))
                 .foregroundStyle(.secondary)
             VoiceTriggerPicker(selection: settings.selectedVoiceTrigger.voiceKeyMode, onSelect: settings.selectOnboardingVoiceTrigger)
-            Toggle(localization.text("connection.voice_fn_tap.enabled"), isOn: Binding(
-                get: { settings.selectedVoiceTrigger.voiceFnTapModeEnabled },
-                set: settings.selectOnboardingFnTapMode
-            ))
-            Text(localization.text("connection.voice_fn_tap.hint_short"))
-                .font(.caption).foregroundStyle(.secondary)
-            Text(localization.text("connection.voice_key_mode.unverified_detail"))
+            VStack(alignment: .leading, spacing: 6) {
+                Toggle(localization.text("connection.voice_fn_tap.enabled"), isOn: Binding(
+                    get: { settings.selectedVoiceTrigger.voiceFnTapModeEnabled },
+                    set: settings.selectOnboardingFnTapMode
+                ))
+                Text(localization.text("connection.voice_fn_tap.hint_short"))
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Text(localization.text("onboarding.voice_trigger.save_hint"))
                 .font(.callout).foregroundStyle(.secondary)
         }
     }
