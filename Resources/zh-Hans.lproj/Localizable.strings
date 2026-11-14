@@ -728,8 +728,8 @@
 "onboarding.remote.reconnect" = "重新查找";
 "onboarding.remote.retry_input" = "重新检测按键";
 "onboarding.remote.open_bluetooth" = "打开蓝牙设置";
-"onboarding.audio.title" = "检查虚拟麦克风驱动";
-"onboarding.audio.detail" = "自动检查驱动并配置 Remote Buddy Mic。检测成功后，点击“继续”进入下一步，无需选择音频设备。";
+"onboarding.audio.title" = "检查虚拟麦克风";
+"onboarding.audio.detail" = "Remote Buddy Mic 就是遥控搭子的虚拟麦克风。应用会自动检查并准备，无需另外选择音频设备。";
 "onboarding.audio.device_detail" = "请安装 Remote Buddy Mic 驱动，安装后仍未检测到设备时，请重启 Mac。";
 "onboarding.audio.no_devices" = "未检测到支持的虚拟音频设备";
 "onboarding.audio.selected" = "已选择 %1$@";
@@ -1141,14 +1141,14 @@
 
 "settings.driver.fixed_output_help" = "所有设备共用此虚拟麦克风，程序会自动配置语音输出。";
 
-"onboarding.audio.automatic_ready" = "驱动与语音输出已就绪，点击“继续”进入下一步。";
+"onboarding.audio.automatic_ready" = "已就绪，点击“继续”进入下一步。";
 "onboarding.voice_prompt.t1.fn_tap" = "按一下 T1 语音键并松开开始说话，说完后再按一下结束（已自动开启点按转换）。";
 "onboarding.voice_prompt.t1.hold" = "按一下 T1 语音键并松开开始说话，说完后再按一下结束（期间遥控搭子会全程替你按住语音键）。";
 "onboarding.voice_prompt.generic.fn_tap" = "按住语音键说话，说完松开（已自动开启点按转换）。";
 "onboarding.voice_prompt.generic.hold" = "按住语音键说话，说完松开。";
 "onboarding.voice_prompt.generic.toggle" = "按一下语音键开始说话，再按一下结束。";
 
-"onboarding.audio.checking" = "正在检查驱动与语音输出。";
+"onboarding.audio.checking" = "正在准备，请稍候。";
 
 "onboarding.action.dismiss" = "退出向导";
 "onboarding.add_device.complete.title" = "设备添加完成";
@@ -1251,3 +1251,5 @@
 "settings.integration.tap_disabled" = "点按模式：已关闭";
 "settings.integration.trigger_readonly" = "热键和点按模式只能在输入法集成向导中修改，通过语音测试后才生效。";
 "onboarding.voice_trigger.change" = "返回修改语音热键";
+"onboarding.audio.not_detected" = "未检测到 Remote Buddy Mic，请安装或检查虚拟麦克风。";
+"onboarding.side.microphone" = "Remote Buddy Mic";

@@ -6,11 +6,8 @@ extension OnboardingView {
             Text(localization.text("onboarding.audio.title")).font(.headline)
             Text(verbatim: localization.text("onboarding.audio.detail"))
                 .foregroundStyle(.secondary)
-            statusCard(icon: "mic.fill", title: localization.text("settings.driver.title"),
-                detail: localization.text(microphoneDriverInstalled ? "settings.driver.installed" : "settings.driver.missing"),
-                isComplete: microphoneDriverInstalled)
-            statusCard(icon: "waveform", title: BuddyMicrophoneDevicePolicy.deviceName,
-                detail: localization.text(onboardingAudioReady ? "onboarding.audio.automatic_ready" : "onboarding.audio.checking"),
+            statusCard(icon: "mic.fill", title: BuddyMicrophoneDevicePolicy.deviceName,
+                detail: localization.text(microphoneSetupStatusKey),
                 isComplete: onboardingAudioReady)
             if !microphoneDriverInstalled || !model.isAudioOutputVerified {
                 Text(localization.text("settings.driver.reload_help")).font(.callout).foregroundStyle(.secondary)
@@ -22,6 +19,11 @@ extension OnboardingView {
         }
         .onAppear { prepareAutomaticDriverCheck() }
         .onChange(of: model.audioDevices) { _, _ in prepareAutomaticDriverCheck() }
+    }
+
+    private var microphoneSetupStatusKey: String {
+        if !microphoneDriverInstalled { return "onboarding.audio.not_detected" }
+        return onboardingAudioReady ? "onboarding.audio.automatic_ready" : "onboarding.audio.checking"
     }
 
     var voiceTriggerContent: some View {

@@ -729,8 +729,8 @@
 "onboarding.remote.reconnect" = "Search Again";
 "onboarding.remote.retry_input" = "Retry Button Detection";
 "onboarding.remote.open_bluetooth" = "Open Bluetooth Settings";
-"onboarding.audio.title" = "Check the virtual microphone driver";
-"onboarding.audio.detail" = "The driver is checked and Remote Buddy Mic is configured automatically. When ready, click Continue; no audio device selection is needed.";
+"onboarding.audio.title" = "Check the Virtual Microphone";
+"onboarding.audio.detail" = "Remote Buddy Mic is the app’s virtual microphone. It is checked and prepared automatically; no separate audio device selection is needed.";
 "onboarding.audio.device_detail" = "Install the Remote Buddy Mic driver, then restart your Mac if the device is still missing.";
 "onboarding.audio.no_devices" = "No supported virtual audio device was detected";
 "onboarding.audio.selected" = "%1$@ selected";
@@ -1140,9 +1140,9 @@
 
 "settings.driver.fixed_output_help" = "All remotes share this virtual microphone. Audio output is configured automatically.";
 
-"onboarding.audio.automatic_ready" = "Driver and audio output are ready. Click Continue to proceed.";
+"onboarding.audio.automatic_ready" = "Ready. Click Continue to proceed.";
 
-"onboarding.audio.checking" = "Checking the driver and audio output.";
+"onboarding.audio.checking" = "Preparing. Please wait.";
 "onboarding.voice_prompt.t1.fn_tap" = "Press and release the T1 voice button to start speaking, then press it once more to stop (tap conversion enabled).";
 "onboarding.voice_prompt.t1.hold" = "Press and release the T1 voice button to start speaking, then press it once more to stop (Remote Buddy holds the voice key for you while speaking).";
 "onboarding.voice_prompt.generic.fn_tap" = "Hold the voice button while speaking, then release it (tap conversion enabled).";
@@ -1250,3 +1250,5 @@
 "settings.integration.tap_disabled" = "Tap mode: Off";
 "settings.integration.trigger_readonly" = "Change the trigger and tap mode only in the input-tool integration wizard. Changes take effect after the voice test passes.";
 "onboarding.voice_trigger.change" = "Back to Voice Trigger";
+"onboarding.audio.not_detected" = "Remote Buddy Mic was not detected. Install or check the virtual microphone.";
+"onboarding.side.microphone" = "Remote Buddy Mic";

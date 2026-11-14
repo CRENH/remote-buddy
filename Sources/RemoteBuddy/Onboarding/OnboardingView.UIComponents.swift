@@ -22,9 +22,7 @@ extension OnboardingView {
                     )
                 }
                 sideCheck("permission.accessibility.title", isComplete: accessibilityGranted)
-                sideCheck("onboarding.side.device_found", isComplete: microphoneDriverInstalled)
-                sideCheck("onboarding.side.device_selected", isComplete: audioOutputSelected)
-                sideCheck("onboarding.side.audio_ready", isComplete: onboardingAudioReady)
+                sideCheck("onboarding.side.microphone", isComplete: onboardingAudioReady)
             }
         case .remote:
             sidePanel(titleKey: "onboarding.side.remote") {
