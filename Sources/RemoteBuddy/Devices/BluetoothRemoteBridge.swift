@@ -229,7 +229,10 @@ final class BluetoothRemoteBridge: NSObject {
     )
     private lazy var unacknowledgedWrites = FlowControlledBluetoothWriteQueue(
         canSend: { [weak self] in
-            self?.transmitCharacteristic != nil && self?.peripheral?.canSendWriteWithoutResponse == true
+            guard let self, self.transmitCharacteristic != nil, let peripheral = self.peripheral else {
+                return false
+            }
+            return peripheral.canSendWriteWithoutResponse
         },
         send: { [weak self] data in
             guard let self, let peripheral = self.peripheral,
@@ -269,6 +272,21 @@ final class BluetoothRemoteBridge: NSObject {
     var isMicrophoneOpen: Bool { microphoneOpened }
 
 #if DEBUG
+    func enqueueUnacknowledgedWriteForTesting(_ data: Data) -> Bool {
+        unacknowledgedWrites.enqueue(data)
+    }
+
+    func enqueueAcknowledgedWriteForTesting(_ data: Data) -> Bool {
+        acknowledgedWrites.enqueue(data)
+    }
+
+    var hasPendingWriteWorkForTesting: Bool {
+        acknowledgedWrites.hasPendingWork || unacknowledgedWrites.hasPendingWork
+    }
+
+    var isLifecycleReadyForTesting: Bool { lifecycle.isReady }
+    var isConnectionCycleNeededForTesting: Bool { systemSuspension.connectionCycleNeeded }
+
     func simulateMicrophoneOpenedForTesting(_ opened: Bool) {
         microphoneOpened = opened
     }
@@ -1060,6 +1078,22 @@ final class BluetoothRemoteBridge: NSObject {
     }
 
     func suspendVoiceTransferState() {
+        let needsReconnect = microphoneClosePending ||
+            microphoneOpened ||
+            acknowledgedWrites.hasPendingWork ||
+            unacknowledgedWrites.hasPendingWork
+        let wasStreaming = streaming
+        let hadVoiceStartNotified = voiceStartNotified
+        activeStreamSessionID = nil
+        microphoneOpened = false
+        audioDecoder.reset()
+        if hadVoiceStartNotified {
+            voiceStartNotified = false
+            delegate?.bluetoothBridgeDidStopVoice(self)
+        }
+        if wasStreaming {
+            lastStopAt = nowUptime()
+        }
         cancelMicrophoneCloseWatchdog()
         cancelStreamStopWatchdog()
         microphoneKeepalive?.cancel()
@@ -1069,6 +1103,10 @@ final class BluetoothRemoteBridge: NSObject {
         microphoneCloseSessionID = nil
         acknowledgedWrites.reset()
         unacknowledgedWrites.reset()
+        if needsReconnect, shouldRun {
+            AppLogger.shared.write("ATVV MIC_CLOSE suspended_incomplete result=reconnect_needed")
+            scheduleReconnect()
+        }
     }
 
     private func resetSession() {
@@ -1099,13 +1137,13 @@ final class BluetoothRemoteBridge: NSObject {
     private func scheduleReconnect(bypassCachedTarget: Bool = false) {
         guard shouldRun else { return }
         guard !systemSuspension.isSuspended else {
-            systemSuspension.markConnectionCycleNeeded()
+            disconnectWatchdog.cancel()
             reconnectWorkItem?.cancel()
             reconnectWorkItem = nil
-            publishReconnectingState()
-            AppLogger.shared.write(
-                "BLE RECONNECT deferred reason=system_suspended"
-            )
+            if let central, let peripheral, peripheral.state != .disconnected {
+                central.cancelPeripheralConnection(peripheral)
+            }
+            finishAttempt(reconnectAfter: 0)
             return
         }
         reconnectWorkItem?.cancel()
@@ -2213,7 +2251,6 @@ extension BluetoothRemoteBridge {
                     return
                 }
                 t1Candidate = true
-                audioDecoder.configureFormat(lowNibbleFirst: false)
                 identifiedModel = .t1Remote
                 delegate?.bluetoothBridge(self, didIdentifyRemoteModel: .t1Remote)
                 finishInitializationIfReady(generation: generation)
@@ -2270,13 +2307,11 @@ extension BluetoothRemoteBridge {
                 AppLogger.shared.write(
                     "BLE MODEL T1 observed modelNumber=\(DiagnosticRedactor.redactedDeviceName(normalizedModelNumber))"
                 )
-                audioDecoder.configureFormat(lowNibbleFirst: false)
                 modelFormatResolved = true
                 finishInitializationIfReady(generation: generation)
                 return
             }
 
-            audioDecoder.configureFormat(lowNibbleFirst: false)
             modelFormatResolved = true
             if let model = identifiedCatalogModel {
                 // 原始型号串必须一起记：广播名与型号**不是**一一对应（本机这台广播名是
