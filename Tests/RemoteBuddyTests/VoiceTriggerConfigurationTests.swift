@@ -109,6 +109,40 @@ struct VoiceTriggerConfigurationTests {
         }
     }
 
+    @Test func toolSetupCanAdvanceWithoutViewingInstructionsButStillRequiresVoiceValidation() throws {
+        try withSettings { settings, _ in
+            settings.setOnboardingControlSource(.xiaomiRemote)
+            settings.setOnboardingVoiceTool(.weixin)
+            settings.setOnboardingStep(.voiceTool)
+            settings.selectOnboardingVoiceTrigger(.rightOption)
+            let view = OnboardingView(model: BridgeAppModel(settings: settings, initialAudioDevices: []),
+                voiceToolAvailabilityOverride: [.weixin: .available], permissionOverrides: .allGranted)
+            #expect(view.voiceToolBlockingHintKey == nil)
+            #expect(view.canContinue)
+            view.continueFlow()
+            #expect(settings.onboardingStep == .voiceTest)
+            #expect(settings.stagedVoiceToolBinding?.validationState == .staged)
+            #expect(settings.voiceKeyMode == .function)
+            #expect(settings.effectiveVoiceKeyMode == .rightOption)
+        }
+    }
+
+    @Test func unavailableToolsAndUnsupportedShortcutsExplainWhyContinueIsBlocked() throws {
+        try withSettings { settings, _ in
+            settings.setOnboardingControlSource(.xiaomiRemote)
+            settings.setOnboardingStep(.voiceTool)
+            settings.setOnboardingVoiceTool(.weixin)
+            let view = OnboardingView(model: BridgeAppModel(settings: settings, initialAudioDevices: []),
+                voiceToolAvailabilityOverride: [.weixin: .notInstalled], permissionOverrides: .allGranted)
+            #expect(!view.canContinue)
+            #expect(view.voiceToolBlockingHintKey == "onboarding.voice_tool.install_required")
+            settings.setOnboardingVoiceTool(.macosDictation)
+            settings.selectOnboardingVoiceTrigger(.rightOption)
+            #expect(!view.canContinue)
+            #expect(view.voiceToolBlockingHintKey == "onboarding.voice_tool.trigger_incompatible")
+        }
+    }
+
     @Test func systemAndWechatConflictsAreSeparateAndDictationKeepsItsSystemBinding() throws {
         try withSettings { settings, _ in
             settings.setOnboardingControlSource(.xiaomiRemote)

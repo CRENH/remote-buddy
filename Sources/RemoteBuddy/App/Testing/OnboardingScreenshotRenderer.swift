@@ -123,6 +123,8 @@ enum OnboardingScreenshotRenderer {
         let requestedAppleRemoteGeneration = ProcessInfo.processInfo.environment[
             "REMOTE_BUDDY_ONBOARDING_SCREENSHOT_APPLE_REMOTE_GENERATION"
         ].flatMap(OnboardingAppleRemoteGeneration.init(rawValue:))
+        let verifiedPreview = ProcessInfo.processInfo.environment["REMOTE_BUDDY_ONBOARDING_SCREENSHOT_VERIFIED"] == "1"
+        let requestedTapMode = ProcessInfo.processInfo.environment["REMOTE_BUDDY_ONBOARDING_SCREENSHOT_TAP_MODE"] == "1"
         let systemFunctionKeyAvailable = ProcessInfo.processInfo.environment[
             "REMOTE_BUDDY_ONBOARDING_SCREENSHOT_SYSTEM_FN_AVAILABLE"
         ].map { $0 != "0" } ?? true
@@ -156,6 +158,7 @@ enum OnboardingScreenshotRenderer {
         if let requestedVoiceKeyMode {
             settings.voiceKeyMode = requestedVoiceKeyMode
         }
+        settings.voiceFnTapModeEnabled = requestedTapMode
         settings.setOnboardingVoiceTool(requestedVoiceTool ?? .doubao)
         settings.setOnboardingControlSource(controlSource)
         if controlSource == .siriRemote {
@@ -172,11 +175,20 @@ enum OnboardingScreenshotRenderer {
             "REMOTE_BUDDY_ONBOARDING_SCREENSHOT_PURPOSE"
         ].flatMap(OnboardingPurpose.init(rawValue:)) ?? .initialSetup
         if requestedPurpose != .initialSetup {
+            let previewModel: RemoteModel = switch controlSource {
+            case .t1Remote: .t1Remote
+            case .chromecastRemote: .chromecastVoiceRemote
+            case .siriRemote: .appleSiriRemoteA2854
+            case .xiaomiRemote, .unselected: .rc003
+            }
+            let profile = settings.registerBluetoothRemote(identifier: UUID(), model: previewModel)
+            settings.selectRemoteProfile(profile)
             settings.completeOnboarding()
             if requestedPurpose == .integration {
                 SettingsPageBehavior.beginIntegrationSetup(tool: settings.onboardingVoiceTool, settings: settings)
             } else {
                 SettingsPageBehavior.beginDeviceSetup(settings: settings)
+                if let device = RemoteSetupDevice.device(for: controlSource) { settings.selectOnboardingDevice(device) }
             }
         }
         let screenshotAudioDevices = [
@@ -187,6 +199,7 @@ enum OnboardingScreenshotRenderer {
             settings: settings,
             initialAudioDevices: screenshotAudioDevices
         )
+        if verifiedPreview { model.isAudioOutputVerified = true }
         let localization = LocalizationStore(
             settings: settings,
             resourceBundle: RemoteBuddyResourceBundle.mainOrDevelopment
@@ -209,6 +222,17 @@ enum OnboardingScreenshotRenderer {
         let renderedPages = pages(for: controlMethod)
 #endif
         for (step, filename) in renderedPages {
+            if step == .complete && verifiedPreview {
+                settings.recordFirstUseEvent(.passed, step: .controls)
+                if requestedPurpose != .addDevice,
+                   let plan = OnboardingVoicePairingPlan.resolve(tool: settings.onboardingVoiceTool,
+                    controlSource: settings.onboardingControlSource,
+                    preferredGesture: requestedTapMode ? .toggle : .hold,
+                    selectedShortcut: settings.voiceKeyMode) {
+                    settings.beginOnboardingVoiceTrial(plan)
+                    settings.verifyOnboardingVoiceBinding()
+                }
+            }
             settings.setOnboardingStep(step)
             let actionProbe = OnboardingInteractionProbe(openURL: { _ in })
             let rootView = OnboardingView(
