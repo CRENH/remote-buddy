@@ -262,15 +262,12 @@ enum SettingsPageBehavior {
 
     static let sidebarTopDragHeight: CGFloat = 5
 
-    static let sidebarSectionOrder: [SettingsSection] = [
-        .general,
-        .permissions,
-        .connection,
-        .mapping,
-        .integration,
-        .applicationIntegration,
-        .about,
+    static let sidebarSectionGroups: [[SettingsSection]] = [
+        [.general, .permissions, .connection, .integration],
+        [.mapping, .applicationIntegration],
+        [.about],
     ]
+    static let sidebarSectionOrder = sidebarSectionGroups.flatMap { $0 }
 
     static func sidebarSections() -> [SettingsSection] {
         sidebarSectionOrder
