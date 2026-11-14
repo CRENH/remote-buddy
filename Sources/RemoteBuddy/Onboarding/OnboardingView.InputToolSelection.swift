@@ -15,12 +15,6 @@ extension OnboardingView {
             Text(voiceToolGuideText("onboarding.voice_tool.guide.match_shortcut"))
                 .font(.callout).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            onboardingActionButton(id: "voice-trigger.change") {
-                settings.discardOnboardingVoiceTrial()
-                settings.setOnboardingStep(.voiceTrigger)
-            } label: {
-                Text(localization.text("onboarding.voice_trigger.change"))
-            }
             if proposedPairingPlan == nil && settings.onboardingVoiceTool != .unselected {
                 Text(localization.text("onboarding.voice_tool.trigger_incompatible"))
                     .foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)

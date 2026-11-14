@@ -1250,6 +1250,5 @@
 "settings.integration.tap_enabled" = "点按模式：已开启";
 "settings.integration.tap_disabled" = "点按模式：已关闭";
 "settings.integration.trigger_readonly" = "热键和点按模式只能在输入法集成向导中修改，通过语音测试后才生效。";
-"onboarding.voice_trigger.change" = "返回修改语音热键";
 "onboarding.audio.not_detected" = "未检测到 Remote Buddy Mic，请安装或检查虚拟麦克风。";
 "onboarding.side.microphone" = "Remote Buddy Mic";

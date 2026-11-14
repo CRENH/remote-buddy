@@ -1249,6 +1249,5 @@
 "settings.integration.tap_enabled" = "Tap mode: On";
 "settings.integration.tap_disabled" = "Tap mode: Off";
 "settings.integration.trigger_readonly" = "Change the trigger and tap mode only in the input-tool integration wizard. Changes take effect after the voice test passes.";
-"onboarding.voice_trigger.change" = "Back to Voice Trigger";
 "onboarding.audio.not_detected" = "Remote Buddy Mic was not detected. Install or check the virtual microphone.";
 "onboarding.side.microphone" = "Remote Buddy Mic";
