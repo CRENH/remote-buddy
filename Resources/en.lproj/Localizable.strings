@@ -1248,3 +1248,6 @@
 "settings.integration.trigger_readonly" = "Change the trigger and tap mode only in the input-tool integration wizard. Changes take effect after the voice test passes.";
 "onboarding.audio.not_detected" = "Remote Buddy Mic was not detected. Install or check the virtual microphone.";
 "onboarding.side.microphone" = "Remote Buddy Mic";
+"onboarding.button_help.title" = "Buttons not responding?";
+"onboarding.button_help.steps" = "1. Check the batteries and Bluetooth connection to this Mac.\n2. Click Recheck Buttons, then press an ordinary button listed above. On the button test page, try three different buttons.\n3. If nothing happens, allow Remote Buddy in System Settings → Privacy & Security → Input Monitoring.";
+"onboarding.button_help.copy" = "Copy Diagnostics for Support";

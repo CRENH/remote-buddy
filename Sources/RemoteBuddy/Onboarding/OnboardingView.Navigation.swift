@@ -65,7 +65,11 @@ extension OnboardingView {
                 VStack(alignment: .leading, spacing: 18) {
                     stepContent
                     if let failureReason, shouldShowStandaloneRecoveryCard(failureReason) {
-                        recoveryCard(for: failureReason)
+                        if failureReason == .remoteButtonNotReady || failureReason == .controlsNotConfirmed {
+                            buttonTroubleshooting(for: failureReason)
+                        } else {
+                            recoveryCard(for: failureReason)
+                        }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .topLeading)

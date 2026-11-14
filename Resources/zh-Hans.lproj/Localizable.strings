@@ -1249,3 +1249,6 @@
 "settings.integration.trigger_readonly" = "热键和点按模式只能在输入法集成向导中修改，通过语音测试后才生效。";
 "onboarding.audio.not_detected" = "未检测到 Remote Buddy Mic，请安装或检查虚拟麦克风。";
 "onboarding.side.microphone" = "Remote Buddy Mic";
+"onboarding.button_help.title" = "按键没反应？";
+"onboarding.button_help.steps" = "1. 确认遥控器有电，并已通过蓝牙连接到这台 Mac。\n2. 点击“重新检测按键”，再按上方提示的普通按键；按键测试页请尝试三个不同按键。\n3. 仍无反应时，检查“系统设置 → 隐私与安全性 → 输入监控”中是否允许遥控搭子。";
+"onboarding.button_help.copy" = "复制诊断信息以反馈问题";

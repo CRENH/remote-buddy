@@ -238,6 +238,32 @@ extension OnboardingView {
         }
     }
 
+    func buttonTroubleshooting(for failure: FirstUseFailureReason) -> some View {
+        DisclosureGroup(localization.text("onboarding.button_help.title")) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(localization.text("onboarding.button_help.steps"))
+                    .font(.callout).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 10) {
+                    onboardingActionButton(id: "recovery.\(failure.rawValue)") {
+                        performRecovery(for: failure)
+                    } label: {
+                        Text(localization.text(recoveryActionKey(for: failure)))
+                    }
+                    .buttonStyle(.bordered)
+                    onboardingActionButton(id: "diagnostics.copy") {
+                        copyDiagnosticSummary()
+                    } label: {
+                        Text(localization.text("onboarding.button_help.copy"))
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+            .padding(.top, 8)
+        }
+        .id(settings.onboardingStep)
+    }
+
     func recoveryCard(for failure: FirstUseFailureReason) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
