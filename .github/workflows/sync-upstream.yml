@@ -59,7 +59,8 @@ jobs:
             echo
             echo "在本地合并上游、解决冲突并推送到 \`crenh\` 后，关闭此 issue。"
           } > "$body"
-          number="$(gh issue list --state open --search "$title in:title" --json number,title \
+          # Filter titles locally: GitHub search can miss CJK titles or new issues.
+          number="$(gh issue list --state open --limit 500 --json number,title \
             --jq "map(select(.title == \"$title\")) | .[0].number // empty")"
           if [[ -n "$number" ]]; then
             gh issue comment "$number" --body-file "$body"
