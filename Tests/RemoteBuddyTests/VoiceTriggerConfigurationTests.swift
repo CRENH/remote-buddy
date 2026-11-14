@@ -225,6 +225,18 @@ struct VoiceTriggerConfigurationTests {
         #expect(key(started: true, samples: true, ended: true, result: .audioDeliveryFailed) == "onboarding.recovery.voice.audio_delivery_failed.title")
     }
 
+    @Test func voiceChordsUseWordsSymbolsAndPlusSeparators() throws {
+        try withSettings { settings, _ in
+            for language in [AppLanguage.simplifiedChinese, .english] {
+                settings.applicationLanguage = language
+                let localization = LocalizationStore(settings: settings, resourceBundle: RemoteBuddyResourceBundle.mainOrDevelopment)
+                let mode = VoiceKeyMode.shortcut(CustomKeyboardShortcut(keyCode: 9,
+                    modifierFlags: [.control, .option], keyLabel: "V"))
+                #expect(mode.displayName(using: localization) == "Ctrl (⌃) + Option (⌥) + V")
+            }
+        }
+    }
+
     @Test func voiceShortcutPresetsMatchTheSupportedMenuChoices() {
         let expected: [NSEvent.ModifierFlags] = [[.control, .shift], [.control, .option], [.control, .command]]
         #expect(VoiceKeyMode.shortcutPresets == expected.map {

@@ -287,10 +287,10 @@
 "connection.voice_fn_tap.hint_short" = "On: tap the shortcut to start and stop. Off: hold it throughout recording.";
 "connection.voice_key_mode.title" = "Voice Trigger Key";
 "connection.voice_key.mode.fn" = "Fn/Globe";
-"connection.voice_key.mode.left_command" = "Left Command";
-"connection.voice_key.mode.right_command" = "Right Command";
-"connection.voice_key.mode.left_option" = "Left Option";
-"connection.voice_key.mode.right_option" = "Right Option";
+"connection.voice_key.mode.left_command" = "Left Command (⌘)";
+"connection.voice_key.mode.right_command" = "Right Command (⌘)";
+"connection.voice_key.mode.left_option" = "Left Option (⌥)";
+"connection.voice_key.mode.right_option" = "Right Option (⌥)";
 "connection.voice_key_mode.help" = "Set the same shortcut in your input tool in the next step.";
 "connection.voice_key_mode.unverified" = "Check Your Voice Trigger Key";
 "onboarding.voice_trigger.save_hint" = "New settings take effect after the voice test passes.";

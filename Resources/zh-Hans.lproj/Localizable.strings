@@ -287,10 +287,10 @@
 "connection.voice_fn_tap.hint_short" = "开启：自动点按热键开始和结束；关闭：收音期间持续按住热键。";
 "connection.voice_key_mode.title" = "语音触发键";
 "connection.voice_key.mode.fn" = "Fn/地球键";
-"connection.voice_key.mode.left_command" = "左 Command";
-"connection.voice_key.mode.right_command" = "右 Command";
-"connection.voice_key.mode.left_option" = "左 Option（⌥）";
-"connection.voice_key.mode.right_option" = "右 Option（⌥）";
+"connection.voice_key.mode.left_command" = "左 Command (⌘)";
+"connection.voice_key.mode.right_command" = "右 Command (⌘)";
+"connection.voice_key.mode.left_option" = "左 Option (⌥)";
+"connection.voice_key.mode.right_option" = "右 Option (⌥)";
 "connection.voice_key_mode.help" = "下一步请在输入工具中设置相同热键。";
 "connection.voice_key_mode.unverified" = "修饰键模式尚未验证";
 "onboarding.voice_trigger.save_hint" = "通过后续语音测试后，新设置才会生效。";

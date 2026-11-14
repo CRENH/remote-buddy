@@ -170,7 +170,7 @@ struct CustomKeyboardShortcut: Codable, Hashable {
 
     /// Full keyboard wording used by tooltips and accessibility labels.
     @MainActor
-    func detailedDisplayName(using localization: LocalizationStore) -> String {
+    func detailedDisplayName(using localization: LocalizationStore, showsModifierSymbols: Bool = false) -> String {
         if let standaloneModifier {
             return standaloneModifier.displayName(using: localization)
         }
@@ -180,6 +180,7 @@ struct CustomKeyboardShortcut: Codable, Hashable {
                 "shortcut.modifier.control",
                 leftMask: Self.leftControlMask,
                 rightMask: Self.rightControlMask,
+                symbol: showsModifierSymbols ? "⌃" : nil,
                 using: localization
             ))
         }
@@ -188,6 +189,7 @@ struct CustomKeyboardShortcut: Codable, Hashable {
                 "shortcut.modifier.option",
                 leftMask: Self.leftOptionMask,
                 rightMask: Self.rightOptionMask,
+                symbol: showsModifierSymbols ? "⌥" : nil,
                 using: localization
             ))
         }
@@ -196,6 +198,7 @@ struct CustomKeyboardShortcut: Codable, Hashable {
                 "shortcut.modifier.shift",
                 leftMask: Self.leftShiftMask,
                 rightMask: Self.rightShiftMask,
+                symbol: showsModifierSymbols ? "⇧" : nil,
                 using: localization
             ))
         }
@@ -204,6 +207,7 @@ struct CustomKeyboardShortcut: Codable, Hashable {
                 "shortcut.modifier.command",
                 leftMask: Self.leftCommandMask,
                 rightMask: Self.rightCommandMask,
+                symbol: showsModifierSymbols ? "⌘" : nil,
                 using: localization
             ))
         }
@@ -242,11 +246,14 @@ struct CustomKeyboardShortcut: Codable, Hashable {
         _ localizationKey: String,
         leftMask: UInt,
         rightMask: UInt,
+        symbol: String? = nil,
         using localization: LocalizationStore
     ) -> String {
-        let name = localization.text(localizationKey)
+        let name = symbol != nil && localizationKey == "shortcut.modifier.control"
+            ? "Ctrl" : localization.text(localizationKey)
         let prefix = sidePrefix(leftMask: leftMask, rightMask: rightMask, using: localization)
-        return prefix.isEmpty ? name : "\(prefix) \(name)"
+        let label = prefix.isEmpty ? name : "\(prefix) \(name)"
+        return symbol.map { "\(label) (\($0))" } ?? label
     }
 
     private var visualKeyLabel: String {

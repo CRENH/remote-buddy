@@ -80,7 +80,7 @@ enum VoiceKeyMode: Hashable, RawRepresentable, Codable, CaseIterable, Identifiab
     }
 
     @MainActor func displayName(using localization: LocalizationStore) -> String {
-        if case let .shortcut(shortcut) = self { return shortcut.displayName(using: localization) }
+        if case let .shortcut(shortcut) = self { return shortcut.detailedDisplayName(using: localization, showsModifierSymbols: true) }
         return localization.text(localizationKey)
     }
 
