@@ -77,7 +77,8 @@ extension OnboardingView {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .scrollIndicators(.visible)
 
-            if settings.onboardingStep == .voiceTool, let hint = voiceToolBlockingHintKey {
+            if settings.onboardingStep == .voiceTool, let hint = voiceToolBlockingHintKey,
+               hint != "onboarding.voice_tool.tap_required" {
                 Text(verbatim: localization.text(hint))
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)

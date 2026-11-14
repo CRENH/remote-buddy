@@ -15,7 +15,7 @@ extension OnboardingView {
             Text(voiceToolGuideText("onboarding.voice_tool.guide.match_shortcut"))
                 .font(.callout).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            if voiceToolRequiresTapConfirmation {
+            if voiceToolBlockingHintKey == "onboarding.voice_tool.tap_required" {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(localization.text("onboarding.voice_tool.tap_required"))
                         .foregroundStyle(.orange)
