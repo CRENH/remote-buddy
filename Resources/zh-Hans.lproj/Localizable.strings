@@ -627,7 +627,7 @@
 "onboarding.voice_tool.guide.configure_other" = "设置匹配的语音热键";
 "onboarding.voice_tool.guide.configure_other.detail" = "在工具自己的设置中，将语音输入快捷键设为“%@”，并使录音触发模式与本页选择一致。";
 "onboarding.voice_tool.guide.select_microphone.detail" = "在语音工具中选择与遥控搭子音频页相同的麦克风。";
-"onboarding.voice_tool.guide.release_system_fn" = "去除系统 Fn 占用";
+"onboarding.voice_tool.guide.release_system_fn" = "检查系统 Fn 设置";
 "onboarding.voice_tool.guide.image_missing" = "当前安装包缺少设置图片，请安装最新的完整安装包。";
 "onboarding.voice_tool.switch.selected" = "当前已经选择 %1$@。";
 "onboarding.voice_tool.switch.not_selected" = "%1$@ 已安装，但当前不是 macOS 输入法。这里不会因为你选择了它就自动切换。";
@@ -1269,3 +1269,4 @@
 "onboarding.voice_tool.tap_required" = "此工具需要开启点按模式，请确认后继续。";
 "onboarding.voice_tool.enable_tap" = "开启点按模式";
 "onboarding.voice_tool.choose_another" = "返回选择工具";
+"onboarding.guide.viewed" = "已查看";

@@ -109,6 +109,24 @@ struct VoiceTriggerConfigurationTests {
         }
     }
 
+    @Test func systemAndWechatConflictsAreSeparateAndDictationKeepsItsSystemBinding() throws {
+        try withSettings { settings, _ in
+            settings.setOnboardingControlSource(.xiaomiRemote)
+            let view = OnboardingView(model: BridgeAppModel(settings: settings, initialAudioDevices: []))
+            for tool in [OnboardingVoiceTool.weixin, .typeless, .macosDictation] {
+                settings.setOnboardingVoiceTool(tool)
+                for mode in [VoiceKeyMode.function, .rightOption] {
+                    settings.selectOnboardingVoiceTrigger(mode)
+                    let steps = view.inputMethodGuideSteps(for: tool)
+                    #expect(Set(steps.map(\.id)).count == steps.count)
+                    #expect(!steps.contains { if case .screenshot("weixin-app-shortcuts") = $0.content { return true }; return false })
+                    let hasSystemFn = steps.contains { if case .systemFunctionKey = $0.content { return true }; return false }
+                    #expect(hasSystemFn == (mode == .function && tool != .macosDictation))
+                }
+            }
+        }
+    }
+
     @Test func selectingATapOnlyToolDoesNotSilentlyChangeTheSelectedMode() throws {
         try withSettings { settings, _ in
             settings.setOnboardingControlSource(.xiaomiRemote)

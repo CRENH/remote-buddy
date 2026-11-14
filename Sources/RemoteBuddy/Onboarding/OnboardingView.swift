@@ -41,7 +41,7 @@ struct OnboardingView: View {
     @State var voiceToolRuntimeState: [OnboardingVoiceTool: OnboardingVoiceToolRuntimeState] = [:]
     @State var systemFunctionKeyUsage = OnboardingSystemFunctionKeyUsage.current
     @State var selectedInputMethodGuideStep: Int?
-    @State var completedInputMethodGuideSteps = Set<Int>()
+    @State var viewedInputMethodGuideSteps = Set<Int>()
     @State var transcriptFocusRequest = 0
     @State var transcriptEditorMounted = false
     @State var transcriptWindowKey = false
@@ -57,6 +57,7 @@ struct OnboardingView: View {
     @State var secureInputWaitStartedAtUptime: TimeInterval?
     @State var lastLoggedSecureInputState: Bool?
     @State var buttonHelpExpanded = false
+    @State var wechatHelpExpanded = false
     @State var microphonePreparationInProgress = false
     @State var aiPromptCopyResult: Bool?
     @State var isPermissionRelaunchConfirmationPresented = false
@@ -247,7 +248,7 @@ struct OnboardingView: View {
         }
         .onChange(of: settings.onboardingVoiceTrigger) { _, _ in
             selectedInputMethodGuideStep = nil
-            completedInputMethodGuideSteps.removeAll()
+            viewedInputMethodGuideSteps.removeAll()
         }
         .onChange(of: settings.onboardingVoiceTool) { _, _ in
             refreshSelectedVoiceToolRuntimeState()

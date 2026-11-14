@@ -92,15 +92,15 @@ extension OnboardingView {
                 spacing: 8
             ) {
                 ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
-                    let isCompleted = completedInputMethodGuideSteps.contains(step.id)
+                    let isViewed = viewedInputMethodGuideSteps.contains(step.id)
                     onboardingActionButton(id: "input-guide.\(index)") {
                         selectedInputMethodGuideStep = index
-                        completedInputMethodGuideSteps.insert(step.id)
+                        viewedInputMethodGuideSteps.insert(step.id)
                     } label: {
                         HStack(alignment: .center, spacing: 8) {
                             Group {
-                                if isCompleted {
-                                    Image(systemName: "checkmark")
+                                if isViewed {
+                                    Image(systemName: "eye")
                                         .font(.system(size: 11, weight: .bold))
                                 } else {
                                     Text("\(index + 1)")
@@ -109,22 +109,24 @@ extension OnboardingView {
                             }
                                 .frame(width: 22, height: 22)
                                 .background(
-                                    isCompleted
-                                        ? Color.green
-                                        : selectedIndex == index
-                                        ? Color.accentColor
-                                        : Color.primary.opacity(0.08),
+                                    selectedIndex == index ? Color.accentColor : Color.primary.opacity(0.08),
                                     in: Circle()
                                 )
                                 .foregroundStyle(
-                                    isCompleted || selectedIndex == index ? Color.white : Color.primary
+                                    selectedIndex == index ? Color.white : Color.primary
                                 )
-                            Text(voiceToolGuideText(step.titleKey))
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(.primary)
-                                .multilineTextAlignment(.leading)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .frame(maxHeight: .infinity, alignment: .center)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(voiceToolGuideText(step.titleKey))
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(.primary)
+                                if isViewed {
+                                    Text(localization.text("onboarding.guide.viewed"))
+                                        .font(.caption2).foregroundStyle(.secondary)
+                                }
+                            }
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxHeight: .infinity, alignment: .center)
                             Spacer(minLength: 0)
                         }
                         .padding(.horizontal, 10)
@@ -168,12 +170,33 @@ extension OnboardingView {
                     .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
                     .background(Color.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 10))
             }
+            wechatShortcutHelp
         }
         .padding(16)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
         .overlay {
             RoundedRectangle(cornerRadius: 14)
                 .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        }
+    }
+
+    private var wechatShortcutHelp: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            onboardingActionButton(id: "wechat-conflict.toggle") {
+                wechatHelpExpanded.toggle()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: wechatHelpExpanded ? "chevron.down" : "chevron.right")
+                    Text(localization.text("onboarding.voice_tool.guide.release_wechat_shortcut"))
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            if wechatHelpExpanded {
+                onboardingGuideScreenshot(resourceName: "weixin-app-shortcuts")
+            }
         }
     }
 
@@ -427,11 +450,6 @@ extension OnboardingView {
                     titleKey: "onboarding.voice_tool.guide.select_microphone",
                     content: .microphoneIntegration
                 ),
-                OnboardingInputMethodGuideStep(
-                    id: 4,
-                    titleKey: "onboarding.voice_tool.guide.release_wechat_shortcut",
-                    content: .screenshot("weixin-app-shortcuts")
-                ),
             ]
         case .other:
             toolSteps = [
@@ -470,11 +488,6 @@ extension OnboardingView {
                 content: .systemFunctionKey
             ))
         }
-        steps.append(OnboardingInputMethodGuideStep(
-            id: 5,
-            titleKey: "onboarding.voice_tool.guide.release_wechat_shortcut",
-            content: .screenshot("weixin-app-shortcuts")
-        ))
         return steps
     }
 
@@ -501,7 +514,8 @@ extension OnboardingView {
             "ONBOARDING VOICE_TOOL selected=\(tool.rawValue) binding_policy=selected_voice_key"
         )
         selectedInputMethodGuideStep = nil
-        completedInputMethodGuideSteps.removeAll()
+        wechatHelpExpanded = false
+        viewedInputMethodGuideSteps.removeAll()
         refreshSelectedInputMethodStatus()
         refreshSystemFunctionKeyUsage()
         stageCurrentDocumentedPairingPlanIfPossible()

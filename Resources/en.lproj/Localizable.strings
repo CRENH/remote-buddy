@@ -628,7 +628,7 @@
 "onboarding.voice_tool.guide.configure_other" = "Match the Voice Shortcut";
 "onboarding.voice_tool.guide.configure_other.detail" = "In your tool’s settings, set the voice shortcut to “%@” and match the recording mode selected here.";
 "onboarding.voice_tool.guide.select_microphone.detail" = "In the voice app, choose the same microphone selected on Remote Buddy's audio page.";
-"onboarding.voice_tool.guide.release_system_fn" = "Set the macOS Fn action to Do Nothing";
+"onboarding.voice_tool.guide.release_system_fn" = "Check the System Fn Setting";
 "onboarding.voice_tool.guide.image_missing" = "The setup image is missing from this installation. Install the latest complete package.";
 "onboarding.voice_tool.switch.selected" = "%1$@ is currently selected.";
 "onboarding.voice_tool.switch.not_selected" = "%1$@ is installed but is not the current macOS input source. Remote Buddy will not change it automatically here.";
@@ -1268,3 +1268,4 @@
 "onboarding.voice_tool.tap_required" = "This tool requires tap mode. Confirm the change to continue.";
 "onboarding.voice_tool.enable_tap" = "Enable Tap Mode";
 "onboarding.voice_tool.choose_another" = "Choose Another Tool";
+"onboarding.guide.viewed" = "Viewed";
