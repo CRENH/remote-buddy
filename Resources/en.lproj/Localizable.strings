@@ -1263,3 +1263,8 @@
 "onboarding.controls.progress" = "Detected %@/3 different buttons";
 "onboarding.controls.g9n9n.first" = "Press OK + Up together, then release";
 "onboarding.controls.g9n9n.second" = "Press Back + Up together, then release";
+"onboarding.voice_tool.choose_required" = "Choose an input tool.";
+"onboarding.voice_tool.install_required" = "Install and enable the selected input tool, then return here.";
+"onboarding.voice_tool.tap_required" = "This tool requires tap mode. Confirm the change to continue.";
+"onboarding.voice_tool.enable_tap" = "Enable Tap Mode";
+"onboarding.voice_tool.choose_another" = "Choose Another Tool";

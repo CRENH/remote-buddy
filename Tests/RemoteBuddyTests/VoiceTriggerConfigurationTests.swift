@@ -109,6 +109,23 @@ struct VoiceTriggerConfigurationTests {
         }
     }
 
+    @Test func selectingATapOnlyToolDoesNotSilentlyChangeTheSelectedMode() throws {
+        try withSettings { settings, _ in
+            settings.setOnboardingControlSource(.xiaomiRemote)
+            settings.setOnboardingVoiceTool(.typeless)
+            settings.selectOnboardingFnTapMode(false)
+            let view = OnboardingView(model: BridgeAppModel(settings: settings, initialAudioDevices: []))
+            #expect(view.voiceToolRequiresTapConfirmation)
+            #expect(view.proposedPairingPlan == nil)
+            #expect(!settings.selectedVoiceTrigger.voiceFnTapModeEnabled)
+            settings.selectOnboardingFnTapMode(true)
+            #expect(!view.voiceToolRequiresTapConfirmation)
+            let plan = try #require(view.proposedPairingPlan)
+            #expect(plan.fnTapModeEnabled)
+            #expect(!settings.voiceFnTapModeEnabled)
+        }
+    }
+
     @Test func tapToolsUseTheSelectedChordAndDictationKeepsItsSpecificSystemSequence() throws {
         for tool in [OnboardingVoiceTool.bageshuo, .typeless] {
             let plan = try #require(OnboardingVoicePairingPlan.resolve(tool: tool, controlSource: .xiaomiRemote,

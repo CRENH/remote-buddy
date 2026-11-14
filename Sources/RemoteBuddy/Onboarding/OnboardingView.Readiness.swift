@@ -41,7 +41,7 @@ extension OnboardingView {
             remoteAvailability: settings.onboardingRemoteAvailability,
             controlMethod: settings.onboardingControlMethod,
             voiceKeyMode: settings.selectedVoiceTrigger.voiceKeyMode,
-            voiceToolGuideStepsCompleted: inputMethodGuideStepsCompleted,
+            voiceToolSetupReady: voiceToolBlockingHintKey == nil && proposedPairingPlan != nil,
             selectedDevice: settings.onboardingDevice,
             capabilities: capabilities
         )
@@ -55,11 +55,6 @@ extension OnboardingView {
             (settings.onboardingStep != .voiceTool ||
                 (voiceToolSelectionIsValid &&
                     proposedPairingPlan != nil))
-    }
-
-    private var inputMethodGuideStepsCompleted: Bool {
-        let steps = inputMethodGuideSteps(for: settings.onboardingVoiceTool)
-        return !steps.isEmpty && steps.allSatisfy { completedInputMethodGuideSteps.contains($0.id) }
     }
 
     var visibleVoiceTools: [OnboardingVoiceTool] {
@@ -83,11 +78,27 @@ extension OnboardingView {
         }
     }
 
+    var voiceToolRequiresTapConfirmation: Bool {
+        VoiceToolAdapterProfile.profile(for: settings.onboardingVoiceTool).supportedModes == [.toggle]
+            && !settings.selectedVoiceTrigger.voiceFnTapModeEnabled
+    }
+
+    var voiceToolBlockingHintKey: String? {
+        if settings.onboardingVoiceTool == .unselected { return "onboarding.voice_tool.choose_required" }
+        if !voiceToolSelectionIsValid { return "onboarding.voice_tool.install_required" }
+        if settings.onboardingVoiceTool == .macosDictation && settings.selectedVoiceTrigger.voiceKeyMode != .function {
+            return "onboarding.voice_tool.trigger_incompatible"
+        }
+        if voiceToolRequiresTapConfirmation { return "onboarding.voice_tool.tap_required" }
+        return nil
+    }
+
     var effectivePreferredGesture: VoiceGestureMode {
         settings.onboardingPreferredGesture ?? proposedPairingPlan?.binding.gestureMode ?? .hold
     }
 
     var proposedPairingPlan: OnboardingVoicePairingPlan? {
+        guard !voiceToolRequiresTapConfirmation else { return nil }
         let selectedBinding: VoiceToolUserBinding?
         if let staged = settings.stagedVoiceToolBinding,
            staged.tool == settings.onboardingVoiceTool {
@@ -103,9 +114,7 @@ extension OnboardingView {
         return OnboardingVoicePairingPlan.resolve(
             tool: settings.onboardingVoiceTool,
             controlSource: settings.onboardingControlSource,
-            preferredGesture: settings.onboardingPreferredGesture ??
-                (settings.selectedVoiceTrigger.voiceFnTapModeEnabled ? .toggle :
-                    (settings.onboardingVoiceTool.supportsHoldVoiceRecording ? .hold : .toggle)),
+            preferredGesture: settings.selectedVoiceTrigger.voiceFnTapModeEnabled ? .toggle : .hold,
             userBinding: selectedBinding,
             selectedShortcut: settings.selectedVoiceTrigger.voiceKeyMode
         )

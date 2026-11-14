@@ -15,9 +15,22 @@ extension OnboardingView {
             Text(voiceToolGuideText("onboarding.voice_tool.guide.match_shortcut"))
                 .font(.callout).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            if proposedPairingPlan == nil && settings.onboardingVoiceTool != .unselected {
-                Text(localization.text("onboarding.voice_tool.trigger_incompatible"))
-                    .foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
+            if voiceToolRequiresTapConfirmation {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(localization.text("onboarding.voice_tool.tap_required"))
+                        .foregroundStyle(.orange)
+                    HStack {
+                        onboardingActionButton(id: "voice-tool.enable-tap") {
+                            settings.selectOnboardingFnTapMode(true)
+                            stageCurrentDocumentedPairingPlanIfPossible()
+                        } label: { Text(localization.text("onboarding.voice_tool.enable_tap")) }
+                        .buttonStyle(.borderedProminent)
+                        onboardingActionButton(id: "voice-tool.choose-another") {
+                            selectVoiceTool(.unselected)
+                        } label: { Text(localization.text("onboarding.voice_tool.choose_another")) }
+                        .buttonStyle(.bordered)
+                    }
+                }
             }
 
             if allRecognizedVoiceToolsUnavailable {

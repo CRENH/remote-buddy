@@ -495,7 +495,7 @@ extension OnboardingView {
         return OnboardingImageCache.image(at: url)
     }
 
-    private func selectVoiceTool(_ tool: OnboardingVoiceTool) {
+    func selectVoiceTool(_ tool: OnboardingVoiceTool) {
         settings.setOnboardingVoiceTool(tool)
         AppLogger.shared.write(
             "ONBOARDING VOICE_TOOL selected=\(tool.rawValue) binding_policy=selected_voice_key"

@@ -443,7 +443,7 @@ struct ProductBoundaryTests {
             ))
             #expect(OnboardingFlowPolicy.canContinue(
                 from: .voiceTool, voiceTool: tool,
-                voiceToolGuideStepsCompleted: true, capabilities: OnboardingCapabilities()
+                voiceToolSetupReady: true, capabilities: OnboardingCapabilities()
             ))
         }
         // Step 7 verifies the input result and has no configuration confirmations.
