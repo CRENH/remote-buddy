@@ -149,6 +149,332 @@ extension KeyboardInjector {
         return false
     }
 
+    /// Only invoked by an accepted voice start. A separate gate keeps this from
+    /// cancelling explicit application-launch/focus button actions.
+    static func focusIntegratedApplication(_ integration: ApplicationIntegration,
+                                           processIdentifier: pid_t,
+                                           completion: @escaping (ApplicationFocusResult) -> Void) -> ScheduledOperation {
+        let gate = ApplicationFocusRequestGate()
+        let requestID = gate.begin()
+        let bundleIdentifier = NSRunningApplication(processIdentifier: processIdentifier)?.bundleIdentifier
+            ?? "unknown"
+        func finish(_ result: ApplicationFocusResult) {
+            DispatchQueue.main.async {
+                guard gate.isCurrent(requestID) else { return }
+                if result == .unavailable {
+                    AppLogger.shared.write("APP INTEGRATION failed bundle=\(bundleIdentifier) reason=focus_not_confirmed")
+                }
+                completion(result)
+            }
+        }
+        var clickAttempted = false
+        func attempt(_ number: Int) {
+            focusQueue.asyncAfter(deadline: .now() + (number == 0 ? 0 : 0.15)) {
+                let canContinue = {
+                    gate.isCurrent(requestID) && applicationIsFrontmost(processIdentifier) &&
+                        isAccessibilityTrusted && !SecureInputMonitor.isEnabled()
+                }
+                guard canContinue() else { finish(.unavailable); return }
+                let result = focusIntegratedComposer(integration, processIdentifier: processIdentifier,
+                    clickAttempted: &clickAttempted, canContinue: canContinue)
+                if result != .unavailable {
+                    AppLogger.shared.write("APP INTEGRATION \(result == .preserved ? "preserved" : "focused") bundle=\(bundleIdentifier)")
+                    finish(result)
+                } else if number < 2, canContinue() {
+                    attempt(number + 1)
+                } else {
+                    finish(.unavailable)
+                }
+            }
+        }
+        attempt(0)
+        return ScheduledOperation { _ = gate.begin() }
+    }
+
+    private static func focusIntegratedComposer(_ integration: ApplicationIntegration,
+                                                processIdentifier: pid_t,
+                                                clickAttempted: inout Bool,
+                                                canContinue: @escaping () -> Bool) -> ApplicationFocusResult {
+        let app = AXUIElementCreateApplication(processIdentifier)
+        // Reading the application's standard role is the public AT handshake.
+        // Electron's accessibilityRole getter enables native AX APIs on demand;
+        // querying only its window can otherwise return the native shell tree.
+        // https://github.com/electron/electron/blob/main/shell/browser/mac/electron_application.mm
+        guard canContinue(), axString(app, attribute: kAXRoleAttribute) == "AXApplication",
+              canContinue() else { return .unavailable }
+        var preservedElement: AXUIElement?
+        func preserveInput(excluding target: AXUIElement? = nil) -> Bool {
+            preservedElement = nil
+            guard canContinue(), let input = axElement(app, attribute: kAXFocusedUIElementAttribute),
+                  mayPreserveFocusedElement(input, excluding: target, equal: { CFEqual($0, $1) }) else { return false }
+            var owner: pid_t = 0
+            guard AXUIElementGetPid(input, &owner) == .success, owner == processIdentifier,
+                  ["AXTextArea", "AXTextField", "AXComboBox"].contains(axString(input, attribute: kAXRoleAttribute)) else { return false }
+            let keys = [kAXRoleAttribute, kAXSubroleAttribute, kAXEnabledAttribute, "AXEditable", "AXProtectedContent",
+                        kAXIdentifierAttribute, kAXTitleAttribute, kAXDescriptionAttribute, kAXHelpAttribute, kAXPlaceholderValueAttribute]
+            let attributes = AccessibilityMessaging.attributes(input, keys: keys)
+            let destination = integratedPreservationSnapshot(bundleIdentifier: integration.bundleIdentifier,
+                secureInputEnabled: SecureInputMonitor.isEnabled(), read: { attributes[$0] }, valueIsSettable: {
+                    var settable = DarwinBoolean(false)
+                    return AXUIElementIsAttributeSettable(input, kAXValueAttribute as CFString, &settable) == .success && settable.boolValue
+                })
+            guard shouldPreserveIntegratedInput(destination, integration: integration), canContinue(),
+                  let current = axElement(app, attribute: kAXFocusedUIElementAttribute), CFEqual(input, current) else { return false }
+            preservedElement = input
+            return true
+        }
+        let preserveCurrentFocus = { preserveInput() }
+        if preserveCurrentFocus() { return .preserved }
+        guard canContinue(),
+              !VoiceInputDestinationSnapshot.system().isSensitiveDestination,
+              let window = axElement(app, attribute: kAXFocusedWindowAttribute),
+              axString(window, attribute: kAXSubroleAttribute) != "AXDialog",
+              axString(window, attribute: kAXSubroleAttribute) != "AXSystemDialog",
+              axBool(window, attribute: "AXModal") != true,
+              axElements(window, attribute: "AXSheets").isEmpty else { return .unavailable }
+        let frame = axFrame(window)
+        let scanStarted = ProcessInfo.processInfo.systemUptime
+        var scannedNodes = 0
+        var scanTruncated = false
+        let candidates = accessibilityTextCandidates(in: window, integration: integration,
+            didScan: { scannedNodes = $0; scanTruncated = $1 })
+        AppLogger.shared.write("APP INTEGRATION scan bundle=\(integration.bundleIdentifier) candidates=\(candidates.count) " +
+            "matches=\(candidates.filter { integratedComposerScore($0.snapshot, integration: integration, windowFrame: frame) != nil }.count) " +
+            "nodes=\(scannedNodes) truncated=\(scanTruncated) " +
+            "elapsed_ms=\(Int((ProcessInfo.processInfo.systemUptime - scanStarted) * 1_000))")
+        let targetIsCurrent = {
+            guard canContinue(), !VoiceInputDestinationSnapshot.system().isSensitiveDestination,
+                  let current = axElement(app, attribute: kAXFocusedWindowAttribute),
+                  CFEqual(window, current), axElements(window, attribute: "AXSheets").isEmpty else { return false }
+            return true
+        }
+        let resolved = focusIntegratedCandidates(candidates, integration: integration, windowFrame: frame,
+            canContinue: targetIsCurrent,
+            preserveFocus: preserveCurrentFocus,
+            focus: { element in focusAccessibilityElement(element, applicationElement: app,
+                requiresApplicationFocusedElement: true, allowPress: integration == .antigravity,
+                canWriteFocus: { targetIsCurrent() && !preserveInput(excluding: element) }) },
+            click: { element, snapshot in
+                guard !clickAttempted else { return false }
+                clickAttempted = true
+                return clickIntegratedComposer(snapshot, integration: integration, windowFrame: frame,
+                    canContinue: targetIsCurrent,
+                    preserveFocus: { preserveInput(excluding: element) },
+                    hitTest: { accessibilityHitTestMatchesTarget(element, processIdentifier: processIdentifier, point: $0) },
+                    isFocused: { accessibilityElementIsFocused(element, applicationElement: app,
+                        requiresApplicationFocusedElement: true) })
+            })
+        guard resolved, canContinue() else { return .unavailable }
+        if let preservedElement {
+            guard let current = axElement(app, attribute: kAXFocusedUIElementAttribute),
+                  CFEqual(current, preservedElement) else { return .unavailable }
+            return .preserved
+        }
+        return .focused
+    }
+
+    /// The same candidate-to-action pipeline runs against native AX elements and
+    /// injected test elements. Its only actions are focus and a verified click.
+    static func focusIntegratedCandidates<Element>(_ candidates: [(element: Element, snapshot: AccessibilityTextCandidate)],
+                                                   integration: ApplicationIntegration, windowFrame: CGRect?,
+                                                   canContinue: () -> Bool, preserveFocus: () -> Bool = { false },
+                                                   focus: (Element) -> Bool,
+                                                   click: (Element, AccessibilityTextCandidate) -> Bool) -> Bool {
+        guard canContinue() else { return false }
+        if preserveFocus() { return true }
+        let ranked = candidates.indices.compactMap { index -> (Int, Int)? in
+            integratedComposerScore(candidates[index].snapshot, integration: integration,
+                                    windowFrame: windowFrame).map { (index, $0) }
+        }.sorted { $0.1 > $1.1 }
+        guard let best = ranked.first, ranked.count == 1 || best.1 > ranked[1].1, canContinue() else { return false }
+        let candidate = candidates[best.0]
+        if preserveFocus() { return true }
+        if focus(candidate.element) { return true }
+        guard canContinue() else { return false }
+        if preserveFocus() { return true }
+        guard canContinue(),
+              integratedComposerClickPoint(candidate.snapshot, integration: integration, windowFrame: windowFrame) != nil
+        else { return false }
+        return click(candidate.element, candidate.snapshot)
+    }
+
+    static func integratedComposerClickPoint(_ candidate: AccessibilityTextCandidate,
+                                             integration: ApplicationIntegration,
+                                             windowFrame: CGRect?) -> CGPoint? {
+        guard isVerifiedIntegratedComposer(candidate, integration: integration),
+              integratedComposerScore(candidate, integration: integration, windowFrame: windowFrame) != nil,
+              let frame = candidate.frame, let windowFrame else { return nil }
+        let point = CGPoint(x: frame.minX + min(24, frame.width / 2),
+                            y: frame.minY + min(16, frame.height / 2))
+        guard point.x.isFinite, point.y.isFinite, windowFrame.contains(point) else { return nil }
+        return point
+    }
+
+    static func clickIntegratedComposer(_ candidate: AccessibilityTextCandidate,
+                                        integration: ApplicationIntegration,
+                                        windowFrame: CGRect?,
+                                        canContinue: () -> Bool,
+                                        preserveFocus: () -> Bool = { false },
+                                        hitTest: (CGPoint) -> Bool,
+                                        postClick: (CGPoint) -> Bool = postAccessibilityFocusClick,
+                                        isFocused: () -> Bool,
+                                        pause: () -> Void = { usleep(50_000) }) -> Bool {
+        guard canContinue() else { return false }
+        if preserveFocus() { return true }
+        guard let point = integratedComposerClickPoint(candidate, integration: integration, windowFrame: windowFrame),
+              hitTest(point), canContinue() else { return false }
+        if preserveFocus() { return true }
+        guard postClick(point) else { return false }
+        // The click is delivered asynchronously. Verify the actual focused input
+        // before reporting completion or allowing the voice trigger through.
+        for _ in 0..<5 {
+            guard canContinue() else { return false }
+            if isFocused() { return true }
+            pause()
+        }
+        return canContinue() && isFocused()
+    }
+
+    private static func postAccessibilityFocusClick(_ point: CGPoint) -> Bool {
+        guard let source = CGEventSource(stateID: .hidSystemState),
+              let down = CGEvent(mouseEventSource: source, mouseType: .leftMouseDown,
+                                 mouseCursorPosition: point, mouseButton: .left),
+              let up = CGEvent(mouseEventSource: source, mouseType: .leftMouseUp,
+                               mouseCursorPosition: point, mouseButton: .left) else { return false }
+        let previousLocation = CGEvent(source: nil)?.location
+        for event in [down, up] {
+            event.flags = []
+            event.setIntegerValueField(.eventSourceUserData, value: syntheticEventMarker)
+            event.post(tap: .cghidEventTap)
+        }
+        if let previousLocation,
+           let restore = CGEvent(mouseEventSource: source, mouseType: .mouseMoved,
+                                 mouseCursorPosition: previousLocation, mouseButton: .left) {
+            restore.flags = []
+            restore.setIntegerValueField(.eventSourceUserData, value: syntheticEventMarker)
+            restore.post(tap: .cghidEventTap)
+        }
+        return true
+    }
+
+    private static func accessibilityHitTestMatchesTarget(_ target: AXUIElement,
+                                                          processIdentifier: pid_t, point: CGPoint) -> Bool {
+        var hit: AXUIElement?
+        guard AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(point.x), Float(point.y), &hit) == .success,
+              let hit else { return false }
+        var hitPID: pid_t = 0
+        guard AXUIElementGetPid(hit, &hitPID) == .success, hitPID == processIdentifier else { return false }
+        return accessibilityAncestorChainContains(hit: hit, target: target, equal: CFEqual,
+            parent: { axElement($0, attribute: kAXParentAttribute) })
+    }
+
+    /// Hit testing must start at the system-wide element so overlapping windows
+    /// from any application are considered. Only the target or a descendant is safe.
+    static func accessibilityAncestorChainContains<Element>(hit: Element?, target: Element,
+                                                           equal: (Element, Element) -> Bool,
+                                                           parent: (Element) -> Element?) -> Bool {
+        var current = hit
+        var visited: [Element] = []
+        for _ in 0..<32 {
+            guard let element = current, !visited.contains(where: { equal($0, element) }) else { return false }
+            if equal(element, target) { return true }
+            visited.append(element)
+            current = parent(element)
+        }
+        return false
+    }
+
+    static func isAntigravityMessageInput(_ candidate: AccessibilityTextCandidate) -> Bool {
+        [candidate.title, candidate.description, candidate.help, candidate.placeholder]
+            .contains { $0.lowercased() == "message input" }
+    }
+
+    static func integratedPreservationSnapshot(bundleIdentifier: String?, secureInputEnabled: Bool = false, read: (String) -> Any?,
+                                               valueIsSettable: () -> Bool) -> VoiceInputDestinationSnapshot {
+        let role = read(kAXRoleAttribute) as? String ?? ""
+        let inputRole = ["AXTextArea", "AXTextField", "AXComboBox"].contains(role)
+        let editable = inputRole && ((read("AXEditable") as? Bool) ?? valueIsSettable())
+        let semantic = [kAXIdentifierAttribute, kAXTitleAttribute, kAXDescriptionAttribute, kAXHelpAttribute, kAXPlaceholderValueAttribute]
+            .compactMap { read($0) as? String }.joined(separator: " ")
+        return .init(bundleIdentifier: bundleIdentifier, role: role,
+            subrole: read(kAXSubroleAttribute) as? String ?? "", enabled: read(kAXEnabledAttribute) as? Bool ?? true,
+            editable: editable, protectedContent: read("AXProtectedContent") as? Bool ?? false,
+            semanticText: semantic, secureInputEnabled: secureInputEnabled)
+    }
+
+    static func mayPreserveFocusedElement<Element>(_ input: Element, excluding target: Element?,
+                                                    equal: (Element, Element) -> Bool) -> Bool {
+        target.map { !equal(input, $0) } ?? true
+    }
+
+    static func shouldPreserveIntegratedInput(_ destination: VoiceInputDestinationSnapshot,
+                                              integration: ApplicationIntegration) -> Bool {
+        ApplicationIntegration.matching(destination.bundleIdentifier) == integration &&
+            destination.enabled && destination.editable && !destination.isSensitiveDestination &&
+            ["AXTextArea", "AXTextField", "AXComboBox"].contains(destination.role)
+    }
+
+    /// Labels observed in the applications' user-visible accessibility trees.
+    /// Only these explicit composers may use the hit-tested click fallback.
+    static func isVerifiedIntegratedComposer(_ candidate: AccessibilityTextCandidate,
+                                            integration: ApplicationIntegration) -> Bool {
+        let labels = [candidate.title, candidate.description, candidate.help, candidate.placeholder]
+            .map(normalizedComposerLabel)
+        switch integration {
+        case .antigravity: return isAntigravityMessageInput(candidate)
+        case .claude:
+            let identifiers = ["chat-input", "prompt-textarea", "prompt-editor"]
+            let prompts = ["write your prompt to claude", "write your reply to claude", "write your draft", "write your message",
+                           "向 claude 发送消息", "回复 claude", "给 claude 发消息", "输入消息", "输入提示词"]
+            return identifiers.contains(candidate.identifier.lowercased()) || labels.contains(where: prompts.contains)
+        case .workBuddy:
+            return candidate.role == "AXTextArea" && candidate.hasWorkBuddyComposerControls
+        case .weChat, .chatGPT: return false
+        }
+    }
+
+    static func integratedComposerScore(_ candidate: AccessibilityTextCandidate,
+                                        integration: ApplicationIntegration,
+                                        windowFrame: CGRect?) -> Int? {
+        guard candidate.enabled, !candidate.protectedContent,
+              candidate.subrole != "AXSecureTextField",
+              candidate.role == "AXTextArea" || candidate.role == "AXTextField",
+              let frame = candidate.frame, frame.width > 0, frame.height > 0,
+              let windowFrame, windowFrame.contains(CGPoint(x: frame.midX, y: frame.midY)) else { return nil }
+        // Ancestor/window titles are not evidence that a field is a composer.
+        let ownText = [candidate.identifier, candidate.title, candidate.description,
+                       candidate.help, candidate.placeholder].joined(separator: " ").lowercased()
+        let excluded = ["search", "find", "filter", "password", "passcode", "secret", "api key",
+                        "token", "rename", "title", "terminal", "console", "monaco", "code editor",
+                        "搜索", "查找", "筛选", "密码", "密钥", "令牌", "重命名", "标题", "终端", "代码编辑器"]
+        guard !containsSensitiveAccessibilityTerms(ownText),
+              !excluded.contains(where: ownText.contains),
+              !["monaco", "code editor", "terminal content area"].contains(where: candidate.context.lowercased().contains)
+        else { return nil }
+        let common = ["composer", "prompt-editor", "prompt_editor", "chat-input", "chat_input",
+                      "message-input", "message_input", "message input", "prompt input", "chat input",
+                      "输入消息", "消息输入", "发送消息"]
+        let specific: [String]
+        switch integration {
+        case .chatGPT: specific = ["do anything", "work with chatgpt", "message chatgpt", "ask anything", "ask chatgpt", "询问任何问题", "询问 chatgpt"]
+        case .antigravity: specific = ["ask anything", "ask agent", "message agent", "agent input", "向 agent 提问"]
+        case .weChat: specific = ["message", "输入", "编辑消息"]
+        case .claude, .workBuddy: specific = []
+        }
+        // Verified in the live WeChat accessibility tree. Avoid its unlabeled
+        // search field and message list even if they move or resize.
+        if integration == .weChat {
+            return candidate.identifier == "chat_input_field" ? 400 : nil
+        }
+        // Verified Antigravity's current conversation composer is labeled Message input.
+        if isVerifiedIntegratedComposer(candidate, integration: integration) { return 400 }
+        if integration == .claude || integration == .workBuddy { return nil }
+        if (common + specific).contains(where: ownText.contains) {
+            return 200 + (candidate.role == "AXTextArea" ? 20 : 0)
+        }
+        return nil
+    }
+
     static func weChatComposerFocusPoint(windowFrame: CGRect) -> CGPoint? {
         guard windowFrame.width >= 700, windowFrame.height >= 500 else { return nil }
         return CGPoint(
@@ -466,80 +792,191 @@ extension KeyboardInjector {
         return windows
     }
 
-    private static func accessibilityTextCandidates(
-        in window: AXUIElement
+    /// Roles whose children only decorate a control or render message content.
+    /// Integrated composers are editing controls, never descendants of these leaves.
+    static func isIntegratedScanLeaf(_ role: String) -> Bool {
+        ["AXStaticText", "AXImage", "AXListMarker", "AXButton", "AXPopUpButton",
+         "AXMenuItem", "AXMenuBarItem", "AXCheckBox", "AXRadioButton", "AXSlider",
+         "AXProgressIndicator"].contains(role)
+    }
+
+    static func accessibilityTextCandidates(
+        in window: AXUIElement, integration: ApplicationIntegration? = nil,
+        didScan: ((Int, Bool) -> Void)? = nil
     ) -> [(element: AXUIElement, snapshot: AccessibilityTextCandidate)] {
         struct PendingElement {
             let element: AXUIElement
+            let role: String
+            let frame: CGRect?
             let context: String
             let selectedContext: Bool
         }
-
+        let contextKeys = [kAXIdentifierAttribute, kAXTitleAttribute, kAXDescriptionAttribute,
+                           kAXHelpAttribute, kAXPlaceholderValueAttribute]
         let windowFrame = axFrame(window)
-        var stack = [PendingElement(
-            element: window,
-            context: axSemanticText(window),
-            selectedContext: axBool(window, attribute: kAXSelectedAttribute) ?? false
-        )]
+        var stack = [PendingElement(element: window, role: axString(window, attribute: kAXRoleAttribute),
+            frame: windowFrame, context: "", selectedContext: false)]
         var visitedElements: [CFHashCode: [AXUIElement]] = [CFHash(window): [window]]
         var budget = AccessibilityTraversalBudget(maximumNodes: maximumAccessibilityTraversalCount)
         var candidates: [(element: AXUIElement, snapshot: AccessibilityTextCandidate)] = []
-
+        var scannedNodes = 0
+        var truncated = false
+        defer { didScan?(scannedNodes, truncated || !stack.isEmpty) }
         guard budget.admitNode() else { return [] }
-        while let current = stack.popLast(), budget.hasTimeRemaining {
-            let ownContext = axSemanticText(current.element)
-            let combinedContext = [current.context, ownContext]
-                .filter { !$0.isEmpty }
-                .joined(separator: " ")
-            let role = axString(current.element, attribute: kAXRoleAttribute)
-            let frame = axFrame(current.element)
-            let selectedContext = current.selectedContext ||
-                (axBool(current.element, attribute: kAXSelectedAttribute) ?? false)
-
-            if role == "AXTextArea" || role == "AXTextField" {
-                candidates.append((
-                    current.element,
-                    AccessibilityTextCandidate(
-                        role: role,
-                        subrole: axString(current.element, attribute: kAXSubroleAttribute),
-                        protectedContent: axBool(current.element, attribute: "AXProtectedContent") ?? false,
-                        identifier: axString(current.element, attribute: kAXIdentifierAttribute),
-                        title: axString(current.element, attribute: kAXTitleAttribute),
-                        description: axString(current.element, attribute: kAXDescriptionAttribute),
-                        help: axString(current.element, attribute: kAXHelpAttribute),
-                        placeholder: axString(current.element, attribute: kAXPlaceholderValueAttribute),
-                        context: combinedContext,
-                        frame: frame,
-                        enabled: axBool(current.element, attribute: kAXEnabledAttribute) ?? true,
-                        focused: axBool(current.element, attribute: kAXFocusedAttribute) ?? false,
-                        selectedContext: selectedContext
-                    )
-                ))
+        while !stack.isEmpty, budget.hasTimeRemaining {
+            let current = stack.removeLast()
+            scannedNodes += 1
+            let isEditor = current.role == "AXTextArea" || current.role == "AXTextField"
+            let keys = contextKeys + [kAXSelectedAttribute] + (isEditor
+                ? [kAXSubroleAttribute, "AXProtectedContent", kAXEnabledAttribute, kAXFocusedAttribute] : []) +
+                (isEditor && integration != nil ? [] : accessibilityChildAttributes)
+            let attributes = accessibilityScanAttributes(current.element, keys: keys)
+            let ownContext = contextKeys.compactMap { attributes[$0] as? String }
+                .filter { !$0.isEmpty }.joined(separator: " ")
+            let combinedContext = [current.context, ownContext].filter { !$0.isEmpty }.joined(separator: " ")
+            let selectedContext = current.selectedContext || (attributes[kAXSelectedAttribute] as? Bool ?? false)
+            if isEditor {
+                candidates.append((current.element,
+                    accessibilityTextMetadata(role: current.role, frame: current.frame, context: combinedContext,
+                        selectedContext: selectedContext,
+                        hasWorkBuddyComposerControls: integration == .workBuddy && current.role == "AXTextArea" &&
+                            workBuddyComposerControlsSurround(current.element),
+                        read: { attributes[$0] })))
+                // Rich editors expose their document contents as children. Other
+                // candidate editors remain reachable through their layout parents.
+                if integration != nil { continue }
             }
-
             let childContext = String(combinedContext.suffix(512))
-            var children: [(element: AXUIElement, priority: Int)] = []
+            var children: [(node: PendingElement, priority: Int)] = []
             for attribute in accessibilityChildAttributes {
-                guard budget.hasTimeRemaining else { break }
-                for child in axElements(current.element, attribute: attribute) {
+                guard budget.hasTimeRemaining else { truncated = true; break }
+                for child in attributes[attribute] as? [AXUIElement] ?? [] {
                     let hash = CFHash(child)
-                    if visitedElements[hash]?.contains(where: { CFEqual($0, child) }) == true {
-                        continue
-                    }
-                    guard let priority = accessibilityChildPriority(
-                        role: { axString(child, attribute: kAXRoleAttribute) }, frame: { axFrame(child) },
-                        windowFrame: windowFrame, budget: &budget) else { break }
+                    if visitedElements[hash]?.contains(where: { CFEqual($0, child) }) == true { continue }
+                    var role = ""
+                    var frame: CGRect?
+                    guard let priority = accessibilityChildPriority(role: {
+                        let metadata = accessibilityScanAttributes(child,
+                            keys: [kAXRoleAttribute, kAXPositionAttribute, kAXSizeAttribute])
+                        role = metadata[kAXRoleAttribute] as? String ?? ""
+                        frame = accessibilityFrame(read: { metadata[$0] })
+                        return role
+                    }, frame: { frame }, windowFrame: windowFrame, budget: &budget)
+                    else { truncated = true; break }
                     visitedElements[hash, default: []].append(child)
-                    children.append((child, priority))
+                    if integration != nil, isIntegratedScanLeaf(role) { continue }
+                    children.append((PendingElement(element: child, role: role, frame: frame,
+                        context: childContext, selectedContext: selectedContext), priority))
                 }
             }
-            // Sorting is local; every child query was admitted under the same budget.
             children.sort { $0.priority < $1.priority }
-            stack.append(contentsOf: children.map {
-                PendingElement(element: $0.element, context: childContext, selectedContext: selectedContext)
-            })
+            stack.append(contentsOf: children.map(\.node))
         }
         return candidates
+    }
+
+    private static func accessibilityScanAttributes(_ element: AXUIElement, keys: [String]) -> [String: Any] {
+        let attributes = AccessibilityMessaging.attributes(element, keys: keys)
+        if !attributes.isEmpty { return attributes }
+        // Some native controls do not implement the batch API. Preserve coverage
+        // through the same public metadata keys, without querying editing values.
+        return Dictionary(uniqueKeysWithValues: keys.compactMap { key in
+            axAttribute(element, attribute: key).map { (key, $0 as Any) }
+        })
+    }
+
+    /// Metadata-only reader shared by automatic and explicit focus scans. There
+    /// is deliberately no text value, text selection, or write operation here.
+    static func accessibilityTextMetadata(role: String, frame: CGRect?, context: String,
+                                          selectedContext: Bool, hasWorkBuddyComposerControls: Bool = false,
+                                          read: (String) -> Any?) -> AccessibilityTextCandidate {
+        AccessibilityTextCandidate(role: role,
+            subrole: read(kAXSubroleAttribute) as? String ?? "",
+            protectedContent: read("AXProtectedContent") as? Bool ?? false,
+            identifier: read(kAXIdentifierAttribute) as? String ?? "",
+            title: read(kAXTitleAttribute) as? String ?? "",
+            description: read(kAXDescriptionAttribute) as? String ?? "",
+            help: read(kAXHelpAttribute) as? String ?? "",
+            placeholder: read(kAXPlaceholderValueAttribute) as? String ?? "",
+            context: context, frame: frame,
+            enabled: read(kAXEnabledAttribute) as? Bool ?? true,
+            focused: read(kAXFocusedAttribute) as? Bool ?? false, selectedContext: selectedContext,
+            hasWorkBuddyComposerControls: hasWorkBuddyComposerControls)
+    }
+
+    static func normalizedComposerLabel(_ value: String) -> String {
+        value.precomposedStringWithCompatibilityMapping.lowercased()
+            .replacingOccurrences(of: "’", with: "'")
+            .trimmingCharacters(in: .whitespacesAndNewlines.union(CharacterSet(charactersIn: ".…")))
+    }
+
+    static func workBuddyComposerControlsMatch(_ labels: [String]) -> Bool {
+        let labels = labels.map(normalizedComposerLabel)
+        let send = ["发送", "send", "send message", "envoyer", "送信", "kirim", "send-message"]
+        let more = ["更多操作", "more actions", "plus d'actions", "その他の操作", "その他のアクション", "tindakan lainnya", "aksi lainnya", "more-actions"]
+        let voice = ["语音输入", "voice input", "saisie vocale", "音声入力", "input suara", "masukan suara", "voice-input"]
+        return labels.contains(where: send.contains) && labels.contains(where: more.contains) &&
+            labels.contains { label in voice.contains { label == $0 || label.hasPrefix($0 + " ") } }
+    }
+
+    /// Do not depend on WorkBuddy's placeholder being field metadata;
+    /// it can be exposed only as editor content. Verify the same composer's surrounding controls instead;
+    /// never read the text area's value or the conversation's static text.
+    private static func workBuddyComposerControlsSurround(_ input: AXUIElement) -> Bool {
+        workBuddyComposerAncestorsMatch(input,
+            parent: { axElement($0, attribute: kAXParentAttribute) },
+            role: { axString($0, attribute: kAXRoleAttribute) },
+            equal: { CFEqual($0, $1) },
+            matches: { group in workBuddyComposerGroupMatches(group,
+                role: { axString($0, attribute: kAXRoleAttribute) },
+                children: { axElements($0, attribute: kAXChildrenAttribute) },
+                controlLabels: { element in
+                    [axString(element, attribute: kAXIdentifierAttribute),
+                     axString(element, attribute: kAXTitleAttribute),
+                     axString(element, attribute: kAXDescriptionAttribute),
+                     axString(element, attribute: kAXHelpAttribute)]
+                }) })
+    }
+
+    /// The editor is nested inside an inner layout group; its action bar is a
+    /// sibling of that group. Stay within a small chain of layout ancestors.
+    static func workBuddyComposerAncestorsMatch<Element>(_ input: Element,
+        parent: (Element) -> Element?, role: (Element) -> String,
+        equal: (Element, Element) -> Bool, matches: (Element) -> Bool) -> Bool {
+        var current = input
+        var visited = [input]
+        var budget = AccessibilityTraversalBudget(maximumNodes: 3, maximumDuration: 0.15)
+        while budget.admitNode(), let ancestor = parent(current) {
+            guard role(ancestor) == "AXGroup", !visited.contains(where: { equal($0, ancestor) }) else { return false }
+            if matches(ancestor) { return true }
+            visited.append(ancestor)
+            current = ancestor
+        }
+        return false
+    }
+
+    static func workBuddyComposerGroupMatches<Element>(_ root: Element,
+        role: (Element) -> String, children: (Element) -> [Element],
+        controlLabels: (Element) -> [String]) -> Bool {
+        var pending: [(Element, Int)] = [(root, 0)]
+        var labels: [String] = []
+        var budget = AccessibilityTraversalBudget(maximumNodes: 96, maximumDuration: 0.15)
+        var editors = 0
+        while let (element, depth) = pending.popLast() {
+            guard budget.admitNode() else { return false }
+            let currentRole = role(element)
+            if currentRole == "AXTextArea" { editors += 1 }
+            if currentRole == "AXButton" || currentRole == "AXPopUpButton" {
+                labels += controlLabels(element)
+            }
+            // Only descend through layout groups, not message/editor content.
+            if depth == 0 || ["AXGroup", "AXToolbar"].contains(currentRole) {
+                let nested = children(element)
+                guard depth < 5 || nested.isEmpty else { return false }
+                pending += nested.map { ($0, depth + 1) }
+            }
+        }
+        return editors == 1 && workBuddyComposerControlsMatch(labels)
     }
 
     static func accessibilityChildPriority(role: () -> String, frame: () -> CGRect?,
@@ -567,37 +1004,34 @@ extension KeyboardInjector {
         return priority
     }
 
-    private static func focusAccessibilityElement(
+    static func focusAccessibilityElement(
         _ element: AXUIElement,
         applicationElement: AXUIElement,
-        requiresApplicationFocusedElement: Bool = false
+        requiresApplicationFocusedElement: Bool = false,
+        allowPress: Bool = true,
+        canWriteFocus: () -> Bool = { true },
+        isFocused: (() -> Bool)? = nil,
+        setAttribute: (AXUIElement, CFString, CFTypeRef) -> AXError = AXUIElementSetAttributeValue,
+        performAction: (AXUIElement, CFString) -> AXError = AXUIElementPerformAction
     ) -> Bool {
-        if accessibilityElementIsFocused(
-            element,
-            applicationElement: applicationElement,
-            requiresApplicationFocusedElement: requiresApplicationFocusedElement
-        ) {
-            return true
+        let focused = isFocused ?? {
+            accessibilityElementIsFocused(element, applicationElement: applicationElement,
+                requiresApplicationFocusedElement: requiresApplicationFocusedElement)
         }
-        _ = AXUIElementSetAttributeValue(element, kAXFocusedAttribute as CFString, kCFBooleanTrue)
-        _ = AXUIElementSetAttributeValue(
+        if focused() { return true }
+        guard canWriteFocus() else { return false }
+        _ = setAttribute(element, kAXFocusedAttribute as CFString, kCFBooleanTrue)
+        if focused() { return true }
+        guard canWriteFocus() else { return false }
+        _ = setAttribute(
             applicationElement,
             kAXFocusedUIElementAttribute as CFString,
             element
         )
-        if accessibilityElementIsFocused(
-            element,
-            applicationElement: applicationElement,
-            requiresApplicationFocusedElement: requiresApplicationFocusedElement
-        ) {
-            return true
-        }
-        _ = AXUIElementPerformAction(element, kAXPressAction as CFString)
-        return accessibilityElementIsFocused(
-            element,
-            applicationElement: applicationElement,
-            requiresApplicationFocusedElement: requiresApplicationFocusedElement
-        )
+        if focused() { return true }
+        guard allowPress, canWriteFocus() else { return false }
+        _ = performAction(element, kAXPressAction as CFString)
+        return focused()
     }
 
     private static func accessibilityElementIsFocused(
@@ -940,10 +1374,14 @@ extension KeyboardInjector {
     }
 
     static func axFrame(_ element: AXUIElement) -> CGRect? {
-        guard let positionValue = axAttribute(element, attribute: kAXPositionAttribute),
-              let sizeValue = axAttribute(element, attribute: kAXSizeAttribute),
-              CFGetTypeID(positionValue) == AXValueGetTypeID(),
-              CFGetTypeID(sizeValue) == AXValueGetTypeID()
+        accessibilityFrame(read: { axAttribute(element, attribute: $0) })
+    }
+
+    static func accessibilityFrame(read: (String) -> Any?) -> CGRect? {
+        guard let positionValue = read(kAXPositionAttribute),
+              let sizeValue = read(kAXSizeAttribute),
+              CFGetTypeID(positionValue as CFTypeRef) == AXValueGetTypeID(),
+              CFGetTypeID(sizeValue as CFTypeRef) == AXValueGetTypeID()
         else { return nil }
 
         var position = CGPoint.zero

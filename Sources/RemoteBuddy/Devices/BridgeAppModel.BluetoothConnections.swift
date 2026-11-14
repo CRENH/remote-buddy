@@ -18,7 +18,8 @@ extension BridgeAppModel {
                 settings: settings,
                 delegate: self,
                 targetIdentifier: identifier,
-                allowsG9N9N: true
+                allowsG9N9N: true,
+                allowsT1Remote: true
             )
             observeRemoteHIDIdentity(bridge)
             connections.bridges[identifier] = bridge
@@ -37,9 +38,15 @@ extension BridgeAppModel {
             settings: settings,
             delegate: self,
             allowsG9N9N: true,
+            allowsT1Remote: true,
+            adoptUnidentifiedATVVAsT1: { [weak self] in
+                guard let self else { return false }
+                return self.settings.onboardingStep == .remote &&
+                    self.settings.onboardingControlSource == .t1Remote
+            },
             excludedIdentifiers: { [weak self] in
                 guard let self else { return [] }
-                return Set(self.connections.bridges.keys).union(self.settings.forgottenBluetoothIdentifiers)
+                return Set(self.connections.bridges.keys).union(self.settings.excludedForgottenBluetoothIdentifiers())
             }
         )
         observeRemoteHIDIdentity(bridge)
@@ -51,38 +58,50 @@ extension BridgeAppModel {
         bridge.start()
     }
 
-    func registerBluetoothBridgeIfNeeded(_ bridge: BluetoothRemoteBridge) -> UUID? {
+    func registerBluetoothBridgeIfNeeded(
+        _ bridge: BluetoothRemoteBridge,
+        diagnosticLog: (String) -> Void = { AppLogger.shared.write($0) }
+    ) -> UUID? {
         guard let identifier = bluetoothIdentifier(for: bridge) else {
-            AppLogger.shared.write(
+            diagnosticLog(
                 "REMOTE PROFILE phase=completed result=rejected reason=missing_identifier"
             )
             return nil
         }
-        guard !settings.forgottenBluetoothIdentifiers.contains(identifier) else { return nil }
+        guard settings.allowsSetupCandidate(
+            bluetoothIdentifier: identifier,
+            model: bridge.identifiedModel
+        ) else { return nil }
         guard bridge.bindVerifiedIdentity(identifier) else {
-            AppLogger.shared.write(
+            diagnosticLog(
                 "REMOTE PROFILE phase=completed result=rejected reason=identity_mismatch"
             )
             return nil
         }
         let existingProfileID = settings.profileID(forBluetoothIdentifier: identifier)
         let profileID = existingProfileID ?? settings.registerBluetoothRemote(identifier: identifier, model: bridge.identifiedModel ?? .unknown)
+        var attachedBridge = false
         if connections.discoveryBridge === bridge {
             connections.discoveryBridge = nil
             connections.bridges[identifier] = bridge
             startBluetoothDiscoveryIfNeeded()
+            attachedBridge = true
         } else if connections.bridges[identifier] == nil {
             connections.bridges[identifier] = bridge
+            attachedBridge = true
         }
-        applyPendingRemoteTelemetry(identifier: identifier, profileID: profileID)
-        AppLogger.shared.write(
-            "REMOTE PROFILE phase=completed result=persisted reason=verified_remote_path " +
-                "created=\(existingProfileID == nil)"
-        )
+        let appliedTelemetry = applyPendingRemoteTelemetry(identifier: identifier, profileID: profileID)
+        if existingProfileID == nil || attachedBridge || appliedTelemetry {
+            diagnosticLog(
+                "REMOTE PROFILE phase=completed result=persisted reason=verified_remote_path " +
+                    "created=\(existingProfileID == nil)"
+            )
+        }
         return profileID
     }
 
-    private func applyPendingRemoteTelemetry(identifier: UUID, profileID: UUID) {
+    @discardableResult
+    private func applyPendingRemoteTelemetry(identifier: UUID, profileID: UUID) -> Bool {
         let hadBattery = pendingRemoteBatteryLevels[identifier] != nil
         let hadPower = pendingRemotePowerStates[identifier] != nil
         let hadModel = pendingRemoteModels[identifier] != nil
@@ -101,7 +120,9 @@ extension BridgeAppModel {
                 "REMOTE PROFILE_DIAGNOSTIC phase=completed result=applied reason=profile_ready " +
                     "battery=\(hadBattery) power=\(hadPower) model=\(hadModel)"
             )
+            return true
         }
+        return false
     }
 
     func bluetoothIdentifier(for bridge: BluetoothRemoteBridge) -> UUID? {
@@ -120,9 +141,21 @@ extension BridgeAppModel {
 
     @discardableResult
     func removeRemoteDevice(_ profileID: UUID) -> Bool {
-        guard !isVoiceConfigurationBusy,
-              let profile = settings.remoteDeviceProfiles.first(where: { $0.id == profileID }),
-              settings.removeRemoteProfile(profileID) else { return false }
+        performRemoveRemoteDevice(profileID, allowWhenVoiceBusy: false)
+    }
+
+    @discardableResult
+    private func performRemoveRemoteDevice(_ profileID: UUID, allowWhenVoiceBusy: Bool) -> Bool {
+        if !allowWhenVoiceBusy {
+            guard !isVoiceConfigurationBusy else { return false }
+        }
+        guard let profile = settings.remoteDeviceProfiles.first(where: { $0.id == profileID }) else {
+            return false
+        }
+        if allowWhenVoiceBusy {
+            cancelVoiceActivityForRemoval(of: profile)
+        }
+        guard settings.removeRemoteProfile(profileID) else { return false }
         if let identifier = profile.bluetoothIdentifier {
             if let bridge = connections.bridges.removeValue(forKey: identifier) {
                 bridge.stop()
@@ -140,6 +173,7 @@ extension BridgeAppModel {
             pendingRemoteModels.removeValue(forKey: identifier)
         }
         if let fingerprint = profile.hidFingerprint {
+            appliedHIDMonitoringConfiguration = nil
             hidMonitors.removeValue(forKey: fingerprint)?.stop()
             if discoveryHIDMonitor?.deviceFingerprint == fingerprint {
                 discoveryHIDMonitor?.stop()
@@ -153,6 +187,71 @@ extension BridgeAppModel {
         refreshBluetoothPresentation()
         AppLogger.shared.write("REMOTE PROFILE phase=completed result=removed")
         return true
+    }
+
+    private func cancelVoiceActivityForRemoval(of profile: RemoteDeviceProfile) {
+        if let identifier = profile.bluetoothIdentifier {
+            if voiceSession.pendingStart.cancel(ifOwnedBy: identifier) {
+                voiceSession.stopRequested = false
+            }
+            if let bridge = connections.bridges[identifier] {
+                if rc003VoiceExtensionTestEnabled,
+                   rc003VoiceExtensionActive,
+                   rc003VoiceExtensionBridge === bridge {
+                    finishRC003VoiceExtensionTest(reason: "onboarding_remote_removed")
+                }
+                if longRecordingBridge === bridge {
+                    finishLongRecording(reason: "onboarding_remote_removed")
+                }
+            }
+            let ownsActiveVoice = BluetoothVoiceDeviceOwnershipPolicy.matches(
+                identifier,
+                active: voiceSession.activeDeviceIdentifier
+            ) || BluetoothVoiceDeviceOwnershipPolicy.matches(
+                identifier, active: voiceSession.pendingKeyRelease?.deviceIdentifier
+            ) || (voiceSession.activeDeviceIdentifier == nil && voiceSession.pendingKeyRelease == nil)
+            if ownsActiveVoice && (voiceSession.isActive || isVoiceConfigurationBusy) {
+                voiceSession.isActive = false
+                voiceSession.activeDeviceIdentifier = nil
+                voiceSession.commandAudio.cancel()
+                _ = voiceFnTapSession.stopVoice()
+                releaseVoiceKeyIfNeeded(owner: .bluetooth, forceSoftware: true)
+                endVoiceSessionIfNeeded(flushAudio: false)
+            }
+        }
+        if profile.hidFingerprint != nil, isVoiceConfigurationBusy {
+            if longRecordingRequested {
+                finishLongRecording(reason: "onboarding_remote_removed")
+            }
+            _ = voiceFnTapSession.stopVoice()
+            _ = releaseVoiceKeyIfNeeded()
+            endVoiceSessionIfNeeded(flushAudio: false)
+        }
+    }
+
+    func removeUncommittedOnboardingRemotes() {
+        for profileID in settings.uncommittedOnboardingRemoteProfileIDs() {
+            _ = performRemoveRemoteDevice(profileID, allowWhenVoiceBusy: true)
+        }
+    }
+
+    func completeOnboardingSetup() {
+        for profileID in settings.unconfirmedTransientRemoteProfileIDs() {
+            _ = performRemoveRemoteDevice(profileID, allowWhenVoiceBusy: true)
+        }
+        settings.completeOnboarding()
+        applyHIDSettings()
+        refreshRemoteDiscovery()
+    }
+
+    func dismissOnboardingSetup() {
+        removeUncommittedOnboardingRemotes()
+        settings.dismissOnboarding()
+        if let profileID = settings.selectedRemoteProfileID {
+            selectRemoteProfile(profileID)
+        }
+        applyHIDSettings()
+        refreshRemoteDiscovery()
     }
 
     var onboardingRemoteProfiles: [RemoteDeviceProfile] {
@@ -285,5 +384,6 @@ extension BridgeAppModel {
         } else {
             connectionStatus = LocalizedMessage("connection.status.searching")
         }
+        refreshRuntimePermissionDiagnosis(trigger: "bluetooth_presentation")
     }
 }

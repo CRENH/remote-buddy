@@ -10,7 +10,8 @@ extension BridgeAppModel {
     /// publish isStreaming. Transport-specific identity checks remain at each entry.
     func canAcceptNewVoiceSession(from owner: VoiceKeyLatch.Owner) -> Bool {
         guard !isTerminating, !audio.suspensionState.isSuspended,
-              voiceKeyReleaseRetry == nil else { return false }
+              voiceKeyReleaseRetry == nil,
+              voiceSession.pendingKeyRelease == nil else { return false }
         if let pending = pendingVoiceKeyActivationOwner, pending != owner { return false }
         if owner != .bluetooth,
            voiceSession.isActive || hasPendingBluetoothVoiceWork || voiceSession.pendingStart.identifier != nil ||
@@ -139,6 +140,8 @@ extension BridgeAppModel {
     func applyVoiceFunctionMapping(neutralizeVoiceKey: Bool) -> Bool {
         voiceFunctionMapper.additionalIdentities = Set(settings.compatibleHIDIdentities(
             includeXiaomi: true, includeGoogle: false))
+        voiceFunctionMapper.t1Identities = Set(settings.compatibleHIDIdentities(
+            includeXiaomi: false, includeGoogle: false, includeT1: true))
         let applied = voiceFunctionMapper.apply(
             suppressPowerKey: settings.customMappingEnabled,
             neutralizeVoiceKey: neutralizeVoiceKey
@@ -167,10 +170,18 @@ extension BridgeAppModel {
             completion(false)
             return false
         }
+        if !streaming {
+            voiceSession.pendingKeyRelease = nil
+            applicationIntegrationController.cancelPending()
+        }
         let mode = streaming
             ? settings.voiceKeyMode
             : (heldVoiceKeyMode ?? pendingVoiceKeyMode ?? settings.voiceKeyMode)
-        guard forceSoftware || !mode.usesHardwareMapping else { completion(true); return true }
+        guard forceSoftware || !mode.usesHardwareMapping || requiresOrderedVoiceFn else {
+            if streaming { clearApplicationIntegrationStatus() }
+            completion(true)
+            return true
+        }
         if VoiceKeyPendingDownPolicy.shouldRejectStart(
             streaming: streaming,
             pendingDown: pendingVoiceKeyMode != nil || voiceKeyActivationInProgress
@@ -190,15 +201,19 @@ extension BridgeAppModel {
         }
         let shouldHold = transition == .press
         if shouldHold {
+            clearApplicationIntegrationStatus()
             pendingVoiceKeyMode = mode
             voiceKeyActivationInProgress = true
             voiceKeyActivationGeneration &+= 1
             let generation = voiceKeyActivationGeneration
             pendingVoiceKeyActivationOwner = owner
             pendingVoiceKeyActivationCompletion = completion
-            if owner == .bluetooth { voiceSession.commandAudio.begin() }
+            if owner == .bluetooth {
+                voiceSession.commandAudio.begin(maximumSampleCount:
+                    settings.enabledApplicationIntegrations.isEmpty ? nil : VoicePlaybackQueueCapacity.maximumPreRollSamples)
+            }
             var immediateResult: Bool?
-            preferredInputSourceMonitor.beginVoiceSession { [weak self] activated in
+            let activationCompleted: (Bool) -> Void = { [weak self] activated in
                 guard let self else { completion(false); return }
                 guard self.voiceKeyActivationGeneration == generation,
                       self.pendingVoiceKeyActivationOwner == owner else { immediateResult = false; return }
@@ -211,6 +226,7 @@ extension BridgeAppModel {
                     self.pendingVoiceKeyMode = nil
                     if owner == .bluetooth { self.voiceSession.commandAudio.cancel() }
                     self.voiceKeyLatch.rollback(transition, owner: owner)
+                    self.completeApplicationIntegrationVoiceTrigger(started: false)
                     immediateResult = false
                     finish?(false)
                     return
@@ -219,6 +235,17 @@ extension BridgeAppModel {
                     transition: transition, owner: owner, keySetter: keySetter)
                 immediateResult = submitted
                 finish?(submitted)
+            }
+            let prepareSource: (VoiceInputDestinationWaitResult) -> Void = { [weak self] result in
+                guard let self, self.voiceKeyActivationGeneration == generation,
+                      self.pendingVoiceKeyActivationOwner == owner else { return }
+                guard result == .ready else { activationCompleted(false); return }
+                self.preferredInputSourceMonitor.beginVoiceSession(completion: activationCompleted)
+            }
+            switch applicationIntegrationController.prepareForVoiceInput(completion: prepareSource) {
+            case .immediate: prepareSource(.ready)
+            case let .cancelled(reason): prepareSource(.cancelled(reason))
+            case .waiting: break
             }
             // An asynchronous start is accepted; the caller continues only at completion.
             return immediateResult ?? true
@@ -245,6 +272,9 @@ extension BridgeAppModel {
     }
 
     private func cancelPendingVoiceKeyActivation() {
+        if applicationIntegrationStatus?.isPreparingVoiceInput == true {
+            completeApplicationIntegrationVoiceTrigger(started: false)
+        }
         voiceKeyActivationGeneration &+= 1
         voiceKeyActivationInProgress = false
         pendingVoiceKeyActivationOwner = nil
@@ -261,6 +291,7 @@ extension BridgeAppModel {
     ) -> Bool {
         guard keySetter(mode, shouldHold) else {
             if shouldHold {
+                completeApplicationIntegrationVoiceTrigger(started: false)
                 pendingVoiceKeyMode = nil
                 if owner == .bluetooth {
                     voiceSession.commandAudio.cancel()
@@ -274,6 +305,7 @@ extension BridgeAppModel {
             return false
         }
         if shouldHold {
+            completeApplicationIntegrationVoiceTrigger(started: true)
             preferredInputSourceMonitor.markVoiceTriggerSubmitted()
         } else {
             preferredInputSourceMonitor.endVoiceSession()
@@ -319,6 +351,8 @@ extension BridgeAppModel {
             KeyboardInjector.setVoiceKeyPressed($0, isPressed: false)
         }
     ) -> Bool {
+        voiceSession.pendingKeyRelease = nil
+        applicationIntegrationController.cancelPending()
         defer { flushPendingVoiceToolMappingRefresh() }
         voiceKeyReleaseRetry?.cancel()
         voiceKeyReleaseRetry = nil

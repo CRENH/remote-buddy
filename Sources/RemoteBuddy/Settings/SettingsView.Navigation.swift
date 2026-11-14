@@ -47,12 +47,12 @@ extension SettingsView {
     private func sidebarButton(_ section: SettingsSection) -> some View {
         let isSelected = (selectedSection == .commonPhrases ? .mapping : selectedSection) == section
         return Button {
-            selectSidebarSection(section)
+            selectSection(section)
         } label: {
-            VStack(spacing: 7) {
+            VStack(spacing: 4) {
                 ZStack(alignment: .topTrailing) {
                     Image(systemName: section.systemImage)
-                        .font(.system(size: 21, weight: .semibold))
+                        .font(.system(size: 19, weight: .semibold))
                     if SettingsPageBehavior.showsUpdateBadge(
                         for: section,
                         hasUnseenUpdate: updateInformation.hasUnseenUpdate
@@ -65,10 +65,15 @@ extension SettingsView {
                     }
                 }
                 Text(localization.text(section.titleKey))
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 8)
+                    .frame(height: 30)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
+            .padding(.vertical, 8)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -83,7 +88,7 @@ extension SettingsView {
         )
     }
 
-    private func selectSidebarSection(_ section: SettingsSection) {
+    func selectSection(_ section: SettingsSection) {
         selectedSection = section
         if SettingsPageBehavior.marksUpdateAsSeen(whenSelecting: section) {
             updateInformation.markAvailableUpdateSeen()
@@ -115,12 +120,14 @@ extension SettingsView {
                 phraseButtons: CommonPhraseStore.buttons(
                     chromecast: settings.selectedRemoteProfile?.model.isChromecastRemote == true)
             ) {
-                selectedSection = .mapping
+                selectSection(.mapping)
             }
         case .permissions:
             permissionsPage
         case .general:
             generalPage
+        case .applicationIntegration:
+            applicationIntegrationPage
         case .about:
             aboutPage
         }

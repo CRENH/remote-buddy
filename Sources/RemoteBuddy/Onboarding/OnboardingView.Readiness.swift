@@ -67,7 +67,7 @@ extension OnboardingView {
     }
 
     var allRecognizedVoiceToolsUnavailable: Bool {
-        [OnboardingVoiceTool.weixin, .doubao, .bageshuo, .typeless].allSatisfy {
+        [OnboardingVoiceTool.weixin, .doubao, .voiceBuddy, .bageshuo, .typeless].allSatisfy {
             voiceToolAvailability[$0] == .notInstalled
         }
     }
@@ -76,9 +76,9 @@ extension OnboardingView {
         switch settings.onboardingVoiceTool {
         case .unselected:
             return false
-        case .voicecursor, .macosDictation, .other:
+        case .macosDictation, .other:
             return true
-        case .weixin, .doubao, .bageshuo, .typeless:
+        case .weixin, .doubao, .voiceBuddy, .bageshuo, .typeless:
             return voiceToolAvailability[settings.onboardingVoiceTool] == .available
         }
     }
@@ -118,7 +118,8 @@ extension OnboardingView {
             capabilities: capabilities,
             hasSelectedAudioUID: !settings.selectedAudioDeviceUID.isEmpty,
             voiceAttempt: settings.onboardingStep == .voiceTest ? voiceAttempt : nil,
-            remoteInput: remoteInputDiagnostic
+            remoteInput: remoteInputDiagnostic,
+            runtimePermissionIssue: model.runtimePermissionIssue
         )
     }
 

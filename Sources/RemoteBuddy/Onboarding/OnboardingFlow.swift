@@ -4,11 +4,17 @@ import Foundation
 enum OnboardingControlValidationPolicy {
     static func suppressConfiguredActions(
         at step: OnboardingStep,
-        source: OnboardingControlSource
+        source: OnboardingControlSource,
+        reportingModel: RemoteModel? = nil,
+        onboardingWindowIsActive: Bool = true
     ) -> Bool {
+        guard onboardingWindowIsActive else { return false }
         guard step == .remote || step == .controls else { return false }
+        if let reportingModel {
+            return source.matches(reportingModel)
+        }
         switch source {
-        case .xiaomiRemote, .siriRemote, .chromecastRemote:
+        case .xiaomiRemote, .t1Remote, .siriRemote, .chromecastRemote:
             return true
         case .unselected:
             return false
@@ -25,7 +31,7 @@ enum OnboardingSecureInputPolicy {
     ) -> Bool {
         guard step == .remote || step == .controls else { return false }
         switch source {
-        case .xiaomiRemote, .siriRemote, .chromecastRemote:
+        case .xiaomiRemote, .t1Remote, .siriRemote, .chromecastRemote:
             return true
         case .unselected:
             return false
@@ -211,6 +217,11 @@ enum OnboardingRemotePhotoKind: Equatable {
             }
             return .bundled(resourceName: XiaomiRemoteCatalog.photoResource(for: .rc003)
                 ?? "RC003-remote-photo")
+        case .t1Remote:
+            if let selectedDevice, selectedDevice.onboardingSource == .t1Remote {
+                return .bundled(resourceName: selectedDevice.illustrationResource)
+            }
+            return .bundled(resourceName: RemoteSetupDevice.t1Remote.illustrationResource)
         case .siriRemote:
             return .siriRemote
         case .chromecastRemote:
@@ -481,19 +492,5 @@ enum OnboardingLaunchPolicy {
         openMainWindowAtLaunch: Bool
     ) -> Bool {
         !isComplete || completedUpdate || openMainWindowAtLaunch
-    }
-}
-
-enum CompletedUpdatePermissionRepairPolicy {
-    static func shouldOpenPermissions(
-        isOnboardingComplete: Bool,
-        completedUpdate: Bool,
-        bluetoothGranted: Bool,
-        inputMonitoringGranted: Bool,
-        accessibilityGranted: Bool
-    ) -> Bool {
-        isOnboardingComplete &&
-            completedUpdate &&
-            (!bluetoothGranted || !inputMonitoringGranted || !accessibilityGranted)
     }
 }

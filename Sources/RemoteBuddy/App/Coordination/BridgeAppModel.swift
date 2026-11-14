@@ -22,8 +22,17 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
     lazy var commonPhrases = CommonPhraseController(store: commonPhraseStore)
     let loginItemService: LoginItemService
 
+    var applicationIntegrationStatusGeneration: UInt64 = 0
+    var applicationIntegrationStatusExpiry: ScheduledOperation?
+    var scheduleApplicationIntegrationStatus: OperationScheduler = ScheduledOperation.mainQueue
+    @Published var applicationIntegrationStatus: ApplicationIntegrationPreparationState?
     @Published var connectionStatus = LocalizedMessage("bluetooth.status.initializing")
     @Published var hidStatus = LocalizedMessage("button_mapping.status.disabled")
+    @Published var hidFilterFailureState: HIDFilterFailureState = .none
+    @Published var runtimePermissionIssue: RuntimePermissionIssue?
+    @Published var runtimePermissionIssueUpdatedAt: Date?
+    @Published var runtimePermissionDiagnosisTrigger: String?
+    var lastLoggedRuntimePermissionIssueKey: String?
     @Published var audioStatus = LocalizedMessage("audio.output.none_selected")
     @Published var buddyMicrophoneStatus = LocalizedMessage("audio.compatibility.checking")
     @Published var isStreaming = false
@@ -62,7 +71,11 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
                 guard let model = settings.remoteDeviceProfiles.first(where: {
                     $0.id == profileID
                 })?.model else { return false }
-                return !model.usesPrivateAdapter && !model.isChromecastRemote
+                return !model.usesPrivateAdapter && !model.isATVVRemote
+            }
+        case .t1Remote:
+            return connectedRemoteProfileIDs.contains { id in
+                settings.remoteDeviceProfiles.first(where: { $0.id == id })?.model.isT1Remote == true
             }
         case .siriRemote:
             return false
@@ -79,12 +92,22 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
         if voiceSession.isActive {
             let profile = voiceSession.activeDeviceIdentifier.flatMap { settings.profileID(forBluetoothIdentifier: $0) }
                 .flatMap { id in settings.remoteDeviceProfiles.first { $0.id == id } }
-            return profile?.model.isChromecastRemote == true ? .chromecastRemote : .xiaomiRemote
+            if profile?.model.isChromecastRemote == true {
+                return .chromecastRemote
+            }
+            if profile?.model.isT1Remote == true {
+                return .t1Remote
+            }
+            return .xiaomiRemote
         }
         return nil
     }
 
-    let voiceFunctionMapper = RemoteHIDKeyMapper()
+    let voiceFunctionMapper: RemoteHIDKeyMapper
+    lazy var applicationIntegrationController = ApplicationIntegrationController(settings: settings,
+        onStateChange: { [weak self] state in
+            self?.recordApplicationIntegrationStatus(state)
+        })
     lazy var preferredInputSourceMonitor = PreferredInputSourceMonitor(
         voiceTool: { [weak self] in
             self?.settings.onboardingVoiceTool ?? .unselected
@@ -100,9 +123,13 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
             self?.settings.onboardingVoiceTool.functionKeyStartTapCount ?? 1
         },
         destinationReadiness: { [weak self] completion in
-            self?.voiceInputDestinationCoordinator.waitUntilReady(completion: completion) ?? .immediate
+            self?.prepareIntegratedVoiceInputDestination(completion: completion) ?? .immediate
         },
-        setFunctionKeyPressed: { KeyboardInjector.setFunctionKeyPressed($0) },
+        setFunctionKeyPressed: { [weak self] pressed in
+            let submitted = KeyboardInjector.setFunctionKeyPressed(pressed)
+            if pressed { self?.completeApplicationIntegrationVoiceTrigger(started: submitted) }
+            return submitted
+        },
         enqueueAudio: { [weak self] samples in
             self?.enqueueVoiceFnTapAudio(samples)
         },
@@ -135,6 +162,7 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
         }
     )
     private var voiceToolCancellable: AnyCancellable?
+    private var applicationIntegrationCancellable: AnyCancellable?
     var testToneGeneration = 0
     var voiceKeyLatch = VoiceKeyLatch()
     var voiceKeyReleaseRetry: ScheduledOperation?
@@ -162,7 +190,9 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
     var rc003VoiceExtensionTimer: DispatchSourceTimer?
     var rc003VoiceExtensionOpenTimer: DispatchSourceTimer?
     var rc003VoiceExtensionDeadlineTimer: DispatchSourceTimer?
-    let hidEventSuppressor = KeyboardEventSuppressor()
+    let hidEventSuppressor: KeyboardEventSuppressor
+    let permissionSnapshotProvider: () -> HIDPermissionSnapshot
+    var onboardingWindowIsActive: () -> Bool
     var hidMonitoringInterrupted = false
     var hidMonitors: [String: HIDRemoteMonitor] = [:]
     var discoveryHIDMonitor: HIDRemoteMonitor?
@@ -172,11 +202,31 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
 
     /// Google readiness derives from the shared public Bluetooth bridges.
     var connectedChromecastProfileIDs = Set<UUID>()
+    struct HIDMonitorTargetConfiguration: Equatable {
+        let profileID: UUID
+        let fingerprint: String
+        let model: RemoteModel
+    }
+
+    struct HIDMonitoringConfiguration: Equatable {
+        let customMappingEnabled: Bool
+        let backOnlyMode: Bool
+        let powerKeySuppressed: Bool
+        let allowedLocationIDs: Set<UInt32>?
+        let targets: [HIDMonitorTargetConfiguration]
+        let compatibleHIDIdentities: [RemoteHIDIdentity]
+        let excludedDiscoveryFingerprints: Set<String>
+        let permissionSnapshot: HIDPermissionSnapshot
+    }
+
     var hidPowerKeySuppressed = false
     var hidAllowedLocationIDs: Set<UInt32>?
     var started = false
     var remoteDeviceNameRefreshOperation: UInt64 = 0
     var appliedHIDPermissionSnapshot: HIDPermissionSnapshot?
+    var appliedHIDMonitoringConfiguration: HIDMonitoringConfiguration?
+    var pendingHIDServiceMappingRefresh = false
+    var hidServiceMappingRefreshGeneration: UInt64 = 0
     private var terminationObserver: NSObjectProtocol?
     var completedUpdateHIDRecoveryWorkItem: DispatchWorkItem?
     var hidMappingRecoveryWorkItem: DispatchWorkItem?
@@ -202,6 +252,10 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
         commonPhraseStore: CommonPhraseStore = CommonPhraseStore(),
         initialAudioDevices: [AudioDeviceInfo] = [],
         loginItemService: LoginItemService = LoginItemService(),
+        voiceFunctionMapper: RemoteHIDKeyMapper? = nil,
+        hidEventSuppressor: KeyboardEventSuppressor? = nil,
+        permissionSnapshotProvider: @escaping () -> HIDPermissionSnapshot = { .current },
+        onboardingWindowIsActive: @escaping () -> Bool = { true },
         rc003VoiceExtensionTestEnabled: Bool =
             ProcessInfo.processInfo.arguments.contains("--rc003-voice-extension-test") ||
             (Bundle.main.object(forInfoDictionaryKey: "RC003VoiceExtensionTestEnabled") as? Bool == true)
@@ -209,29 +263,42 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
         let settings = settings ?? AppSettings()
         self.settings = settings
         self.commonPhraseStore = commonPhraseStore
+        self.voiceFunctionMapper = voiceFunctionMapper ?? RemoteHIDKeyMapper()
+        self.hidEventSuppressor = hidEventSuppressor ?? KeyboardEventSuppressor()
+        self.permissionSnapshotProvider = permissionSnapshotProvider
+        self.onboardingWindowIsActive = onboardingWindowIsActive
 
         self.loginItemService = loginItemService
         self.rc003VoiceExtensionTestEnabled = rc003VoiceExtensionTestEnabled
         commonPhrases.onWillOpen = { [weak self] in self?.cancelPendingCommonPhraseButtonActions() }
         audioDevices = initialAudioDevices
-        hidEventSuppressor.onSystemDisabled = { [weak self] in
+        self.hidEventSuppressor.onSystemDisabled = { [weak self] in
             // Stop mapping as well: an unseized remote must not inject actions without filtering.
             guard let self else { return }
             self.hidMonitoringInterrupted = true
+            self.hidFilterFailureState = .systemDisabled
             self.stopHIDMonitors()
-            let permissions = HIDPermissionSnapshot.current
+            let permissions = self.permissionSnapshotProvider()
             self.appliedHIDPermissionSnapshot = permissions
             self.hidStatus = LocalizedMessage(
-                !permissions.inputMonitoringGranted ? "button_mapping.permission.input_monitoring_required" :
+                !permissions.inputMonitoringGranted ? HIDStatusKeys.inputMonitoringRequired :
                     (!permissions.accessibilityGranted ? "button_mapping.permission.accessibility_required" :
-                        "button_mapping.status.interrupted")
+                        HIDStatusKeys.interrupted)
             )
+            self.refreshRuntimePermissionDiagnosis(trigger: "hid_filter_disabled")
         }
         voiceToolCancellable = settings.$onboardingVoiceTool
             .removeDuplicates()
             .dropFirst()
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
+                self?.voiceToolDidChange()
+            }
+        applicationIntegrationCancellable = settings.$enabledApplicationIntegrations
+            .removeDuplicates().dropFirst().receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.applicationIntegrationController.cancelPending()
+                self?.clearApplicationIntegrationStatus()
                 self?.voiceToolDidChange()
             }
         audio.output.onConfigurationChange = { @Sendable [weak self] in
@@ -243,6 +310,7 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
     func startIfNeeded() {
         guard !started else { return }
         started = true
+        applicationIntegrationController.start()
         startAudioSubsystem()
         applyHIDSettings()
         refreshRemoteDeviceNames(reason: .startup)
@@ -262,6 +330,7 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
     }
 
     isolated deinit {
+        applicationIntegrationStatusExpiry?.cancel()
         voiceKeyReleaseRetry?.cancel()
     }
 
@@ -273,9 +342,16 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
     }
 
     func stop() {
+        applicationIntegrationController.stop()
+        clearApplicationIntegrationStatus()
         commonPhrases.close(reason: "app_stop")
         preferredInputSourceMonitor.stop()
-        guard started else { return }
+        pendingHIDServiceMappingRefresh = false
+        hidServiceMappingRefreshGeneration &+= 1
+        guard started else {
+            audio.invalidatePendingWork()
+            return
+        }
         started = false
         cancelHIDMappingRecovery(reason: "app_stop")
         completedUpdateHIDRecoveryWorkItem?.cancel()

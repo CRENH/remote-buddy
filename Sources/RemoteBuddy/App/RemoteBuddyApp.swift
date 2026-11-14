@@ -1,6 +1,5 @@
 import AppKit
 import Combine
-import CoreBluetooth
 import Darwin
 import Sparkle
 import SwiftUI
@@ -298,6 +297,9 @@ private final class RemoteBuddyAppDelegate: NSObject, NSApplicationDelegate, NSM
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        model.onboardingWindowIsActive = { [weak self] in
+            (self?.isSettingsWindowOpen ?? false) && NSApp.isActive
+        }
         if let environmentEvent = AppEnvironmentSnapshot.current(
             settings: model.settings
         ).publicEvent {
@@ -338,20 +340,6 @@ private final class RemoteBuddyAppDelegate: NSObject, NSApplicationDelegate, NSM
         ) {
             model.recoverHIDAfterCompletedUpdate()
         }
-        let shouldOpenPermissionRepair = CompletedUpdatePermissionRepairPolicy.shouldOpenPermissions(
-            isOnboardingComplete: model.settings.isOnboardingComplete,
-            completedUpdate: completedUpdate,
-            bluetoothGranted: CBManager.authorization == .allowedAlways,
-            inputMonitoringGranted: HIDRemoteMonitor.isInputMonitoringGranted,
-            accessibilityGranted: KeyboardInjector.isAccessibilityTrusted
-        )
-        if shouldOpenPermissionRepair {
-            AppLogger.shared.write(
-                "UPDATE PERMISSION_REPAIR bluetooth=\(CBManager.authorization == .allowedAlways) " +
-                    "input=\(HIDRemoteMonitor.isInputMonitoringGranted) " +
-                    "accessibility=\(KeyboardInjector.isAccessibilityTrusted)"
-            )
-        }
         refreshMenuStatus()
 
         let baseLaunchDecision = OnboardingLaunchPolicy.shouldShowMainWindow(
@@ -373,11 +361,7 @@ private final class RemoteBuddyAppDelegate: NSObject, NSApplicationDelegate, NSM
             }
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
-                if shouldOpenPermissionRepair {
-                    self.showSettingsWindow(initialSection: .permissions)
-                } else {
-                    self.showSettings()
-                }
+                self.showSettings()
             }
         }
     }
@@ -717,10 +701,7 @@ private final class RemoteBuddyAppDelegate: NSObject, NSApplicationDelegate, NSM
     }
 
     private func observeModel() {
-        StatusItemPresentation.publisher(
-            physicalConnected: model.$isConnected.eraseToAnyPublisher(),
-            isStreaming: model.$isStreaming.eraseToAnyPublisher()
-        )
+        StatusItemPresentation.publisher(model: model)
         .receive(on: RunLoop.main)
         .sink { [weak self] presentation in
             // Consume the published snapshot, not properties that @Published has yet to set.
@@ -931,11 +912,9 @@ private final class RemoteBuddyAppDelegate: NSObject, NSApplicationDelegate, NSM
         showSettingsWindow(targetScreen: screen)
     }
 
-    private func showSettingsWindow(initialSection: SettingsSection? = nil, targetScreen: NSScreen? = nil) {
+    private func showSettingsWindow(targetScreen: NSScreen? = nil) {
         if settingsWindowController == nil {
-            settingsWindowController = makeSettingsWindowController(
-                initialSettingsSection: initialSection
-            )
+            settingsWindowController = makeSettingsWindowController()
         }
         guard let windowController = settingsWindowController,
               let window = windowController.window else { return }
@@ -957,9 +936,7 @@ private final class RemoteBuddyAppDelegate: NSObject, NSApplicationDelegate, NSM
         window.makeKeyAndOrderFront(nil)
     }
 
-    private func makeSettingsWindowController(
-        initialSettingsSection: SettingsSection? = nil
-    ) -> NSWindowController {
+    private func makeSettingsWindowController() -> NSWindowController {
         let hostingController = NSHostingController(
             rootView: RemoteBuddyRootView(
                 model: model,
@@ -974,7 +951,6 @@ private final class RemoteBuddyAppDelegate: NSObject, NSApplicationDelegate, NSM
                 setStatusBarIconVisible: { [weak self] isVisible in
                     self?.setStatusBarIconVisible(isVisible)
                 },
-                initialSettingsSection: initialSettingsSection,
                 completedUpdateVersion: completedUpdateVersion
             )
             .environmentObject(localization)

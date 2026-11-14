@@ -43,6 +43,7 @@ struct SettingsView: View {
     @State var isMappingPermissionAlertPresented = false
     @State var isWaitingForMappingPermissions = false
     @State var isShowingRestoreAllDefaultsAlert = false
+    @State var isPermissionRelaunchConfirmationPresented = false
 
     init(
         model: BridgeAppModel,
@@ -121,6 +122,19 @@ struct SettingsView: View {
                 model.refreshRemoteDeviceNames(reason: .page)
             }
         }
+        .task(id: selectedSection) { @MainActor in
+            guard selectedSection == .general ||
+                    selectedSection == .connection ||
+                    selectedSection == .permissions ||
+                    selectedSection == .applicationIntegration,
+                  !SettingsVisualRenderingPolicy.isScreenshotHarness else { return }
+            model.refreshAudioDevices()
+            while !Task.isCancelled {
+                refreshPermissionStates()
+                do { try await Task.sleep(for: .seconds(1)) }
+                catch { return }
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             refreshPermissionStates()
             loginItemService.refresh()
@@ -133,7 +147,7 @@ struct SettingsView: View {
         ) {
             Button(localization.text("button_mapping.permission_prompt.open")) {
                 isWaitingForMappingPermissions = true
-                selectedSection = .permissions
+                selectSection(.permissions)
                 model.applyHIDSettings()
             }
             Button(localization.text("common.action.cancel"), role: .cancel) {
@@ -142,6 +156,17 @@ struct SettingsView: View {
             }
         } message: {
             Text(localization.text("button_mapping.permission_prompt.message"))
+        }
+        .confirmationDialog(
+            localization.text("permission.desync.restart_confirm.title"),
+            isPresented: $isPermissionRelaunchConfirmationPresented
+        ) {
+            Button(localization.text("permission.desync.action.restart"), role: .destructive) {
+                _ = model.relaunchApplication()
+            }
+            Button(localization.text("common.action.cancel"), role: .cancel) {}
+        } message: {
+            Text(localization.text("permission.desync.restart_confirm.message"))
         }
     }
 }

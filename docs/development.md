@@ -28,17 +28,19 @@ SwiftPM 主执行目标为 RemoteBuddy。采用公开源码的默认构建，不
 
 已配置遥控器处于扫描或失败重试等待时，每 2 秒查询其系统蓝牙连接状态；只有标识匹配的设备已连接，才取消剩余退避并接入语音服务。该查询不重启广播扫描，也不向离线设备追加连接请求。已绑定 HID 的连接通知或按键活动也会在输入回调结束后触发提前重试。正在连接、初始化、已就绪、断开清理或系统挂起时不重复触发。原有 20 秒扫描兜底和离线失败退避保留，本地日志中的 `BLE WAKE RECOVERY` 记录恢复原因、结果和耗时。真机验收应覆盖遥控器休眠后唤醒、长时间离线后按键、连续按键及 Mac 睡眠恢复。
 
+系统睡眠（`.systemWillSleep`）或会话失活（`.sessionDidResignActive`）时，`handleSystemAudioLifecycle(_:)` 会按顺序调用 `commonPhrases.close(reason:)` 关闭并清理常用语待插入队列、`suspendHIDMonitoring(reason:)` 停止 `HIDRemoteMonitor`（释放 `IOHIDManager` 与每秒权限轮询）、`KeyboardEventSuppressor` 事件监听端口、`PreferredInputSourceMonitor` 与延迟映射恢复任务并阻止 `startHIDDiscoveryIfNeeded` 在挂起期间新建发现监听器，再调用 `suspendActiveAudio(reason:)` 挂起活跃音频（并暂停 `voiceFnTapSession`）；同时暂停非就绪蓝牙连接与扫描重试，并在未启动状态处理事件、`stop()` 或下次睡眠时清理挂起／唤醒恢复标记。设计上 `SystemAudioSuspensionState.suspendsHIDMonitoring` 仅包含 `.systemSleeping` 与 `.sessionInactive`、刻意排除 `.screenSleeping`：这优先保证主机未睡仅息屏以及系统先行唤醒而屏幕尚未点亮时的 HID 与恢复任务重建（自定义动作与语音触发仍受 `!audio.suspensionState.isSuspended` 门控）。若系统停留在仅有 `.screenSleeping` 的 DarkWake 阶段，提前重新持有 `IOHIDManager` 与 `CGEventTap` 与“最小化后台唤醒”存在产品取舍，如需验证实际唤醒行为应在真机对照 `pmset -g assertions` 与 `pmset -g log`。对于 `.screenDidSleep` 或 `.sessionDidResignActive` 先行挂起导致 `.systemDidWake` 被错序拆分的场景，`SystemAudioSuspensionState.pendingSystemWakeRecovery` 会随 `.systemSleeping` 生命周期与 `startupPending` / `finishAudioStartup` 阶段保留待消费状态，待全部挂起原因解除后统一由 `completeBluetoothResume(event:reason:)` 触发 `recoverBluetoothVoiceLink(reason: "system_wake")`；并在最后检查 `if isConnected`（覆盖保留在 `.ready` 的蓝牙或 Chromecast 连接）调用 `voiceFnTapSession.resume()`（已切入 `.reconnecting` 的桥将在重新 `.ready` 时恢复 Fn 点按），防止无连接状态跃迁时保持停用。
+
 权限状态模拟测试和构建成功不证明 macOS 在真实撤权时不会挂起。强制关机前未留下线程采样或 panic 栈时，不应把上述加固直接认定为系统死机根因或硬件验收结论。
 
 ## 异步操作生命周期
 
 音频启动只在准备队列枚举设备，回到主线程后采用固定输出 UID 并排队配置。停止时直接向音频引擎队列提交释放；旧枚举或启动回调不会释放后续会话的输出，也不会覆盖更新配置的状态。
 
-快捷键录制结果在回调送达时再次检查录制代次。停止、重置或销毁录制器后，排队中的普通按键和独立修饰键结果均作废。HID 映射只有在设备被独占或原始按键过滤器运行时才附加动作；过滤不可用时停止重复与延迟手势动作，保留默认左右方向键的原生直通。
+快捷键录制结果在回调送达时再次检查录制代次。停止、重置或销毁录制器后，排队中的普通按键和独立修饰键结果均作废。HID 映射只有在设备被独占或原始按键过滤器运行时才附加动作；过滤不可用时停止重复与延迟手势动作，保留默认左右方向键的原生直通。HID 监听器在目标设备集合、身份、权限与健康状态未变化时直接复用已有监视器；全仓仅 `recheckRemoteInput()` 会传入 `forceRestartMonitors: true` 强制重建（升级完成恢复路径 `recoverHIDAfterCompletedUpdate()` 会先 `stopHIDMonitors()` 清空已应用监控配置再延迟调用 `applyHIDSettings()`，周期恢复 `scheduleHIDMappingRecoveryIfNeeded` 则不强制重启已有监视器）。`HIDRemoteMonitor.onCandidateAvailable` 与 `onDeviceConnected` 通过 `pendingHIDServiceMappingRefresh` 布尔去重与代次计数（`hidServiceMappingRefreshGeneration`）调度主线程 `flushPendingHIDServiceMappingRefreshIfNeeded()`；当 `canRefreshHIDMappingsNow` 满足时补齐新服务映射（若检查发现仍处于无服务 `.noServices` 状态且开启自定义映射或需中和语音键，则继续调度 `scheduleHIDMappingRecoveryIfNeeded(restartSiriRemote: false)`）；若处于语音会话（`pendingVoiceToolMappingRefresh` 同步共存且优先合并为一次完整 `applyHIDSettings()`）或系统挂起期间则保留待刷新标记，待语音结束、`flushPendingVoiceToolMappingRefresh` 或唤醒恢复后补齐（注：语音期间若有新蓝牙遥控器首次进入 `.ready`，其就绪回调仍直接走 `applyHIDSettings()`）。每次语音开始前，`bluetoothBridgeDidStartVoice(_:)` 会由 `shouldReapplyHIDSettingsBeforeVoiceStart(...)` 决定是否重应用：仅当 `settings.customMappingEnabled == false` 且无需中和语音键的纯 `.function` 模式可完全跳过 IOKit 探测；只要开启自定义映射或需要中和语音键，每次语音开始都会在主线程同步新建 `IOHIDEventSystemClientCreateSimpleClient`、调用 `IOHIDEventSystemClientCopyServices` 并逐个服务 `readMappings()`（无缓存、无节流、无时间预算），核验电源键抑制和语音键中和状态。仅在无阻塞异常（`!hidMonitoringInterrupted`、`appliedHIDMonitoringConfiguration != nil`、权限快照未变化、`voiceFnTapSession` 无需激活）时，无匹配 HID 服务的 Chromecast 或无需中和的纯 `.function` 稳态才会跳过重应用，并由前者在非 Chromecast 配置下改走 `scheduleHIDMappingRecoveryIfNeeded(restartSiriRemote: false)` 异步兜底；遇到空服务列表（`.noServices`）、映射不匹配（`.needsReapply`）或 `pruneAppliedServices()` 交集清空/缺少 `appliedConfiguration` 时，会调用 `resetAppliedState()` 同步清空已应用状态（`appliedConfiguration`、`isApplied`、`isPowerKeySuppressed`、`powerSuppressedLocationIDs` 与 `isVoiceKeyNeutralized`）。随后 `canStartBluetoothVoice(...)` 对需要中和的硬件遥控器（含 `identifiedModel == nil` 尚未识别型号时的保守判定）要求 `isVoiceKeyNeutralized == true`，纯 Chromecast（`.isChromecastRemote == true`）及无需中和的纯 `.function` 不受 `isVoiceKeyNeutralized` 阻塞；整个断连重连过程保留用户的 `settings.voiceFnTapModeEnabled` 与 `settings.voiceKeyMode` 偏好。若匹配服务缺少 `registryID` 或存在重复 `registryID`，保守保留 `appliedConfiguration = nil`，此时每次语音开始均会触发重应用。
 
 更新源使用独立的临时 URLSession，空闲和总请求超时均为 30 秒。响应头和流式读取均检查 1 MiB 上限，超限时取消该请求。不会修改共享 URLSession 的配置，不增加常驻轮询或逐输入事件的权限查询。
 
-启动前预录音与实时 PCM 使用独立的队列额度：预录音最多 80,000 个采样（5 秒），实时待播放音频最多 8,000 个采样（半秒）。预录音分成不超过半秒的播放块，按原顺序送入播放器，不通过放大实时额度消化积压。Fn 点按停止的排空期限按待播放时长加余量计算，保留取消、输出中断和过期回调隔离。
+启动前预录音与实时 PCM 使用独立的队列额度：预录音最多 80,000 个采样（5 秒），实时待播放音频最多 8,000 个采样（半秒）。预录音分成不超过 20 毫秒的播放块，避免整块播放完成回调的延迟暂时耗尽实时额度，按原顺序送入播放器，不通过放大实时额度消化积压。Fn 点按停止的排空期限按待播放时长加余量计算，保留取消、输出中断和过期回调隔离。
 
 ## 本地开发
 
@@ -100,7 +102,7 @@ HID 设备发现仅用受支持的 VendorID／ProductID 组合。IOHIDManager �
 
 共享日志器不再创建持久化的公开诊断上传队列；没有配置上传服务。运行日志以 UTF-8 文本保存在 `~/Library/Logs/RemoteBuddy/`，无需公钥或解密工具，用户可以自行查看；每个文件限制为 10 MiB，达到上限会在当前会话内轮转，最多保留五份旧日志，跳过仍在使用的日志及符号链接。日志不保存录音或识别正文，也不会上传。菜单“显示日志”会先刷新日志，再定位到当前 `.log` 文件。常用语 JSON 由 `scripts/generate-common-phrases.py` 从 Markdown 编辑源生成，打包测试校验生成资源确实存在。
 
-向导第六步的每种输入工具包含五个设置步骤，第三个为输入工具自身的麦克风选择；macOS 听写包含四个步骤：打开听写、把快捷键设为“按两下 🌐 键”、选择麦克风来源、清空微信 App 的 Fn 快捷键。它需要系统 🌐 键用于听写，所以不包含“去除系统 Fn 占用”。三个听写步骤使用 2026-10-25 从本机系统设置截取并标注的真实浅色 JPG：开启听写、双击 🌐 快捷键、Remote Buddy Mic 麦克风来源；深色界面回退到同一真实截图。首次开启须确认系统隐私提示，并等待所需语言支持下载完成。遥控搭子按住遥控器时连按两次 Fn 开始听写，松开并送完音频后按一次 Fn 结束；设置指引不要求手动勾选确认；查看每个步骤后可进入第七步实际测试，步骤完成标记仅表示用户已查看，不表示已检测第三方设置。第七步仅根据按键、声音和文字结果判断通过，不再重复询问设置。豆包和微信的菜单、语音设置、麦克风六张浅色截图于 2026-10-12 从本机安装版本截取并标注，使用 JPG 保存，显示时整图按原比例缩放。VoiceCursor 的快捷键和麦克风使用本机浅色截图。新增 JPG 长边最多 1600 像素，并压缩文件大小。加载和打包校验支持 JPG、JPEG、PNG；优先匹配当前主题，再回退浅色。既有深色截图保持不变；新增截图只有真实浅色版本时，深色界面使用浅色截图回退。微信 App 快捷键及未安装工具的截图保留原素材。
+向导第六步的每种输入工具包含五个设置步骤，第三个为输入工具自身的麦克风选择；macOS 听写包含四个步骤：打开听写、把快捷键设为“按两下 🌐 键”、选择麦克风来源、清空微信 App 的 Fn 快捷键。它需要系统 🌐 键用于听写，所以不包含“去除系统 Fn 占用”。三个听写步骤使用 2026-10-25 从本机系统设置截取并标注的真实浅色 JPG：开启听写、双击 🌐 快捷键、Remote Buddy Mic 麦克风来源；深色界面回退到同一真实截图。首次开启须确认系统隐私提示，并等待所需语言支持下载完成。遥控搭子按住遥控器时连按两次 Fn 开始听写，松开并送完音频后按一次 Fn 结束；设置指引不要求手动勾选确认；查看每个步骤后可进入第七步实际测试，步骤完成标记仅表示用户已查看，不表示已检测第三方设置。第七步仅根据按键、声音和文字结果判断通过，不再重复询问设置。豆包和微信的菜单、语音设置、麦克风六张浅色截图于 2026-10-12 从本机安装版本截取并标注，使用 JPG 保存，显示时整图按原比例缩放。Voice Buddy 的触发按键与麦克风使用本地浅色截图。新增 JPG 长边最多 1600 像素，并压缩文件大小。加载和打包校验支持 JPG、JPEG、PNG；优先匹配当前主题，再回退浅色。既有深色截图保持不变；新增截图只有真实浅色版本时，深色界面使用浅色截图回退。微信 App 快捷键及未安装工具的截图保留原素材。
 
 说明图片在固定显示区内按原比例缩放，整图显示，不采用超出区域的放大和偏移裁剪；同时关闭图片命中测试，确保不会挡住步骤按钮。Debug 构建可在现有向导截图模式中设置 `REMOTE_BUDDY_ONBOARDING_SCREENSHOT_INTERACTIVE=1`，使用隔离设置打开输入工具页面，最多停留五分钟以进行真实鼠标验证；Release 构建不会启用此交互模式。
 
@@ -134,11 +136,12 @@ HID 设备发现仅用受支持的 VendorID／ProductID 组合。IOHIDManager �
 
 ### Remote device scope
 
-The product device list is limited to Xiaomi Bluetooth Remote 2 / 2 Pro, Google
-Chromecast Voice Remote (G9N9N), Google TV Streamer Voice Remote (GY3LE), and
-Apple Siri Remote. `RemoteSetupDevice` defines this scope; it does not grant
-connection support. All four entries can be selected. Continue advances Xiaomi and both Google choices to
-connection setup; Siri remains on the device page with an unsupported notice.
+The product device list is limited to Xiaomi Bluetooth Remote 2 / 2 Pro, T1-Remote
+Air-Mouse & Keyboard (and compatible clones), Google Chromecast Voice Remote (G9N9N),
+Google TV Streamer Voice Remote (GY3LE), and Apple Siri Remote. `RemoteSetupDevice` defines
+this scope; it does not grant connection support. All five entries can be selected.
+Continue advances Xiaomi, T1, and both Google choices to connection setup; Siri remains on
+the device page with an unsupported notice.
 The GY3LE setup entry does not admit it through the G9N9N adapter. G9N9N connection
 validation remains mandatory. G9N9N currently has partial voice support; control-button mapping is unsupported following the A0 / firmware 26.7 hardware investigation. See the [standalone report](g9n9n-compatibility.md). The
 validated Xiaomi admission catalog remains separate, so a planned Google model
@@ -281,6 +284,13 @@ activation completing across session and screen suspension. Both replace keyboar
 injection and audio hardware scheduling; real remote reconnect, HAL routing and
 external dictation still require hardware acceptance.
 
+Bluetooth hold-to-talk keeps its software dictation key pressed after capture
+stops until queued virtual-microphone audio drains. The deadline is the remaining
+playback duration plus 750 ms; forced drain completion also releases the key.
+New voice starts are rejected during this tail. Disconnect, suspension and forced
+key cleanup invalidate the pending completion so it cannot release a later
+session's key. Fn-tap retains its separate drain and stop-pulse sequence.
+
 Compact window checks: the settings window fits the current screen's visible
 frame on opening and screen changes. Settings keep a readable
 980×732 scrollable canvas. Onboarding uses the actual viewport height with
@@ -324,3 +334,227 @@ This inspection does not yet establish correct physical button mappings, intelli
 microphone audio, end-to-end stop behavior, long sessions, or sleep/wake acceptance.
 See the [hardware debugging record](g9n9n-hardware-debugging.md) for the completed
 test attempts, evidence limits, signing checks, and next acceptance steps.
+
+## App integration accessibility and preparation boundaries
+
+Claude (`com.anthropic.claudefordesktop`) recognizes prompt/reply/draft/message
+label variants, normalized ellipses, and explicit composer identifiers. WorkBuddy (`com.tencent.workbuddy.mac`) matches its
+composer by its surrounding More actions, Voice input, and Send controls when
+the placeholder is not exposed as stable field metadata. Both are opt-in and use control metadata,
+not editable values. Automatic composer discovery excludes search, code editors, modal dialogs,
+ambiguous targets, and sensitive fields. Preservation is a separate user-intent
+path: an already selected writable search, code, question, or approval field
+(including a non-sensitive modal input) is deliberately retained. UI inspection identified both controls and
+confirmed WorkBuddy focus; physical remote acceptance remains required.
+
+All enabled integrations preserve an already focused, enabled, non-sensitive
+editable field in the same application, with explicit AXEditable or settable-value
+metadata as writable evidence (the value itself is never read), including question/approval response
+fields. This check runs before scanning and again before focus/click actions.
+A typed preserved result, diagnostic, and separate user feedback distinguish this
+path from verified composer focus. The focus writer rechecks its write gate before
+each public AX write/action and reports success only after target confirmation.
+Preservation checks during writes exclude the composer being targeted, so the
+writer cannot classify its own focus change as preserved. AX provides no atomic
+compare-and-focus operation across applications; an external focus change between
+a check and a system write remains a best-effort boundary, not a focus lock.
+Only when no such field has focus does automatic composer discovery run.
+
+Automatic voice integration first reads the application's standard `AXRole`, then
+reads public accessibility control metadata and requests focus. Electron enables
+its native accessibility mode from the application's `accessibilityRole` getter;
+querying only a window can leave discovery at its native shell. See the
+[Electron 37 implementation](https://github.com/electron/electron/blob/v37.10.3/shell/browser/mac/electron_application.mm#L248-L263).
+This is a standard metadata read, not a framework-specific attribute write.
+Scan diagnostics report node counts and truncation as well as candidates/matches,
+so an unexposed tree can be distinguished from an unrecognized composer. Its focus writer sets only `AXFocused` and `AXFocusedUIElement`; it may use
+`AXPress` for Antigravity or one hit-tested click on an explicitly identified
+Antigravity, Claude, or WorkBuddy input. The automatic
+entry point does not call `announceManualAccessibility` or set `AXManualAccessibility`
+or `AXEnhancedUserInterface`. Tests guard that entry point and inject the real focus
+writer's attribute/action backend to check the complete write list. Metadata reads
+are tested separately; a metadata-only test is not evidence about attribute writes.
+No message values, selected text, transcripts, text insertion, or message submission
+are part of this focus operation.
+
+Existing explicit application launch/focus button actions and common-phrase insertion still use the
+framework-specific `AXManualAccessibility` / `AXEnhancedUserInterface` requests.
+These are undocumented attributes, not standard Apple AX attributes; they are not
+used by automatic voice integration.
+
+Focus is optional: failed or expired attempts continue to the next voice-preparation
+step in the same application. Release, application/session changes, shutdown, and
+failed destination validation still cancel pending starts. Fn-tap preparation shares
+one four-second focus/destination deadline, with optional focus limited to three
+seconds. Hold mode instead waits for the same three-second optional focus step and
+then the existing bounded input-source activation (roughly half a second); it does
+not run the Fn-tap sequence. Both fit within the five-second pre-roll capacity.
+The hold and Fn-tap paths retain their existing destination-validation differences.
+
+Integration feedback is independent of the voice shortcut configuration status.
+Preparing feedback does not claim that a trigger was sent. Only a successful key
+post promotes it to triggered; new attempts, settings changes and stop clear it,
+and completed attempt feedback expires after 15 seconds.
+
+### Integration validation samples
+
+The following observations cover runtime revision `e3291eb`, using
+`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`, Apple Swift 6.2.4
+(`swiftlang-6.2.4.1.4`), targeting arm64 macOS. Individual green runs do not
+establish that intermittent failures have been eliminated.
+
+| Run | Command | Observed result |
+| --- | --- | --- |
+| Build | `scripts/build-app.sh` (`swift build --disable-keychain`) | Passed |
+| Focused | `swift test --disable-keychain --filter 'ApplicationIntegrationTests\|ProductBoundaryTests\|RuntimePermissionDiagnosticsTests\|StatusItemPresentationTests'` | 75 tests, 4 suites, passed |
+| First serial branch | `swift test --disable-keychain --no-parallel` | 726 tests, 106 suites; 3 issues in 2 failing HID tests |
+| Filtered HID retry | `swift test --disable-keychain --filter 'voiceStartReappliesSettingsWhenServiceWasNotYetNeutralized\|hardwareRemoteRejectsBluetoothVoiceBeforeReconnectedHIDServiceAppearsWhilePreservingPreference'` | Both tests passed |
+| Serial main `8d008ed` | `swift test --disable-keychain --skip-update --no-parallel` in an independent checkout | 709 tests, 106 suites, passed |
+| Final serial branch | `swift test --disable-keychain --no-parallel` | 726 tests, 106 suites, passed |
+
+The first branch run failed the inactive-session assertion in the HID start helper
+at `HIDHotPathIdempotencyTests.swift:54`: once in
+`voiceStartReappliesSettingsWhenServiceWasNotYetNeutralized`, twice in
+`hardwareRemoteRejectsBluetoothVoiceBeforeReconnectedHIDServiceAppearsWhilePreservingPreference`.
+Neither failure reproduced in the filtered retry or final full run. The clean main
+run does not establish that these particular failures are pre-existing or explain
+their cause. Earlier review observations of T1 and other HID failures on older
+revisions remain valid observations; they were not reproduced in these latest runs.
+The baseline used a separate scratch directory and a package `.build` symlink so
+clipboard helper tests could locate the built executable; an earlier run without
+that symlink had setup failures and is not counted as product validation.
+
+English/Chinese screenshots now include default, missing-permission, preparing,
+and preserved-input states. The harness injects feedback after startup and asserts
+that it remains present at capture. Example delivered assets:
+[missing permission](../pages/assets/screenshots/application-integration-permission-missing-zh.png),
+[preparing](../pages/assets/screenshots/application-integration-preparing-zh.png), and
+[preserved input](../pages/assets/screenshots/application-integration-preserved-en.png).
+These verify settings feedback, not physical menu-bar or remote behavior.
+
+These fixes have not been accepted on physical hardware. Previously reported
+WeChat, Antigravity, and ChatGPT success applies to the previously tested revision,
+not automatically to the revised public-AX-only path or feedback lifecycle.
+
+The WorkBuddy 5.11.3 public-AX composer inspection fixture is stored in
+`docs/testing-fixtures/workbuddy-composer-5.11.3.json`. It records only the observed
+AXChildren role relationships and control labels, not messages,
+values, accounts, or URLs. The test runs that fixture through the production group
+walker and the bounded parent search. The direct editor parent has no action bar;
+the matching composer is its next layout ancestor. Up to three AXGroup ancestors
+are considered with a 150 ms admission budget and a separate 150 ms budget per
+subtree; document/window roots and cycles stop the search. It supports nested layout/toolbar groups but rejects multiple editors,
+truncated traversal and unrecognized controls. The bounded scan (96 nodes, five
+layout levels, 150 ms) is still version-dependent and is not hardware acceptance.
+Label tests cover English/Chinese and French/Japanese/Indonesian control aliases;
+localized installations beyond the inspected English Claude and Chinese WorkBuddy
+interfaces have not been accepted with physical hardware. Unknown translations or
+changed structures fail visibly and continue optional voice preparation. WorkBuddy
+placeholder content is never used as a selector.
+
+
+### Post-737 desktop focusing investigation
+
+Build 737 logs recorded Claude scans with zero candidates in 9–27 ms, intermittent
+Antigravity zero-candidate scans in 14–59 ms, and WorkBuddy scans with one candidate
+but zero recognized composers in 710–776 ms. WorkBuddy's actual public AX layout
+placed its action bar alongside the editor's parent, rather than inside that parent.
+The refreshed fixture retains this AXChildren structure and demonstrates the former
+selector failure and the bounded ancestor-search fix. Reading the application role
+addresses Electron's documented lazy native-AX initialization; the old zero-candidate
+logs alone do not prove that this was their only cause.
+
+Direct invocation of the revised production focuser returned `focused` for Claude
+and Antigravity in the installed applications. WorkBuddy also returned `focused`
+after a successful focus-only write to its More actions toolbar control, demonstrating
+return from the toolbar to the composer. An initial activation attempt did not bring
+WorkBuddy forward, so its unavailable result was not a selector failure; a subsequent
+attempt with an already selected editor correctly returned `preserved`. These are
+local UI observations, not remote/audio or cold-start acceptance.
+
+The opt-in `LiveApplicationIntegrationTests` reproduces the WorkBuddy toolbar probe
+without reading editor values or sending text. It is disabled in ordinary tests/CI:
+
+```sh
+REMOTE_BUDDY_LIVE_FOCUS_TESTS=1 swift test --disable-keychain --filter LiveApplicationIntegrationTests
+```
+
+It requires the installed WorkBuddy Chinese UI and Accessibility permission, temporarily
+moves its focus, and restores the previously active app. The revised build still needs
+physical-remote checks after toolbar interaction and from newly launched applications.
+
+Validation on source `8d87730` (Xcode Swift 6.2.4):
+
+- `swift test --disable-keychain --filter 'ApplicationIntegrationTests|AccessibilityFrameScoringTests|ProductBoundaryTests'` reported 68 tests / 4 suites passed; the opt-in live suite was skipped.
+- The explicitly enabled live WorkBuddy probe passed, confirming the toolbar control really held focus before invoking the production focuser.
+- `swift test --disable-keychain --no-parallel` reported 727 tests / 107 suites, with the live test skipped and one failing assertion in `candidateAvailableAndConnectedRefreshCoalescesDefersFlushesAndCancelsStaleWork`, `HIDHotPathIdempotencyTests.swift:1307` (service-provider count 6 versus 5). The full suite is not green. This assertion was observed in earlier reviews as well; this run does not establish its cause.
+- `CONFIGURATION=debug scripts/build-app.sh` passed and produced local build 741 from runtime revision `0109e70`. The later commit changed only tests/documentation. The running installed build 737 was not replaced.
+
+
+### Composer scan latency
+
+The build 737 reproduction at 09:11:40 Singapore time spent 868 ms scanning the
+ChatGPT desktop window and about 1.07 seconds preparing focus in total. It did not
+reapply HID mappings, unlike the separate 09:06:23 reproduction. Both submitted Fn
+and completed audio drain; those records alone do not explain the input method's
+brief/no-listening UI. The two symptoms must not be assigned a common cause without
+additional evidence.
+
+Integrated scans now omit non-editing leaves (static text, images and action controls),
+stop at rich editors rather than walking their document contents, batch metadata and
+child-list reads, and reuse role/frame metadata within one scan. Container branches
+and all four public child-list attributes remain covered, with unique-target ranking
+and write-time focus checks unchanged. No persistent element cache is introduced.
+Non-integrated custom discovery retains full traversal. Scalar metadata reads remain
+a fallback for clients without the batch API; editing values are never requested.
+
+Local read-only scans, three samples per installed application, measured:
+
+| App | Before (ms) | After (ms) | Recognition after |
+| --- | --- | --- | --- |
+| ChatGPT desktop (`com.openai.codex`) | 900–937 | 142–165 | 1 candidate, 1 match |
+| Antigravity | 1000–1005, truncated | 208–215 | 1 candidate, 1 match; complete |
+| Claude | 199–221 | 58–61 | 1 candidate, 1 match |
+| WorkBuddy | 675–694 | 143–150 | 1 candidate, 1 match |
+
+WeChat's visible window changed between samples (before: one candidate/no match;
+after: two candidates/one match, 4–9 ms), so it is not a like-for-like timing claim.
+These are current-window scan observations, not general latency guarantees or
+end-to-end voice-start measurements. The opt-in `measureInstalledComposerScans`
+test reproduces the measurements without activating applications or moving focus.
+The filtered integration/frame/privacy run reported 70 tests / 4 suites passed,
+with the two live probes skipped in the ordinary run.
+
+
+### First-press trigger observations
+
+The user confirmed the 09:06:23/09:06:25 Singapore-time pair as a brief first UI
+appearance without listening followed by a normal second attempt, and reported
+another, not identical, symptom around 09:11. In the confirmed pair the first attempt
+reapplied mappings, submitted Fn after 82 ms, held it until audio drain completed,
+and did not switch input methods (WeType was already selected). The 09:11:40 attempt
+instead waited about 1.07 seconds for focus preparation without reapplying mappings;
+the remote was released 74 ms after Fn submission, with Fn-up deferred until the
+buffered audio drained about a second later. Neither attempt logged an enqueue
+failure or a software Fn-up preceding drain. These observations do not establish
+that either symptom shares a cause or that the input method entered listening mode.
+
+Voice-start logs now include the mapping-validity/reapply decision without another
+HID enumeration. The existing global flagsChanged monitor separately reports delivery
+of this app's ordered voice modifier events, plus external modifier changes only
+while an explicit voice attempt is active. Late delivery of this app's own cleanup
+is still reported. Other synthetic events never acquire a physical-Fn input-source
+owner. Installation availability is logged, and every observation retains
+`target_response=unknown`: seeing an event in the global monitor is not an input-method
+acknowledgement, and that monitor does not see events destined for its own app.
+No character keys, editor values or audio are collected by this diagnostic, and
+there is no automatic retry or change to the trigger timing. A further reproduction
+on the revised build is needed to examine duplicate/early-release delivery.
+
+
+Validation after the latency and trigger-observation changes (runtime `1cb1d94`):
+
+- The read-only installed-window scan probe passed; all five applications had a recognized composer in the final measurement run. WorkBuddy's opt-in toolbar-to-composer probe also passed after optimization.
+- Integration/frame/privacy filter reported 70 tests / 4 suites passed (both live probes skipped by default). Voice activation/session/review filter reported 33 tests / 3 suites passed, including scoped modifier delivery and synthetic-owner isolation.
+- Full serial run reported 730 tests / 107 suites, both live probes skipped, with one issue at the same `HIDHotPathIdempotencyTests.swift:1307` service-provider-count assertion (6 versus 5). All other executed tests passed; the full suite remains non-green.
+- Debug app build passed and produced local build 745. Installed build 737 remains running until explicitly replaced; first-press physical-remote acceptance on 745 is pending.

@@ -16,7 +16,23 @@ extension OnboardingView {
         return OnboardingVoiceGesturePrompt.text(
             for: plan.binding.gestureMode,
             fnTapModeEnabled: plan.fnTapModeEnabled,
+            controlSource: settings.onboardingControlSource,
             locale: localization.locale
+        )
+    }
+
+    func fnTapExplanationText(fallbackKey: String) -> String {
+        if settings.onboardingControlSource == .t1Remote {
+            return localization.text(
+                settings.onboardingVoiceTool == .macosDictation
+                    ? "onboarding.voice_tool.t1_dictation_fn_tap_explanation"
+                    : "onboarding.voice_test.t1_fn_tap_explanation"
+            )
+        }
+        return localization.text(
+            settings.onboardingVoiceTool == .macosDictation
+                ? "onboarding.voice_tool.dictation_fn_tap_explanation"
+                : fallbackKey
         )
     }
 
@@ -124,9 +140,9 @@ extension OnboardingView {
         switch tool {
         case .weixin: return "message.fill"
         case .doubao: return "quote.bubble.fill"
+        case .voiceBuddy: return "waveform.circle.fill"
         case .bageshuo: return "waveform.and.mic"
         case .typeless: return "waveform.badge.mic"
-        case .voicecursor: return "mic.badge.plus"
         case .macosDictation: return "mic.fill"
         case .other: return "ellipsis.circle.fill"
         case .unselected: return "circle"
@@ -136,6 +152,7 @@ extension OnboardingView {
     func controlSourceIcon(_ source: OnboardingControlSource) -> String {
         switch source {
         case .xiaomiRemote: return "appletvremote.gen4.fill"
+        case .t1Remote: return "keyboard"
         case .siriRemote: return "appletvremote.gen4.fill"
         case .chromecastRemote: return "tv.and.hifispeaker.fill"
         case .unselected: return "circle"

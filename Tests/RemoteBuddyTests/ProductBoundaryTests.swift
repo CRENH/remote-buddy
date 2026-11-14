@@ -14,7 +14,7 @@ struct ProductBoundaryTests {
             "weixin-input-menu", "weixin-input-settings",
             "bageshuo-menu", "bageshuo-settings", "bageshuo-input-microphone",
         ]
-        let microphone = ["doubao-input-microphone", "weixin-input-microphone", "voicecursor-setting-fn", "voicecursor-setting-mic"]
+        let microphone = ["doubao-input-microphone", "weixin-input-microphone", "voicebuddy-setting-fn", "voicebuddy-setting-mic"]
         for name in paired + microphone {
             let url = try #require(RemoteBuddyResourceBundle.onboardingImageURL(named: name, isDark: false, in: bundle))
             #expect(url.lastPathComponent == "\(name)-light.jpg")
@@ -155,15 +155,19 @@ struct ProductBoundaryTests {
         #expect(!SettingsSection.allCases.map(\.rawValue).contains("membership"))
     }
 
-    @Test func dailyNavigationKeepsPermissionRepairBeforeSettings() {
+    @Test func generalOverviewIsFirstInNavigation() {
         let sections = SettingsPageBehavior.sidebarSections()
-        #expect(sections == [.connection, .mapping, .integration, .permissions, .general, .about])
+        #expect(sections == [.general, .permissions, .connection, .mapping, .integration, .applicationIntegration, .about])
         #expect(SettingsPageBehavior.visibleSection(for: .permissions) == .permissions)
         #expect(SettingsPageBehavior.visibleSection(for: .general) == .general)
         #expect(SettingsPageBehavior.visibleSection(for: .about) == .about)
+        #expect(SettingsPageBehavior.marksUpdateAsSeen(whenSelecting: .about))
+        for section in [SettingsSection.general, .permissions, .connection, .mapping, .integration, .applicationIntegration] {
+            #expect(!SettingsPageBehavior.marksUpdateAsSeen(whenSelecting: section))
+        }
         #expect(SettingsPageBehavior.initialSection(
             requestedSection: nil
-        ) == .connection)
+        ) == .general)
         #expect(SettingsPageBehavior.initialSection(
             requestedSection: .permissions
         ) == .permissions)
@@ -183,25 +187,44 @@ struct ProductBoundaryTests {
         settings.customMappingEnabled = true
         settings.setOnboardingControlSource(.chromecastRemote)
         settings.completeOnboarding()
-        SettingsPageBehavior.beginIntegrationSetup(tool: .voicecursor, settings: settings)
+        SettingsPageBehavior.beginIntegrationSetup(tool: .voiceBuddy, settings: settings)
         #expect(settings.selectedAudioDeviceUID == "BuddyMic2ch_UID")
         #expect(settings.gainDB == 6)
         #expect(settings.customMappingEnabled)
-        #expect(settings.onboardingVoiceTool == .voicecursor)
+        #expect(settings.onboardingVoiceTool == .voiceBuddy)
         #expect(settings.onboardingControlSource == .chromecastRemote)
         #expect(settings.onboardingPurpose == .integration)
         #expect(settings.onboardingStep == .voiceTool)
         #expect(!settings.isOnboardingComplete)
         let restored = AppSettings(defaults: defaults)
-        #expect(restored.onboardingVoiceTool == .voicecursor)
+        #expect(restored.onboardingVoiceTool == .voiceBuddy)
         let tools = OnboardingVoiceToolVisibilityPolicy.tools
-        #expect(tools.contains(.voicecursor))
+        #expect(tools.contains(.voiceBuddy))
         #expect(tools.contains(.other))
+        #expect(OnboardingVoiceTool.voiceBuddy.applicationBundleIdentifier == "com.voicebuddy.app")
+        #expect(OnboardingVoiceTool.voiceBuddy.supportsHoldVoiceRecording)
+        let profile = VoiceToolAdapterProfile.profile(for: .voiceBuddy)
+        #expect(profile.supportedModes == [.hold, .toggle])
+        #expect(profile.installationProbe == .applicationBundle)
+        #expect(AppLinks.voiceBuddyWebsite(for: Locale(identifier: "zh-Hans")).absoluteString == "https://myvoicebuddy.com/")
+        #expect(AppLinks.voiceBuddyWebsite(for: Locale(identifier: "en")).absoluteString == "https://myvoicebuddy.com/en.html")
+        for source in [OnboardingControlSource.xiaomiRemote, .t1Remote, .siriRemote, .chromecastRemote] {
+            let plan = OnboardingVoicePairingPlan.resolve(tool: .voiceBuddy, controlSource: source)
+            #expect(plan?.binding.gestureMode == .hold)
+            #expect(plan?.binding.shortcut == .function)
+        }
+        let chromecastTogglePlan = OnboardingVoicePairingPlan.resolve(
+            tool: .voiceBuddy,
+            controlSource: .chromecastRemote,
+            preferredGesture: .toggle
+        )
+        #expect(chromecastTogglePlan?.binding.gestureMode == .toggle)
+        #expect(chromecastTogglePlan?.fnTapModeEnabled == true)
     }
 
     @Test func integrationCatalogIncludesUninstalledToolsInConsistentOrder() {
         #expect(OnboardingVoiceToolVisibilityPolicy.tools == [
-            .weixin, .doubao, .bageshuo, .typeless, .voicecursor, .macosDictation, .other,
+            .weixin, .doubao, .voiceBuddy, .bageshuo, .typeless, .macosDictation, .other,
         ])
     }
 
@@ -223,7 +246,7 @@ struct ProductBoundaryTests {
             .deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Resources")
         let bundle = try #require(Bundle(path: resources.path))
         let planned = RemoteSetupDevice.allCases.filter { $0 != .xiaomi }
-        #expect(Set(planned.map(\.illustrationResource)).count == 3)
+        #expect(Set(planned.map(\.illustrationResource)).count == 4)
         for device in planned {
             #expect(device.illustrationResource != RemoteSetupDevice.xiaomi.illustrationResource)
             let url = try #require(bundle.url(forResource: device.illustrationResource, withExtension: "png"))
@@ -232,16 +255,35 @@ struct ProductBoundaryTests {
         }
     }
 
-    @Test func deviceScopeKeepsGoogleModelsDistinctAndSelectable() {
+    @Test func deviceScopeKeepsAllFiveRemotesOrderedAndDistinct() {
         #expect(RemoteSetupDevice.allCases == [
-            .xiaomi, .chromecastG9N9N, .googleStreamerGY3LE, .siriRemote,
+            .xiaomi, .t1Remote, .chromecastG9N9N, .googleStreamerGY3LE, .siriRemote,
         ])
         #expect(RemoteSetupDevice.chromecastG9N9N.googleHardwareModelNumber == "G9N9N")
         #expect(RemoteSetupDevice.googleStreamerGY3LE.googleHardwareModelNumber == "GY3LE")
-        #expect(RemoteSetupDevice.allCases.filter(\.canStartSetup) == [.xiaomi, .chromecastG9N9N, .googleStreamerGY3LE])
-        // Listing a planned device must not admit it through the Xiaomi hardware bridge.
+        #expect(RemoteSetupDevice.allCases.filter(\.canStartSetup) == [
+            .xiaomi, .t1Remote, .chromecastG9N9N, .googleStreamerGY3LE,
+        ])
+        // Listing non-Xiaomi devices must not admit them through the Xiaomi hardware bridge.
         #expect(XiaomiRemoteCatalog.entry(matchingDISModelNumber: "G9N9N") == nil)
         #expect(XiaomiRemoteCatalog.entry(matchingDISModelNumber: "GY3LE") == nil)
+        #expect(XiaomiRemoteCatalog.entry(matchingDISModelNumber: "hid_mouse") == nil)
+    }
+
+    @Test @MainActor func t1RemoteSelectionPersistsAndResolvesCombinedSetupIllustration() throws {
+        let suite = "remote-buddy.tests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = AppSettings(defaults: defaults)
+        let model = BridgeAppModel(settings: settings, initialAudioDevices: [])
+        let view = OnboardingView(model: model)
+        view.selectControlSource(.t1Remote)
+        #expect(settings.onboardingControlSource == .t1Remote)
+        #expect(settings.onboardingControlMethod == .physicalRemote)
+        #expect(AppSettings(defaults: defaults).onboardingControlSource == .t1Remote)
+        #expect(!model.isOnboardingControlSourceConnected(.t1Remote))
+        #expect(OnboardingRemotePhotoKind.resolve(source: .t1Remote, selectedModel: .rc003)
+            == .bundled(resourceName: "T1RemoteSetupIllustration"))
     }
 
     @Test @MainActor func g9n9nSelectionPersistsWithoutClaimingAConnection() throws {
@@ -323,7 +365,7 @@ struct ProductBoundaryTests {
     }
 
     @Test func wizardRequiresEachPermissionAndKeepsRemoteControl() {
-        #expect(OnboardingBuildCapabilities.availableControlSources == [.xiaomiRemote, .chromecastRemote])
+        #expect(OnboardingBuildCapabilities.availableControlSources == [.xiaomiRemote, .t1Remote, .chromecastRemote])
         let ready = OnboardingCapabilities(
             bluetoothGranted: true,
             inputMonitoringGranted: true,
@@ -373,7 +415,7 @@ struct ProductBoundaryTests {
         #expect(!OnboardingFlowPolicy.canContinue(
             from: .voiceTool, voiceTool: .unselected, capabilities: passed
         ))
-        for tool in [OnboardingVoiceTool.weixin, .doubao, .bageshuo, .voicecursor, .typeless, .other] {
+        for tool in [OnboardingVoiceTool.weixin, .doubao, .voiceBuddy, .bageshuo, .typeless, .other] {
             #expect(!OnboardingFlowPolicy.canContinue(
                 from: .voiceTool, voiceTool: tool, capabilities: OnboardingCapabilities()
             ))

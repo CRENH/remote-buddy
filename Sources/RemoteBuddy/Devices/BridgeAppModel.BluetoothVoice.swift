@@ -69,15 +69,43 @@ extension BridgeAppModel {
             return
         }
         let profileID = activateRemoteProfile(for: bridge)
-        if settings.voiceKeyMode != .function || settings.voiceFnTapModeEnabled || requiresOrderedVoiceFn {
+        let currentPermissionSnapshot = permissionSnapshotProvider()
+        let neutralizeVoiceKey = shouldNeutralizeNativeVoiceKey
+        let currentServicesMatchDesiredMapping = voiceFunctionMapper
+            .refreshAppliedMappingsValidity(
+                expectedPowerKeySuppression: settings.customMappingEnabled,
+                expectedVoiceKeyNeutralization: neutralizeVoiceKey
+            )
+        let reapplyMappings = Self.shouldReapplyHIDSettingsBeforeVoiceStart(
+            customMappingEnabled: settings.customMappingEnabled,
+            mode: settings.voiceKeyMode,
+            fnTapModeEnabled: settings.voiceFnTapModeEnabled,
+            requiresOrderedFn: requiresOrderedVoiceFn,
+            hasHardwareVoiceKey: !(bridge.identifiedModel?.isATVVRemote == true),
+            hasMatchingHIDServices: voiceFunctionMapper.hasMatchingServices,
+            isVoiceKeyNeutralized: voiceFunctionMapper.isVoiceKeyNeutralized,
+            currentServicesMatchDesiredMapping: currentServicesMatchDesiredMapping,
+            fnTapSessionEnabled: voiceFnTapSession.isEnabled,
+            monitoringInterrupted: hidMonitoringInterrupted,
+            monitoringConfigurationApplied: appliedHIDMonitoringConfiguration != nil,
+            appliedPermissionSnapshot: appliedHIDPermissionSnapshot,
+            currentPermissionSnapshot: currentPermissionSnapshot
+        )
+        AppLogger.shared.write("VOICE START mapping_check current_matches=\(currentServicesMatchDesiredMapping) " +
+            "matching_services_present=\(voiceFunctionMapper.hasMatchingServices) neutralized=\(voiceFunctionMapper.isVoiceKeyNeutralized) " +
+            "reapply=\(reapplyMappings)")
+        if reapplyMappings {
             applyHIDSettings(allowVoiceKeyModeFallback: false)
+        } else if !voiceFunctionMapper.hasMatchingServices,
+                  settings.customMappingEnabled || neutralizeVoiceKey {
+            scheduleHIDMappingRecoveryIfNeeded(restartSiriRemote: false)
         }
         guard Self.canStartBluetoothVoice(
             mode: settings.voiceKeyMode,
             voiceFnTapModeEnabled: settings.voiceFnTapModeEnabled,
             isVoiceKeyNeutralized: voiceFunctionMapper.isVoiceKeyNeutralized,
-            hasHardwareVoiceKey: bridge.identifiedModel?.isChromecastRemote != true,
-            accessibilityGranted: KeyboardInjector.isAccessibilityTrusted,
+            hasHardwareVoiceKey: !(bridge.identifiedModel?.isATVVRemote == true),
+            accessibilityGranted: currentPermissionSnapshot.accessibilityGranted,
             requiresOrderedFn: requiresOrderedVoiceFn
         ) else {
             _ = bridge.requestMicrophoneClose()
@@ -108,7 +136,7 @@ extension BridgeAppModel {
         updateVoiceKeyState(
             streaming: true,
             forceSoftware: requiresOrderedVoiceFn ||
-                (bridge.identifiedModel?.isChromecastRemote == true && !settings.voiceFnTapModeEnabled),
+                (bridge.identifiedModel?.isATVVRemote == true && !settings.voiceFnTapModeEnabled),
             owner: .bluetooth,
             completion: { [self] activated in
             guard activated else {
@@ -155,9 +183,11 @@ extension BridgeAppModel {
                     "RC003 EXTENSION physical_segment_reopened trace=\(voiceSession.activeBluetoothVoiceTraceID ?? 0)"
                 )
             } else {
-                _ = voiceFnTapSession.startVoice()
+                if voiceFnTapSession.isEnabled {
+                    _ = voiceFnTapSession.startVoice()
+                }
                 beginVoiceSessionIfNeeded()
-                if rc003VoiceExtensionTestEnabled, bridge.identifiedModel?.isChromecastRemote != true {
+                if rc003VoiceExtensionTestEnabled, !(bridge.identifiedModel?.isATVVRemote == true) {
                     rc003VoiceExtensionActive = true
                     rc003VoiceExtensionAwaitingReopen = false
                     rc003VoiceExtensionDidReceiveAudio = false
@@ -278,7 +308,6 @@ extension BridgeAppModel {
             return
         }
         voiceSession.end()
-        releaseVoiceKeyIfNeeded(owner: .bluetooth, forceSoftware: true)
         voiceSession.commandAudio.cancel()
         if longRecordingBridge === bridge {
             if longRecordingRequested {
@@ -329,8 +358,43 @@ extension BridgeAppModel {
         voiceSession.activeBluetoothVoiceTraceID = nil
         voiceSession.bluetoothVoiceTraceStartedAt = nil
         voiceSession.bluetoothVoiceTailDiagnostics.reset()
-        endVoiceSessionIfNeeded(flushAudio: shouldFlushAudio)
-        releaseVirtualAudioOutputIfUnused(reason: "bluetooth_voice_finished")
+        finishBluetoothVoicePlayback(deviceIdentifier: identifier, handledByFnTapMode: handledByFnTapMode)
+    }
+
+    /// Capture has ended, but a held dictation key must outlive all queued PCM.
+    /// Fn-tap mode already owns its own drain and stop pulse.
+    func finishBluetoothVoicePlayback(
+        deviceIdentifier: UUID,
+        handledByFnTapMode: Bool,
+        drainAudio: ((TimeInterval, @escaping (VirtualAudioDrainOutcome) -> Void) -> Void)? = nil,
+        releaseKey: (() -> Void)? = nil
+    ) {
+        let release = releaseKey ?? { [weak self] in
+            self?.releaseVoiceKeyIfNeeded(owner: .bluetooth, forceSoftware: true)
+        }
+        guard !handledByFnTapMode, voiceKeyLatch.isHeld, heldVoiceKeyMode != nil else {
+            release()
+            endVoiceSessionIfNeeded(flushAudio: false)
+            releaseVirtualAudioOutputIfUnused(reason: "bluetooth_voice_finished")
+            return
+        }
+        let id = UUID()
+        voiceSession.pendingKeyRelease = (id, deviceIdentifier)
+        let maximumDelay = audio.output.pendingPlaybackDuration + 0.75
+        AppLogger.shared.write("VOICE HOLD playback_stop id=\(id) phase=requested timeout_ms=\(Int(maximumDelay * 1_000))")
+        let drain = drainAudio ?? { [weak self] delay, completion in
+            self?.audio.output.endSessionAfterDraining(
+                source: "voice_hold", maximumDelay: delay, completion: completion
+            )
+        }
+        drain(maximumDelay) { [weak self] outcome in
+            guard let self, self.voiceSession.pendingKeyRelease?.id == id else { return }
+            self.voiceSession.pendingKeyRelease = nil
+            AppLogger.shared.write("VOICE HOLD playback_stop id=\(id) phase=completed result=\(outcome.rawValue)")
+            release()
+            self.endVoiceSessionIfNeeded(flushAudio: false)
+            self.releaseVirtualAudioOutputIfUnused(reason: "bluetooth_voice_finished")
+        }
     }
 
     func bluetoothBridge(_ bridge: BluetoothRemoteBridge, didDecode samples: [Int16]) {
@@ -531,12 +595,13 @@ extension BridgeAppModel {
         if case .ready = state {
             _ = registerBluetoothBridgeIfNeeded(bridge)
             learnSelectedRemoteHIDIdentity(bridge)
-            voiceFnTapSession.resume()
+            if !audio.suspensionState.isSuspended { voiceFnTapSession.resume() }
             if shouldReapplyHIDSettings {
                 applyHIDSettings()
                 scheduleHIDMappingRecoveryIfNeeded()
             }
         } else {
+            voiceFunctionMapper.pruneAppliedServices()
             if readyBluetoothBridgeCount == 0 {
                 cancelHIDMappingRecovery(reason: "bluetooth_not_ready")
             }
@@ -558,7 +623,8 @@ extension BridgeAppModel {
                     remotePowerStates.removeValue(forKey: profileID)
                 }
             }
-            let voiceWasActive = BluetoothVoiceDeviceOwnershipPolicy.matches(identifier, active: voiceSession.activeDeviceIdentifier)
+            let voiceWasActive = BluetoothVoiceDeviceOwnershipPolicy.matches(identifier, active: voiceSession.activeDeviceIdentifier) ||
+                BluetoothVoiceDeviceOwnershipPolicy.matches(identifier, active: voiceSession.pendingKeyRelease?.deviceIdentifier)
             if voiceWasActive {
                 if rc003VoiceExtensionTestEnabled,
                    rc003VoiceExtensionActive,
@@ -579,7 +645,7 @@ extension BridgeAppModel {
         refreshBluetoothPresentation()
         if case .ready = state { refreshRemoteDeviceNames(reason: .connection) }
         if isConnected {
-            voiceFnTapSession.resume()
+            if !audio.suspensionState.isSuspended { voiceFnTapSession.resume() }
             if shouldKeepVirtualAudioActive {
                 cancelVirtualAudioReleaseIfPending(trigger: "bluetooth_ready")
                 _ = ensureVirtualAudioOutputReady(reason: "bluetooth_ready")

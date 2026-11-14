@@ -16,6 +16,7 @@ private struct OnboardingReturnConfiguration: Codable {
     let chromecastVoiceMode: ChromecastVoiceMode
     let customMappingEnabled: Bool
     let selectedRemoteProfileID: UUID?
+    let initialRemoteProfileIDs: [UUID]
 }
 
 extension AppSettings {
@@ -48,15 +49,51 @@ extension AppSettings {
             fnTapModeEnabled: voiceFnTapModeEnabled,
             chromecastVoiceMode: chromecastVoiceMode,
             customMappingEnabled: customMappingEnabled,
-            selectedRemoteProfileID: selectedRemoteProfileID
+            selectedRemoteProfileID: selectedRemoteProfileID,
+            initialRemoteProfileIDs: remoteDeviceProfiles.map(\.id)
         )
         if let data = try? JSONEncoder().encode(configuration) {
             defaults.set(data, forKey: Self.onboardingReturnConfigurationKey)
         }
     }
 
+    func uncommittedOnboardingRemoteProfileIDs() -> [UUID] {
+        let initialIDs = Set(onboardingReturnConfiguration?.initialRemoteProfileIDs ?? [])
+        let forgottenBluetooth = forgottenBluetoothIdentifiers
+        let forgottenHID = forgottenHIDFingerprints
+        return remoteDeviceProfiles.compactMap { profile in
+            guard !initialIDs.contains(profile.id) else { return nil }
+            let matchesForgottenBluetooth = profile.bluetoothIdentifier.map { forgottenBluetooth.contains($0) } ?? false
+            let matchesForgottenHID = profile.hidFingerprint.map { forgottenHID.contains($0) } ?? false
+            return (matchesForgottenBluetooth || matchesForgottenHID) ? profile.id : nil
+        }
+    }
+
+    func confirmedTransientOnboardingProfile() -> RemoteDeviceProfile? {
+        let transientIDs = Set(uncommittedOnboardingRemoteProfileIDs())
+        guard !transientIDs.isEmpty else { return nil }
+        if let selectedID = selectedRemoteProfileID,
+           transientIDs.contains(selectedID),
+           let selectedProfile = remoteDeviceProfiles.first(where: { $0.id == selectedID }) {
+            return selectedProfile
+        }
+        if transientIDs.count == 1,
+           let onlyID = transientIDs.first {
+            return remoteDeviceProfiles.first(where: { $0.id == onlyID })
+        }
+        return nil
+    }
+
+    func unconfirmedTransientRemoteProfileIDs() -> [UUID] {
+        let confirmedID = confirmedTransientOnboardingProfile()?.id
+        return uncommittedOnboardingRemoteProfileIDs().filter { $0 != confirmedID }
+    }
+
     func dismissOnboarding() {
         guard canDismissOnboarding, let configuration = onboardingReturnConfiguration else { return }
+        for profileID in uncommittedOnboardingRemoteProfileIDs() {
+            _ = removeRemoteProfile(profileID)
+        }
         discardOnboardingVoiceTrial()
         onboardingVoiceTool = configuration.voiceTool
         onboardingControlSource = configuration.controlSource
@@ -171,6 +208,7 @@ extension AppSettings {
         let source: OnboardingControlSource
         switch selectedRemoteProfile?.model {
         case .rc001, .rc003: source = .xiaomiRemote
+        case .t1Remote: source = .t1Remote
         case .chromecastVoiceRemote: source = .chromecastRemote
         case .appleSiriRemoteA2540, .appleSiriRemoteA2854: source = .siriRemote
         case .unknown, nil: source = .unselected
@@ -183,7 +221,7 @@ extension AppSettings {
         guard onboardingControlSource != source else { return }
         onboardingControlSource = source
         switch source {
-        case .xiaomiRemote, .siriRemote, .chromecastRemote:
+        case .xiaomiRemote, .t1Remote, .siriRemote, .chromecastRemote:
             onboardingRemoteAvailability = .hasRemote
         case .unselected:
             onboardingRemoteAvailability = .unselected
@@ -299,6 +337,11 @@ extension AppSettings {
     }
 
     func completeOnboarding() {
+        let confirmedProfiles = confirmedTransientOnboardingProfile().map { [$0] } ?? []
+        for profileID in unconfirmedTransientRemoteProfileIDs() {
+            _ = removeRemoteProfile(profileID)
+        }
+        unforgetRemotes(confirmedProfiles)
         defaults.removeObject(forKey: Self.onboardingReturnConfigurationKey)
         recordFirstUseEvent(.completed, step: .complete)
         onboardingStep = .complete

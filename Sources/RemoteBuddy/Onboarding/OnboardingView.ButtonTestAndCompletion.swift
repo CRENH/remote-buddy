@@ -119,6 +119,13 @@ extension OnboardingView {
                 "onboarding.remote.chromecast_pairing.second",
                 "onboarding.remote.chromecast_pairing.third"
             )
+        case .t1Remote:
+            return (
+                "onboarding.remote.t1_pairing.title",
+                "onboarding.remote.t1_pairing.first",
+                "onboarding.remote.t1_pairing.second",
+                "onboarding.remote.t1_pairing.third"
+            )
         case .xiaomiRemote, .unselected:
             return (
                 "onboarding.remote.first_pairing.title",
@@ -139,6 +146,8 @@ extension OnboardingView {
         switch source {
         case .xiaomiRemote:
             return "onboarding.controls.xiaomi.detail"
+        case .t1Remote:
+            return "onboarding.controls.t1.detail"
         case .siriRemote:
             return "onboarding.controls.siri.detail"
         case .chromecastRemote:
@@ -158,6 +167,11 @@ extension OnboardingView {
         switch source {
         case .xiaomiRemote:
             return RemoteButton.xiaomiCases
+        case .t1Remote:
+            return [
+                .power, .up, .left, .ok, .right, .down,
+                .back, .home, .menu, .mute, .volumeUp, .volumeDown,
+            ]
         case .siriRemote:
             return [
                 .power, .up, .left, .ok, .right, .down,
@@ -233,7 +247,7 @@ extension OnboardingView {
                     .frame(width: 34, height: 34)
                     .background(Color.orange.opacity(0.12), in: Circle())
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(localization.text("onboarding.recovery.\(failure.rawValue).title"))
+                    Text(localization.text(recoveryTitleKey(for: failure)))
                         .font(.system(size: 14, weight: .semibold))
                         .fixedSize(horizontal: false, vertical: true)
                     Text(recoveryDetailText(for: failure))
@@ -247,10 +261,19 @@ extension OnboardingView {
                 onboardingActionButton(id: "recovery.\(failure.rawValue)") {
                     performRecovery(for: failure)
                 } label: {
-                    Text(localization.text("onboarding.recovery.\(failure.rawValue).action"))
+                    Text(localization.text(recoveryActionKey(for: failure)))
                         .font(.system(size: 13, weight: .semibold))
                 }
                 .buttonStyle(.borderedProminent)
+
+                if failure == .permissionDesynced, canOfferPermissionRelaunch {
+                    onboardingActionButton(id: "recovery.\(failure.rawValue).restart") {
+                        isPermissionRelaunchConfirmationPresented = true
+                    } label: {
+                        Text(localization.text("permission.desync.action.restart"))
+                    }
+                    .buttonStyle(.bordered)
+                }
 
                 onboardingActionButton(id: "diagnostics.copy") {
                     copyDiagnosticSummary()
@@ -277,6 +300,24 @@ extension OnboardingView {
         return true
     }
 
+    private func recoveryTitleKey(for failure: FirstUseFailureReason) -> String {
+        if failure == .voiceSessionNotEnded, settings.onboardingControlSource == .t1Remote {
+            return "onboarding.recovery.voice.session_not_ended.t1_title"
+        }
+        return "onboarding.recovery.\(failure.rawValue).title"
+    }
+
+    private var canOfferPermissionRelaunch: Bool {
+        model.canRelaunchApplication && interactionProbe == nil
+    }
+
+    private func recoveryActionKey(for failure: FirstUseFailureReason) -> String {
+        if failure == .permissionDesynced {
+            return "permission.desync.action.open_settings"
+        }
+        return "onboarding.recovery.\(failure.rawValue).action"
+    }
+
     private func recoveryDetailKey(for failure: FirstUseFailureReason) -> String {
         if usesG9N9NButtonTestWorkaround {
             switch failure {
@@ -284,6 +325,11 @@ extension OnboardingView {
             case .controlsNotConfirmed: return "onboarding.controls.g9n9n.detail"
             default: break
             }
+        }
+        if failure == .permissionDesynced {
+            return canOfferPermissionRelaunch
+                ? "onboarding.recovery.permission.desynced.detail.with_restart"
+                : "onboarding.recovery.permission.desynced.detail"
         }
         guard failure == .remoteNotFound else {
             return "onboarding.recovery.\(failure.rawValue).detail"
@@ -314,6 +360,9 @@ extension OnboardingView {
     }
 
     private var recoveryVoiceGestureInstruction: String {
+        if settings.onboardingControlSource == .t1Remote {
+            return localization.text("onboarding.recovery.voice.gesture.t1")
+        }
         switch effectivePreferredGesture {
         case .hold:
             return localization.text("onboarding.recovery.voice.gesture.hold")
@@ -323,6 +372,9 @@ extension OnboardingView {
     }
 
     private var recoveryVoiceFinishInstruction: String {
+        if settings.onboardingControlSource == .t1Remote {
+            return localization.text("onboarding.recovery.voice.finish.toggle")
+        }
         switch effectivePreferredGesture {
         case .hold:
             return localization.text("onboarding.recovery.voice.finish.hold")
@@ -333,7 +385,7 @@ extension OnboardingView {
 
     static func remoteNotFoundRecoveryDetailKey(for source: OnboardingControlSource) -> String {
         switch source {
-        case .xiaomiRemote, .siriRemote, .chromecastRemote:
+        case .xiaomiRemote, .t1Remote, .siriRemote, .chromecastRemote:
             return "onboarding.recovery.remote.not_found.physical_detail"
         case .unselected:
             return "onboarding.recovery.remote.not_found.detail"
