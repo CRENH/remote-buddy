@@ -337,8 +337,6 @@
 "button_mapping.selection_lock_hint_short" = "按遥控器时保持当前编辑项。";
 "button_mapping.voice_button.title" = "语音键";
 "button_mapping.voice_button.fixed" = "语音触发键";
-"button_mapping.voice_button.detail" = "按住说话；语音热键可选择 Fn、左右 Command／Option 或自定义组合，不参与普通按键动作映射。";
-"button_mapping.voice_button.t1_detail" = "按一下松开开始说话，再按一下结束；语音热键可选择 Fn、左右 Command／Option 或自定义组合。";
 "button_mapping.action.not_set" = "未设置";
 "button_mapping.single_click.help" = "按一下立即执行；设置双击后会稍等片刻再确认。";
 "button_mapping.double_click.effect" = "单击会稍等片刻以区分双击；长按仍可选择独立动作或持续连发。";
@@ -1279,3 +1277,4 @@
 "onboarding.summary.not_ready" = "未就绪";
 "onboarding.diagnostics.copied" = "诊断信息已复制，可粘贴到问题反馈中。";
 "onboarding.diagnostics.copy_failed" = "未能复制诊断信息，请重试。";
+"button_mapping.voice_button.configure" = "请在输入法集成向导中设置语音热键和点按模式。";

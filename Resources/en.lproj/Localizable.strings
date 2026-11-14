@@ -337,8 +337,6 @@
 "button_mapping.selection_lock_hint_short" = "Keep the current item selected while using the remote.";
 "button_mapping.voice_button.title" = "Voice Button";
 "button_mapping.voice_button.fixed" = "Voice Trigger Key";
-"button_mapping.voice_button.detail" = "Hold to talk. Choose Fn, left/right Command or Option, or a custom chord for the voice trigger. Ordinary button actions do not apply.";
-"button_mapping.voice_button.t1_detail" = "Press and release to start talking; press again to stop. Choose Fn, left/right Command or Option, or a custom voice chord.";
 "button_mapping.action.not_set" = "Not Set";
 "button_mapping.single_click.help" = "Runs after one press. It waits briefly when a double-click action is set.";
 "button_mapping.double_click.effect" = "A single press waits briefly to distinguish it from a double press. Long press can still use a separate action or Hold to Repeat.";
@@ -1278,3 +1276,4 @@
 "onboarding.summary.not_ready" = "Not Ready";
 "onboarding.diagnostics.copied" = "Diagnostics copied. Paste them into your issue report.";
 "onboarding.diagnostics.copy_failed" = "Could not copy diagnostics. Please try again.";
+"button_mapping.voice_button.configure" = "Set the voice shortcut and tap mode in the input tool setup wizard.";
