@@ -1,0 +1,78 @@
+name: Sync upstream
+
+on:
+  schedule:
+    # 22:00 UTC = 06:00 Singapore time.
+    - cron: '0 22 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      # SYNC_TOKEN is a fine-grained PAT; the default token cannot push
+      # upstream commits that touch .github/workflows.
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: crenh
+          fetch-depth: 0
+          token: ${{ secrets.SYNC_TOKEN }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name CRENH
+          git config user.email 107987472+CRENH@users.noreply.github.com
+
+      - name: Merge upstream main
+        id: sync
+        run: .github/scripts/sync-upstream.sh
+
+      - name: Report conflict
+        if: steps.sync.outputs.result == 'conflict'
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          CONFLICTS_FILE: ${{ steps.sync.outputs.conflicts_file }}
+          UPSTREAM_SHA: ${{ steps.sync.outputs.upstream_sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title='同步上游冲突'
+          body="$RUNNER_TEMP/conflict-body.md"
+          {
+            echo "合并上游 \`main\` 到 \`crenh\` 时出现冲突，本次没有推送任何改动。"
+            echo
+            echo "冲突文件："
+            echo
+            echo '```'
+            cat "$CONFLICTS_FILE"
+            echo '```'
+            echo
+            echo "- 上游提交：https://github.com/zfdang/remote-buddy/commit/$UPSTREAM_SHA"
+            echo "- 运行记录：$RUN_URL"
+            echo
+            echo "在本地合并上游、解决冲突并推送到 \`crenh\` 后，关闭此 issue。"
+          } > "$body"
+          number="$(gh issue list --state open --search "$title in:title" --json number,title \
+            --jq "map(select(.title == \"$title\")) | .[0].number // empty")"
+          if [[ -n "$number" ]]; then
+            gh issue comment "$number" --body-file "$body"
+          else
+            gh issue create --title "$title" --body-file "$body"
+          fi
+          echo "::error::Upstream merge conflict; see issue \"$title\"."
+          exit 1
+
+      - name: Summary
+        if: always() && steps.sync.outputs.result != ''
+        env:
+          RESULT: ${{ steps.sync.outputs.result }}
+          UPSTREAM_SHA: ${{ steps.sync.outputs.upstream_sha }}
+        run: |
+          echo "Result: $RESULT (upstream ${UPSTREAM_SHA:0:7})" >> "$GITHUB_STEP_SUMMARY"
