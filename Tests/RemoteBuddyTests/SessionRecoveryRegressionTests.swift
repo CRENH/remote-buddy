@@ -837,4 +837,62 @@ struct SessionRecoveryRegressionTests {
         if case .immediate = coordinator(protected: false, text: "Search").waitUntilReady(completion: { _ in }) {} else { Issue.record("Explicit search typing rejected") }
     }
 
+    @Test func staleDoubleClickAndLongPressTimerTokensDoNotAffectSubsequentPress() throws {
+        let clock = ControlledTestScheduler()
+        let (prefs, suite) = makeDefaults()
+        defer { prefs.removePersistentDomain(forName: suite) }
+        let settings = AppSettings(defaults: prefs)
+        settings.customMappingEnabled = true
+        let profile = UUID()
+        settings.setBaseBinding(.init(action: .arrowLeft, shortcut: nil), for: .ok, trigger: .singleClick, profileID: profile)
+        settings.setBaseBinding(.init(action: .arrowRight, shortcut: nil), for: .ok, trigger: .doubleClick, profileID: profile)
+        settings.setBaseBinding(.init(action: .commandReturn, shortcut: nil), for: .ok, trigger: .longPress, profileID: profile)
+
+        var performed: [ButtonAction] = []
+        let monitor = HIDRemoteMonitor(
+            settings: settings,
+            profileID: profile,
+            scheduler: clock,
+            runtimePermissions: { true },
+            actionPerformer: { _, _, configured in
+                performed.append(configured.action)
+                return true
+            },
+            diagnosticLogger: { _ in }
+        )
+        monitor.connectSimulatedDevice(fingerprint: "gesture-token-test", profileID: profile)
+        let usage = RemoteButton.ok.hidUsage
+        let press = Data([UInt8(usage & 255), UInt8(usage >> 8)])
+        let release = Data([0, 0])
+
+        // Press #1 at t=0 -> long-press task scheduled at t=550.
+        monitor.handleSimulatedReport(reportID: 1, data: press)
+        let firstLongPressTask = try #require(
+            clock.tasks.first(where: { $0.due == HIDRemoteTiming.longPressMilliseconds })
+        )
+
+        // Release at t=100 -> double-click task scheduled at t=400.
+        clock.advance(to: 100)
+        monitor.handleSimulatedReport(reportID: 1, data: release)
+        let firstDoubleClickTask = try #require(
+            clock.tasks.first(where: { $0.due == 100 + HIDRemoteTiming.doubleClickMilliseconds })
+        )
+
+        // Press #2 at t=200 -> issues new tokens. Even if the cancelled first-press tasks execute manually, they are ignored.
+        clock.advance(to: 200)
+        monitor.handleSimulatedReport(reportID: 1, data: press)
+        firstLongPressTask.fire(includingCancelled: true)
+        firstDoubleClickTask.fire(includingCancelled: true)
+        #expect(performed.isEmpty)
+
+        // Advance past t=550 (first long-press time) to t=650: second press has only been held 450ms -> must NOT fire yet.
+        clock.advance(to: 650)
+        #expect(performed.isEmpty)
+
+        // Advance to t=750 (200 + 550): second press triggers longPress cleanly.
+        clock.advance(to: 750)
+        #expect(performed == [.commandReturn])
+        monitor.handleSimulatedReport(reportID: 1, data: release)
+        monitor.disconnectSimulatedDevice()
+    }
 }
