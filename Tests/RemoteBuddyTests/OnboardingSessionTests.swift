@@ -12,6 +12,34 @@ struct OnboardingSessionTests {
         try body(AppSettings(defaults: defaults))
     }
 
+    @Test func completedWizardsOpenTheirCorrespondingSettingsPages() throws {
+        try withSettings { settings in
+            for (purpose, destination) in [
+                (OnboardingPurpose.addDevice, SettingsSection.connection),
+                (.integration, .integration), (.initialSetup, .general),
+            ] {
+                settings.onboardingPurpose = purpose
+                settings.completeOnboarding()
+                #expect(settings.isOnboardingComplete)
+                #expect(settings.completedOnboardingDestination == destination)
+                #expect(SettingsPageBehavior.initialSection(requestedSection: settings.completedOnboardingDestination) == destination)
+            }
+        }
+    }
+
+    @Test func freshLaunchDoesNotReuseTheLastWizardsDestination() throws {
+        let suite = "onboarding-destination-" + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = AppSettings(defaults: defaults)
+        settings.onboardingPurpose = .integration
+        settings.completeOnboarding()
+        #expect(settings.completedOnboardingDestination == .integration)
+        let restored = AppSettings(defaults: defaults)
+        #expect(restored.isOnboardingComplete)
+        #expect(restored.completedOnboardingDestination == .general)
+    }
+
     @Test func unfinishedFirstSetupCannotBeDismissed() throws {
         try withSettings { settings in
             SettingsPageBehavior.beginDeviceSetup(settings: settings)

@@ -241,6 +241,9 @@ final class AppSettings: ObservableObject {
         return try block()
     }
 
+    // Session-only routing: a fresh launch still opens the General page.
+    var completedOnboardingDestination: SettingsSection = .general
+
     @Published var onboardingPurpose: OnboardingPurpose {
         didSet { defaults.set(onboardingPurpose.rawValue, forKey: Keys.onboardingPurpose) }
     }

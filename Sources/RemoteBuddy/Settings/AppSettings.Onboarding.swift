@@ -294,6 +294,7 @@ extension AppSettings {
     }
 
     func completeOnboarding() {
+        completedOnboardingDestination = onboardingPurpose.completionDestination
         let confirmedProfiles = confirmedTransientOnboardingProfile().map { [$0] } ?? []
         for profileID in unconfirmedTransientRemoteProfileIDs() {
             _ = removeRemoteProfile(profileID)

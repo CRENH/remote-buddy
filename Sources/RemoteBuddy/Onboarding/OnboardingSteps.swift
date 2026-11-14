@@ -45,6 +45,14 @@ enum OnboardingPurpose: String, Codable {
     case addDevice
     case integration
 
+    var completionDestination: SettingsSection {
+        switch self {
+        case .initialSetup: return .general
+        case .addDevice: return .connection
+        case .integration: return .integration
+        }
+    }
+
     var steps: [OnboardingStep] {
         switch self {
         case .initialSetup: return OnboardingStep.visibleCases
