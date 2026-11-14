@@ -80,7 +80,7 @@ extension OnboardingView {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            if tool.requiresFunctionKeySetup {
+            if tool.requiresInputSourceSelection {
                 inputSourceSwitchStatus(for: tool)
             }
 
@@ -103,7 +103,7 @@ extension OnboardingView {
                                     Image(systemName: "checkmark")
                                         .font(.system(size: 11, weight: .bold))
                                 } else {
-                                    Text("\(step.id)")
+                                    Text("\(index + 1)")
                                         .font(.system(size: 12, weight: .bold))
                                 }
                             }
@@ -119,7 +119,7 @@ extension OnboardingView {
                                 .foregroundStyle(
                                     isCompleted || selectedIndex == index ? Color.white : Color.primary
                                 )
-                            Text(localization.text(step.titleKey))
+                            Text(voiceToolGuideText(step.titleKey))
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(.primary)
                                 .multilineTextAlignment(.leading)
@@ -237,7 +237,7 @@ extension OnboardingView {
                     .background(Color.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 10))
             }
             Group {
-                Text(verbatim: localization.text(
+                Text(verbatim: voiceToolGuideText(
                     "onboarding.voice_tool.guide.screenshot." +
                         resourceName.replacingOccurrences(of: "-", with: "_")
                 ))
@@ -245,9 +245,10 @@ extension OnboardingView {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            if resourceName == "doubao-settings", let binding = proposedPairingPlan?.binding {
+            if ["doubao-settings", "weixin-input-settings", "bageshuo-settings", "voicebuddy-setting-fn", "macos-dictation-shortcut"].contains(resourceName) {
                 Text(LocalizedMessage("onboarding.voice_tool.guide.match_shortcut",
-                    arguments: [localization.text(binding.shortcut.localizationKey)]).text(using: localization))
+                    arguments: [settings.selectedVoiceTrigger.voiceKeyMode.displayName(using: localization),
+                        localization.text("onboarding.gesture.\(proposedPairingPlan?.binding.gestureMode.rawValue ?? "hold")")]).text(using: localization))
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -279,7 +280,7 @@ extension OnboardingView {
                 .font(.system(size: 22, weight: .medium))
                 .foregroundStyle(Color.accentColor)
                 .frame(width: 34)
-            Text(verbatim: localization.text(detailKey))
+            Text(verbatim: voiceToolGuideText(detailKey))
                 .font(.system(size: 13))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -428,7 +429,7 @@ extension OnboardingView {
                 ),
                 OnboardingInputMethodGuideStep(
                     id: 4,
-                    titleKey: "onboarding.voice_tool.guide.release_wechat_fn",
+                    titleKey: "onboarding.voice_tool.guide.release_wechat_shortcut",
                     content: .screenshot("weixin-app-shortcuts")
                 ),
             ]
@@ -455,40 +456,33 @@ extension OnboardingView {
             return []
         }
 
-        return toolSteps + [
+        var steps = toolSteps + [
             OnboardingInputMethodGuideStep(
                 id: 3,
                 titleKey: "onboarding.voice_tool.guide.select_microphone",
                 content: .microphoneIntegration
             ),
-            OnboardingInputMethodGuideStep(
+        ]
+        if settings.selectedVoiceTrigger.voiceKeyMode == .function {
+            steps.append(OnboardingInputMethodGuideStep(
                 id: 4,
                 titleKey: "onboarding.voice_tool.guide.release_system_fn",
                 content: .systemFunctionKey
-            ),
-            OnboardingInputMethodGuideStep(
-                id: 5,
-                titleKey: "onboarding.voice_tool.guide.release_wechat_fn",
-                content: .screenshot("weixin-app-shortcuts")
-            ),
-        ]
+            ))
+        }
+        steps.append(OnboardingInputMethodGuideStep(
+            id: 5,
+            titleKey: "onboarding.voice_tool.guide.release_wechat_shortcut",
+            content: .screenshot("weixin-app-shortcuts")
+        ))
+        return steps
     }
 
-    func defaultBindingSummary(profile: VoiceToolAdapterProfile) -> String {
-        let descriptions = VoiceGestureMode.allCases.compactMap { mode -> String? in
-            guard let shortcut = profile.defaultShortcutByMode[mode] else { return nil }
-            return "\(localization.text("onboarding.gesture.\(mode.rawValue)")): " +
-                localization.text(shortcut.localizationKey)
-        }
-        if descriptions.isEmpty {
-            return localization.text("onboarding.voice_tool.binding.no_documented_default")
-        }
-        let evidence = localization.text(
-            profile.evidenceState == .verified
-                ? "onboarding.voice_tool.binding.evidence_verified"
-                : "onboarding.voice_tool.binding.evidence_pending"
-        )
-        return descriptions.joined(separator: " · ") + " · " + evidence
+    func voiceToolGuideText(_ key: String) -> String {
+        LocalizedMessage(key, arguments: [
+            settings.selectedVoiceTrigger.voiceKeyMode.displayName(using: localization),
+            localization.text("onboarding.gesture.\(proposedPairingPlan?.binding.gestureMode.rawValue ?? "hold")"),
+        ]).text(using: localization)
     }
 
     private func onboardingGuideImage(resourceName: String) -> NSImage? {
@@ -504,7 +498,7 @@ extension OnboardingView {
     private func selectVoiceTool(_ tool: OnboardingVoiceTool) {
         settings.setOnboardingVoiceTool(tool)
         AppLogger.shared.write(
-            "ONBOARDING VOICE_TOOL selected=\(tool.rawValue) binding_policy=function_key"
+            "ONBOARDING VOICE_TOOL selected=\(tool.rawValue) binding_policy=selected_voice_key"
         )
         selectedInputMethodGuideStep = nil
         completedInputMethodGuideSteps.removeAll()
@@ -519,9 +513,7 @@ extension OnboardingView {
 
     func stageCurrentDocumentedPairingPlanIfPossible() {
         guard let plan = proposedPairingPlan else { return }
-        settings.beginOnboardingVoiceTrial(plan, applyVoiceSettings: false)
-        model.setVoiceKeyMode(plan.binding.shortcut)
-        model.setVoiceFnTapModeEnabled(plan.fnTapModeEnabled)
+        settings.beginOnboardingVoiceTrial(plan)
     }
 }
 struct OnboardingInputMethodGuideStep: Identifiable {

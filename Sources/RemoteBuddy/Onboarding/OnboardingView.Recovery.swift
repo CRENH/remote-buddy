@@ -6,6 +6,7 @@ import SwiftUI
 extension OnboardingView {
     func prepareForStep(_ step: OnboardingStep) {
         refreshPermissionStates()
+        model.applyHIDSettings(allowVoiceKeyModeFallback: false)
         switch step {
         case .voiceTool:
             refreshVoiceToolAvailability()
@@ -27,7 +28,9 @@ extension OnboardingView {
             requestedRemoteConnectionRecovery = false
             secureInputWaitStartedAtUptime = nil
             prepareSelectedControlConnection()
-        case .permissions, .audio:
+        case .voiceTrigger:
+            break
+        case .permissions:
             model.refreshAudioDevices()
         case .voiceTest:
             refreshSelectedVoiceToolRuntimeState()

@@ -300,7 +300,7 @@ enum OnboardingScreenshotRenderer {
         case .remoteAvailability: return "control-source"
         case .permissions: return "permissions"
         case .remote: return "remote"
-        case .audio: return "audio"
+        case .voiceTrigger: return "voice-trigger"
         case .voiceTest: return "voice-test"
         case .controls: return "controls"
         case .complete: return "complete"

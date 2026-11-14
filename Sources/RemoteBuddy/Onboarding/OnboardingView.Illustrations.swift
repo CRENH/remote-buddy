@@ -29,6 +29,14 @@ extension OnboardingView {
                                 .padding(.horizontal, 28)
                         } else if settings.onboardingStep == .voiceTool {
                             welcomeIllustration
+                        } else if settings.onboardingStep == .permissions {
+                            VStack(spacing: 24) {
+                                remotePhotoPlaceholder
+                                Image(systemName: "mic.fill")
+                                    .font(.system(size: 44)).foregroundStyle(Color.accentColor)
+                                sideStatusPanel
+                            }
+                            .padding(.horizontal, 28)
                         } else if settings.onboardingStep == .remoteAvailability {
                             selectedDeviceIllustration
                         } else if settings.onboardingStep == .complete {

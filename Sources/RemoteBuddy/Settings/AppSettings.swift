@@ -35,7 +35,7 @@ final class AppSettings: ObservableObject {
         static let onboardingPreferredGesture = "onboarding.preferredGesture"
         static let onboardingVerifiedVoiceBinding = "onboarding.verifiedVoiceBinding"
         static let onboardingStagedVoiceBinding = "onboarding.stagedVoiceBinding"
-        static let onboardingTrialSnapshot = "onboarding.trialSnapshot"
+        static let onboardingVoiceTrigger = "onboarding.voiceTrigger"
         static let firstUseEvents = "onboarding.diagnostics.events"
         static let firstUseStepStartedAt = "onboarding.diagnostics.stepStartedAt"
         static let firstUseLastSignature = "onboarding.diagnostics.lastSignature"
@@ -301,6 +301,34 @@ final class AppSettings: ObservableObject {
         }
     }
 
+    @Published var onboardingVoiceTrigger: VoiceTriggerConfiguration? {
+        didSet {
+            if let onboardingVoiceTrigger, let data = try? JSONEncoder().encode(onboardingVoiceTrigger) {
+                defaults.set(data, forKey: Keys.onboardingVoiceTrigger)
+            } else { defaults.removeObject(forKey: Keys.onboardingVoiceTrigger) }
+        }
+    }
+
+    var selectedVoiceTrigger: VoiceTriggerConfiguration {
+        onboardingVoiceTrigger ?? VoiceTriggerConfiguration(
+            voiceKeyMode: voiceKeyMode, voiceFnTapModeEnabled: voiceFnTapModeEnabled)
+    }
+
+    var isTestingVoiceTrigger: Bool {
+        guard !isOnboardingComplete, onboardingStep == .voiceTest,
+              let binding = stagedVoiceToolBinding else { return false }
+        return binding.tool == onboardingVoiceTool && binding.validationState == .staged
+    }
+
+    var effectiveVoiceKeyMode: VoiceKeyMode {
+        isTestingVoiceTrigger ? (stagedVoiceToolBinding?.shortcut ?? voiceKeyMode) : voiceKeyMode
+    }
+
+    var effectiveVoiceFnTapModeEnabled: Bool {
+        guard isTestingVoiceTrigger, let binding = stagedVoiceToolBinding else { return voiceFnTapModeEnabled }
+        return binding.gestureMode == .toggle
+    }
+
     @Published var stagedVoiceToolBinding: VoiceToolUserBinding?
 
     var isOnboardingComplete: Bool {
@@ -371,7 +399,7 @@ final class AppSettings: ObservableObject {
             .intersection(ApplicationIntegration.allCases.map(\.rawValue))
         var corruptedKeys: [String] = []
         self.defaults = defaults
-        Self.restoreInterruptedOnboardingTrial(in: defaults)
+        Self.discardInterruptedOnboardingTrial(in: defaults)
         remoteDeviceProfiles = []
         selectedRemoteProfileID = nil
         storedGainDB = defaults.object(forKey: Keys.gainDB) == nil
@@ -498,6 +526,9 @@ final class AppSettings: ObservableObject {
             from: defaults,
             corrupted: &corruptedKeys
         )
+        onboardingVoiceTrigger = Self.decodeSetting(
+            VoiceTriggerConfiguration.self, forKey: Keys.onboardingVoiceTrigger,
+            from: defaults, corrupted: &corruptedKeys)
         stagedVoiceToolBinding = Self.decodeSetting(
             VoiceToolUserBinding.self,
             forKey: Keys.onboardingStagedVoiceBinding,

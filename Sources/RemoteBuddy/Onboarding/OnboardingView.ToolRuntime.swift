@@ -23,13 +23,13 @@ extension OnboardingView {
 
     func fnTapExplanationText(fallbackKey: String) -> String {
         if settings.onboardingControlSource == .t1Remote {
-            return localization.text(
+            return voiceToolGuideText(
                 settings.onboardingVoiceTool == .macosDictation
                     ? "onboarding.voice_tool.t1_dictation_fn_tap_explanation"
                     : "onboarding.voice_test.t1_fn_tap_explanation"
             )
         }
-        return localization.text(
+        return voiceToolGuideText(
             settings.onboardingVoiceTool == .macosDictation
                 ? "onboarding.voice_tool.dictation_fn_tap_explanation"
                 : fallbackKey

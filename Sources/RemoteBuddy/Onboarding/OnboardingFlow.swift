@@ -78,22 +78,27 @@ struct OnboardingVoicePairingPlan: Equatable {
         controlSource: OnboardingControlSource,
         preferredGesture: VoiceGestureMode? = nil,
         userBinding: VoiceToolUserBinding? = nil,
-        forceFunctionKey: Bool = false
+        selectedShortcut: VoiceKeyMode? = nil
     ) -> Self? {
         guard tool != .unselected, controlSource != .unselected else { return nil }
         let profile = VoiceToolAdapterProfile.profile(for: tool)
+        // The Dictation adapter implements the system's double-Fn start sequence.
+        guard tool != .macosDictation || (selectedShortcut ?? userBinding?.shortcut ?? .function) == .function else {
+            return nil
+        }
 
         if let userBinding {
             var effectiveBinding = userBinding
-            if forceFunctionKey {
+            if selectedShortcut != nil && selectedShortcut != userBinding.shortcut ||
+                preferredGesture != nil && preferredGesture != userBinding.gestureMode {
                 effectiveBinding = VoiceToolUserBinding(
                     tool: userBinding.tool,
-                    shortcut: .function,
-                    gestureMode: userBinding.gestureMode,
-                    source: userBinding.source,
-                    validationState: userBinding.validationState,
-                    verifiedToolVersion: userBinding.verifiedToolVersion,
-                    verifiedAt: userBinding.verifiedAt
+                    shortcut: selectedShortcut ?? userBinding.shortcut,
+                    gestureMode: preferredGesture ?? userBinding.gestureMode,
+                    source: .manuallyConfirmed,
+                    validationState: .staged,
+                    verifiedToolVersion: nil,
+                    verifiedAt: nil
                 )
             }
             guard effectiveBinding.tool == tool,
@@ -116,7 +121,7 @@ struct OnboardingVoicePairingPlan: Equatable {
             preferredGesture: preferredGesture
         )
         for gesture in candidates {
-            let shortcut = forceFunctionKey ? VoiceKeyMode.function : profile.defaultShortcutByMode[gesture]
+            let shortcut = selectedShortcut ?? profile.defaultShortcutByMode[gesture]
             guard let shortcut,
                   canDrive(gesture: gesture, shortcut: shortcut, from: controlSource)
             else { continue }
@@ -125,7 +130,7 @@ struct OnboardingVoicePairingPlan: Equatable {
                     tool: tool,
                     shortcut: shortcut,
                     gestureMode: gesture,
-                    source: .documentedDefault,
+                    source: selectedShortcut == nil ? .documentedDefault : .manuallyConfirmed,
                     validationState: .staged,
                     verifiedToolVersion: nil,
                     verifiedAt: nil
@@ -164,7 +169,6 @@ struct OnboardingVoicePairingPlan: Equatable {
     ) -> Bool {
         if source.supportedGestureModes.contains(gesture) { return true }
         return gesture == .toggle &&
-            shortcut == .function &&
             source.supportedGestureModes == [.hold]
     }
 
@@ -174,7 +178,6 @@ struct OnboardingVoicePairingPlan: Equatable {
         evidenceState: VoiceToolEvidenceState
     ) -> Self {
         let fnTap = binding.gestureMode == .toggle &&
-            binding.shortcut == .function &&
             !controlSource.supportedGestureModes.contains(.toggle)
         return Self(
             binding: binding,
@@ -371,7 +374,7 @@ enum OnboardingFlowPolicy {
         selectedDevice: RemoteSetupDevice? = nil,
         capabilities: OnboardingCapabilities
     ) -> Bool {
-        if [.remote, .controls, .audio, .voiceTest].contains(step),
+        if [.remote, .controls, .voiceTrigger, .voiceTest].contains(step),
            missingRuntimePermission(controlMethod: controlMethod, capabilities: capabilities) != nil {
             return false
         }
@@ -384,13 +387,14 @@ enum OnboardingFlowPolicy {
             // Environment setup must work before a control device is selected.
             return capabilities.bluetoothGranted &&
                 capabilities.inputMonitoringGranted &&
-                capabilities.accessibilityGranted
-        case .remote:
-            return capabilities.remoteConnected && capabilities.remoteButtonObserved
-        case .audio:
-            return capabilities.microphoneDriverInstalled &&
+                capabilities.accessibilityGranted &&
+                capabilities.microphoneDriverInstalled &&
                 capabilities.audioOutputSelected &&
                 capabilities.audioReady
+        case .remote:
+            return capabilities.remoteConnected && capabilities.remoteButtonObserved
+        case .voiceTrigger:
+            return true
         case .voiceTest:
             return capabilities.voiceSessionStarted &&
                 capabilities.voiceSamplesReceived &&
@@ -456,7 +460,7 @@ enum OnboardingFlowPolicy {
                 return .permissions
             }
             if !capabilities.remoteConnected { return .remote }
-            return .audio
+            return .permissions
         }
         return failure.recoveryStep
     }

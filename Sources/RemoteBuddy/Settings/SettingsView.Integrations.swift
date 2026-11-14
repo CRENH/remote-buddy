@@ -30,6 +30,15 @@ extension SettingsView {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                GlassPanel {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(localization.text("settings.integration.shortcut_title")).font(.headline)
+                        voiceTriggerStatus
+                        Text(localization.text("settings.integration.shortcut_help"))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
                 HStack(alignment: .center, spacing: 12) {
                     Text(localization.text("settings.integration.select_tool"))
                         .font(.headline)
@@ -67,17 +76,7 @@ extension SettingsView {
                         }
                     }
                 }
-                GlassPanel {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(localization.text("settings.integration.shortcut_title")).font(.headline)
-                        mappingVoiceKeyModeControl
-                        if VoiceFunctionKeyTapApplicability.isApplicable(capabilities: model.selectedRemoteVoiceCapabilities) {
-                            mappingVoiceFnTapControl
-                        }
-                        Text(localization.text("settings.integration.shortcut_help"))
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                }
+
                 if let warning = model.voiceKeyCompatibilityWarning {
                     voiceKeyCompatibilityWarningPanel(warning)
                 }

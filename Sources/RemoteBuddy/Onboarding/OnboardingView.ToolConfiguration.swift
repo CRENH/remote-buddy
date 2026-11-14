@@ -52,42 +52,10 @@ extension OnboardingView {
         selectControlSource(.siriRemote)
     }
 
-    func handleLearnedShortcut(_ shortcut: CustomKeyboardShortcut) {
-        isCapturingVoiceShortcut = false
-        guard let modifier = shortcut.standaloneModifier,
-              let mode = VoiceKeyMode(standaloneModifier: modifier) else {
-            shortcutCaptureErrorKey = "onboarding.shortcut_learning.unsupported"
-            return
-        }
-        let gesture = settings.onboardingPreferredGesture ??
-            VoiceToolAdapterProfile.profile(for: settings.onboardingVoiceTool).recommendedMode ??
-            .hold
-        guard let plan = settings.stageLearnedOnboardingBinding(
-            shortcut: mode,
-            gesture: gesture
-        ) else {
-            shortcutCaptureErrorKey = "onboarding.shortcut_learning.incompatible"
-            return
-        }
-        shortcutCaptureErrorKey = nil
-        model.setVoiceKeyMode(plan.binding.shortcut)
-        model.setVoiceFnTapModeEnabled(plan.fnTapModeEnabled)
-    }
-
-    func handleShortcutCaptureFailure(_ failure: ShortcutCaptureStartFailure) {
-        isCapturingVoiceShortcut = false
-        switch failure {
-        case .accessibilityPermissionRequired:
-            shortcutCaptureErrorKey = "onboarding.shortcut_learning.permission_required"
-        case .eventTapUnavailable:
-            shortcutCaptureErrorKey = "onboarding.shortcut_learning.unavailable"
-        }
-    }
-
     func refreshSelectedInputMethodStatus() {
         guard settings.onboardingStep == .voiceTool else { return }
         let tool = settings.onboardingVoiceTool
-        guard tool.requiresFunctionKeySetup else {
+        guard tool.requiresInputSourceSelection else {
             inputSourceSwitchResult = .notApplicable
             return
         }
@@ -104,7 +72,7 @@ extension OnboardingView {
     func activateSelectedInputMethod() {
         guard settings.onboardingStep == .voiceTool else { return }
         let tool = settings.onboardingVoiceTool
-        guard tool.requiresFunctionKeySetup else { return }
+        guard tool.requiresInputSourceSelection else { return }
         guard allowsInputSourceSwitching else {
             inputSourceSwitchResult = .selected
             return

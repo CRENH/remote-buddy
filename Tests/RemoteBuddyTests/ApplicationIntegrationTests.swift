@@ -190,7 +190,7 @@ struct ApplicationIntegrationTests {
             let clock = ControlledTestScheduler()
             let session = VoiceFnTapSessionController(schedule: clock.voiceSchedule,
                 destinationReadiness: { model.prepareIntegratedVoiceInputDestination(completion: $0, schedule: clock.voiceSchedule) },
-                setFunctionKeyPressed: { edges.append($0); return true }, enqueueAudio: { _ in },
+                setTriggerPressed: { edges.append($0); return true }, enqueueAudio: { _ in },
                 drainAudio: { _, callback in callback() }, onFailure: { _ in })
             if tapMode {
                 session.setEnabled(true)
@@ -291,7 +291,7 @@ struct ApplicationIntegrationTests {
             })
             let session = VoiceFnTapSessionController(schedule: clock.voiceSchedule,
                 destinationReadiness: { model.prepareIntegratedVoiceInputDestination(completion: $0, schedule: clock.voiceSchedule) },
-                setFunctionKeyPressed: { edges.append($0); return true }, enqueueAudio: { audio.append($0) },
+                setTriggerPressed: { edges.append($0); return true }, enqueueAudio: { audio.append($0) },
                 drainAudio: { _, done in done() }, onFailure: { _ in Issue.record("Unexpected failure") })
             controller.start()
             defer { session.shutdown(); controller.stop() }
@@ -359,7 +359,7 @@ struct ApplicationIntegrationTests {
             var edges: [Bool] = []
             let session = VoiceFnTapSessionController(schedule: clock.voiceSchedule,
                 destinationReadiness: { model.prepareIntegratedVoiceInputDestination(completion: $0, schedule: clock.voiceSchedule) },
-                setFunctionKeyPressed: { edges.append($0); return true }, enqueueAudio: { _ in },
+                setTriggerPressed: { edges.append($0); return true }, enqueueAudio: { _ in },
                 drainAudio: { _, done in done() }, onFailure: { _ in })
             controller.start()
             defer { session.shutdown(); controller.stop() }

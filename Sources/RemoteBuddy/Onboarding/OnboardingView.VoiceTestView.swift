@@ -22,6 +22,13 @@ extension OnboardingView {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.accentColor.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
 
+            Text(LocalizedMessage("onboarding.voice_tool.guide.match_shortcut", arguments: [
+                settings.selectedVoiceTrigger.voiceKeyMode.displayName(using: localization),
+                localization.text("onboarding.gesture.\(proposedPairingPlan?.binding.gestureMode.rawValue ?? "hold")"),
+            ]).text(using: localization))
+                .font(.callout).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
             if proposedPairingPlan?.fnTapModeEnabled == true {
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "info.circle.fill")

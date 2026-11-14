@@ -62,120 +62,23 @@ extension BridgeAppModel {
         flushPendingHIDServiceMappingRefreshIfNeeded(applyMappings: applyMappings)
     }
     var requiresOrderedVoiceFn: Bool {
-        (settings.voiceKeyMode == .function && !settings.voiceFnTapModeEnabled &&
+        (settings.effectiveVoiceKeyMode == .function && !settings.effectiveVoiceFnTapModeEnabled &&
             !settings.enabledApplicationIntegrations.isEmpty) || OrderedVoiceActivationPolicy.needsSoftwareFn(
-            mode: settings.voiceKeyMode,
-            fnTapEnabled: settings.voiceFnTapModeEnabled,
+            mode: settings.effectiveVoiceKeyMode,
+            fnTapEnabled: settings.effectiveVoiceFnTapModeEnabled,
             preferredInputSourceID: settings.onboardingVoiceTool.preferredInputSourceID
         )
     }
     /// Native Xiaomi services remain present when the selected card is a
     /// G9N9N. Their mapping follows the global trigger, not the selected family.
     var shouldNeutralizeNativeVoiceKey: Bool {
-        settings.voiceKeyMode != .function || settings.voiceFnTapModeEnabled || requiresOrderedVoiceFn
-    }
-
-    func setVoiceFnTapModeEnabled(_ enabled: Bool) {
-        guard settings.voiceKeyMode == .function else {
-            settings.voiceFnTapModeEnabled = false
-            return
-        }
-        if enabled {
-            enableVoiceFnTapMode()
-            return
-        }
-        settings.voiceFnTapModeEnabled = false
-        voiceFnTapSession.setEnabled(false) { [weak self] cleaned in
-            guard cleaned else { return }
-            self?.applyHIDSettings()
-        }
+        settings.effectiveVoiceKeyMode != .function || settings.effectiveVoiceFnTapModeEnabled || requiresOrderedVoiceFn
     }
 
     var isVoiceConfigurationBusy: Bool {
         isStreaming || hasActiveVirtualAudioSource || voiceKeyLatch.isHeld ||
             voiceKeyActivationInProgress || voiceSession.pendingStart.identifier != nil ||
             voiceFnTapSession.requiresCleanupBeforeMapping || voiceKeyReleaseRetry != nil
-    }
-
-    func setVoiceKeyMode(_ mode: VoiceKeyMode) {
-        guard mode != settings.voiceKeyMode else { return }
-        let previousMode = settings.voiceKeyMode.rawValue
-        AppLogger.shared.write(
-            "VOICE KEY mode_change requested from=\(previousMode) to=\(mode.rawValue)"
-        )
-        guard !isStreaming else {
-            AppLogger.shared.write(
-                "VOICE KEY mode_change_rejected reason=voice_active requested=\(mode.rawValue)"
-            )
-            return
-        }
-
-        guard releaseVoiceKeyIfNeeded() else {
-            AppLogger.shared.write(
-                "VOICE KEY mode_change_rejected reason=release_failed requested=\(mode.rawValue)"
-            )
-            return
-        }
-        preferredInputSourceMonitor.endVoiceSession()
-        if mode != .function {
-            settings.voiceFnTapModeEnabled = false
-            voiceFnTapSession.setEnabled(false) { [weak self] cleaned in
-                guard cleaned else { return }
-                guard let self else { return }
-                self.settings.voiceKeyMode = mode
-                self.applyHIDSettings()
-                AppLogger.shared.write(
-                    "VOICE KEY mode_change completed from=\(previousMode) to=\(mode.rawValue) result=applied"
-                )
-            }
-            return
-        }
-
-        settings.voiceKeyMode = .function
-        applyHIDSettings()
-        AppLogger.shared.write(
-            "VOICE KEY mode_change completed from=\(previousMode) to=fn result=applied"
-        )
-    }
-
-    private func enableVoiceFnTapMode() {
-        guard KeyboardInjector.isAccessibilityTrusted else {
-            settings.voiceFnTapModeEnabled = false
-            requestNextHIDPermissionIfNeeded(voiceFnTapModeRequested: true)
-            applyHIDSettings()
-            return
-        }
-
-        if settings.selectedRemoteProfile?.model.isATVVRemote == true {
-            settings.voiceFnTapModeEnabled = true
-            voiceFnTapSession.setEnabled(true)
-            startHIDMonitors(powerKeySuppressed: applyVoiceFunctionMapping(
-                neutralizeVoiceKey: shouldNeutralizeNativeVoiceKey))
-            return
-        }
-
-        var powerKeySuppressed = applyVoiceFunctionMapping(neutralizeVoiceKey: true)
-        guard voiceFunctionMapper.isVoiceKeyNeutralized else {
-            voiceFnTapSession.setEnabled(false)
-            if HIDMappingRecoveryPolicy.shouldPreserveFnTapPreferenceAfterMappingFailure(
-                hasMatchingServices: voiceFunctionMapper.hasMatchingServices
-            ) {
-                settings.voiceFnTapModeEnabled = true
-                AppLogger.shared.write(
-                    "VOICE FN TAP mode_pending_mapping reason=no_matching_service"
-                )
-                startHIDMonitors(powerKeySuppressed: powerKeySuppressed)
-                scheduleHIDMappingRecoveryIfNeeded()
-                return
-            }
-            settings.voiceFnTapModeEnabled = false
-            powerKeySuppressed = applyVoiceFunctionMapping(neutralizeVoiceKey: false)
-            startHIDMonitors(powerKeySuppressed: powerKeySuppressed)
-            return
-        }
-        settings.voiceFnTapModeEnabled = true
-        voiceFnTapSession.setEnabled(true)
-        startHIDMonitors(powerKeySuppressed: powerKeySuppressed)
     }
 
     func handleVoiceFnTapFailure(_ failure: VoiceFnTapFailure) {
@@ -186,7 +89,11 @@ extension BridgeAppModel {
             return
         }
         AppLogger.shared.write("VOICE FN TAP failed reason=\(failure.rawValue) fallback=hardware_fn")
-        settings.voiceFnTapModeEnabled = false
+        if settings.isTestingVoiceTrigger {
+            settings.discardOnboardingVoiceTrial()
+        } else {
+            settings.voiceFnTapModeEnabled = false
+        }
         voiceFnTapSession.setEnabled(false)
         applyHIDSettings()
     }
@@ -197,8 +104,8 @@ extension BridgeAppModel {
     ) {
         let request = HIDPermissionGate.nextPermissionRequest(
             mappingEnabled: settings.customMappingEnabled,
-            voiceFnTapModeEnabled: (voiceFnTapModeRequested ?? settings.voiceFnTapModeEnabled) || requiresOrderedVoiceFn,
-            voiceKeyMode: voiceKeyModeRequested ?? settings.voiceKeyMode,
+            voiceFnTapModeEnabled: (voiceFnTapModeRequested ?? settings.effectiveVoiceFnTapModeEnabled) || requiresOrderedVoiceFn,
+            voiceKeyMode: voiceKeyModeRequested ?? settings.effectiveVoiceKeyMode,
             inputMonitoringGranted: HIDRemoteMonitor.isInputMonitoringGranted,
             accessibilityGranted: KeyboardInjector.isAccessibilityTrusted
         )

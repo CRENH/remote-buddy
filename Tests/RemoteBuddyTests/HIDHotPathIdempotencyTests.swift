@@ -230,7 +230,7 @@ struct HIDHotPathIdempotencyTests {
             counters: counters
         )
         model.voiceFnTapSession = VoiceFnTapSessionController(
-            setFunctionKeyPressed: { _ in true },
+            setTriggerPressed: { _ in true },
             enqueueAudio: { _ in },
             drainAudio: { _, completion in completion() },
             onFailure: { _ in },

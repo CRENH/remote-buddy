@@ -53,8 +53,6 @@ struct OnboardingView: View {
     @State var voiceTranscriptDeadlineToken = UUID()
     @State var voiceTestTasks: [ScheduledOperation] = []
     @State var suppressConnectedPhysicalRemoteAutoRouteOnce = false
-    @State var isCapturingVoiceShortcut = false
-    @State var shortcutCaptureErrorKey: String?
     @State var secureInputActive: Bool?
     @State var secureInputWaitStartedAtUptime: TimeInterval?
     @State var lastLoggedSecureInputState: Bool?
@@ -151,8 +149,8 @@ struct OnboardingView: View {
                 routeConnectedPhysicalRemoteIfNeeded()
             case .remote:
                 prepareSelectedControlConnection()
-            case .audio:
-                model.refreshAudioDevices()
+            case .voiceTrigger:
+                break
             case .complete:
                 prepareSelectedControlConnection()
                 model.refreshAudioDevices()
@@ -244,6 +242,10 @@ struct OnboardingView: View {
         .onChange(of: settings.onboardingStep) { _, step in
             cancelVoiceTestTasks()
             prepareForStep(step)
+        }
+        .onChange(of: settings.onboardingVoiceTrigger) { _, _ in
+            selectedInputMethodGuideStep = nil
+            completedInputMethodGuideSteps.removeAll()
         }
         .onChange(of: settings.onboardingVoiceTool) { _, _ in
             refreshSelectedVoiceToolRuntimeState()

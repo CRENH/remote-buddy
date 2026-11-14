@@ -44,7 +44,8 @@ struct RuntimeReviewBoundaryTests {
             #expect(edges.isEmpty)
             #expect(KeyboardInjector.setVoiceKeyPressed(mode, isPressed: false,
                 accessibilityTrusted: { true }, keyStatePoster: post, secureInputEnabled: { true }))
-            #expect(edges == [false])
+            if case .shortcut = mode { #expect(edges.isEmpty) }
+            else { #expect(edges == [false]) }
         }
     }
 

@@ -152,8 +152,8 @@ extension OnboardingView {
             permissionsContent
         case .remote:
             remoteContent
-        case .audio:
-            audioContent
+        case .voiceTrigger:
+            voiceTriggerContent
         case .voiceTest:
             voiceTestContent
         case .controls:

@@ -116,6 +116,7 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
             self?.handleVoiceInputDestinationState(state)
         }
     )
+    lazy var voiceTapTrigger = VoiceTapTrigger(selectedMode: { [settings] in settings.effectiveVoiceKeyMode })
     lazy var voiceFnTapSession = VoiceFnTapSessionController(
         startTapCount: { [weak self] in
             self?.settings.onboardingVoiceTool.functionKeyStartTapCount ?? 1
@@ -123,8 +124,8 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
         destinationReadiness: { [weak self] completion in
             self?.prepareIntegratedVoiceInputDestination(completion: completion) ?? .immediate
         },
-        setFunctionKeyPressed: { [weak self] pressed in
-            let submitted = KeyboardInjector.setFunctionKeyPressed(pressed)
+        setTriggerPressed: { [weak self, trigger = voiceTapTrigger] pressed in
+            let submitted = trigger.setPressed(pressed)
             if pressed { self?.completeApplicationIntegrationVoiceTrigger(started: submitted) }
             return submitted
         },
@@ -154,7 +155,8 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
         enqueuePreRollAudio: { [weak self] in self?.enqueueVoiceFnTapAudio($0, isPreRoll: true) },
         pendingPlaybackDuration: { [weak self] in self?.audio.output.pendingPlaybackDuration ?? 0 },
         logger: { AppLogger.shared.write($0) },
-        onIdle: { [weak self] in
+        onIdle: { [weak self, trigger = voiceTapTrigger] in
+            trigger.reset()
             self?.flushPendingVoiceToolMappingRefresh()
             self?.releaseVirtualAudioOutputIfUnused(reason: "voice_fn_tap_idle")
         }

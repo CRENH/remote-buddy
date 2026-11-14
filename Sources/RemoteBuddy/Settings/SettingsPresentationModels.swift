@@ -299,10 +299,7 @@ enum SettingsPageBehavior {
             ? .integration : .initialSetup
         settings.onboardingCompletedVersion = 0
         settings.setOnboardingVoiceTool(tool)
-        if !tool.supportsHoldVoiceRecording {
-            settings.voiceFnTapModeEnabled = true
-        }
-        let start: OnboardingStep = settings.onboardingPurpose == .integration ? .voiceTool
+        let start: OnboardingStep = settings.onboardingPurpose == .integration ? .permissions
             : (settings.canDismissOnboarding ? .remoteAvailability : .permissions)
         settings.setOnboardingStep(start)
     }

@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 import IOKit.hidsystem
 
-struct CustomKeyboardShortcut: Codable, Equatable {
+struct CustomKeyboardShortcut: Codable, Hashable {
     static let supportedModifiers: NSEvent.ModifierFlags = [
         .control, .option, .shift, .command, .function,
     ]

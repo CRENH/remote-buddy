@@ -38,6 +38,17 @@ extension KeyboardInjector {
         postMarkedKeyState(code: code, isDown: isDown, flags: flags, marker: orderedVoiceEventMarker)
     }
 
+    static func postVoiceShortcutState(code: CGKeyCode, isDown: Bool, flags: CGEventFlags) -> Bool {
+        guard let event = makeMarkedKeyEvent(code: code, isDown: isDown, flags: flags,
+            marker: orderedVoiceEventMarker, hardwareFlags: KeyboardHardwareModifierPolicy.currentForMappedAction)
+        else { return false }
+        // Session-level posting keeps held synthetic modifiers out of the physical HID snapshot.
+        event.post(tap: .cgSessionEventTap)
+        AppLogger.shared.write("VOICE SHORTCUT EVENT key_code=\(code) edge=\(isDown ? "down" : "up") " +
+            "modifier_flags=\(event.flags.rawValue) result=submitted target_response=unknown")
+        return true
+    }
+
     static func makeMappedKeyEvent(
         code: CGKeyCode, isDown: Bool, flags: CGEventFlags,
         hardwareFlags: () -> CGEventFlags = KeyboardHardwareModifierPolicy.current

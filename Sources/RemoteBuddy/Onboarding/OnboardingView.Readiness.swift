@@ -40,13 +40,13 @@ extension OnboardingView {
             voiceTool: settings.onboardingVoiceTool,
             remoteAvailability: settings.onboardingRemoteAvailability,
             controlMethod: settings.onboardingControlMethod,
-            voiceKeyMode: settings.voiceKeyMode,
+            voiceKeyMode: settings.selectedVoiceTrigger.voiceKeyMode,
             voiceToolGuideStepsCompleted: inputMethodGuideStepsCompleted,
             selectedDevice: settings.onboardingDevice,
             capabilities: capabilities
         )
         if settings.onboardingStep == .voiceTest {
-            return policyAllowsContinue &&
+            return policyAllowsContinue && settings.isTestingVoiceTrigger &&
                 voiceAttempt.result == .passed &&
                 verifiedTranscriptionAppeared &&
                 selectedVoiceToolRuntimeReady
@@ -95,8 +95,7 @@ extension OnboardingView {
         } else if let verified = settings.verifiedVoiceToolBinding,
                   verified.tool == settings.onboardingVoiceTool,
                   verified.validationState == .verified {
-            // 重跑 Onboarding 时，已验证的用户 Binding 高于工具文档默认值。
-            // 如果它与当前来源不兼容，resolve 会拒绝并回退到可用的推荐路径。
+            // Keep the tool binding, but a newly selected trigger or gesture must be tested again.
             selectedBinding = verified
         } else {
             selectedBinding = nil
@@ -104,9 +103,11 @@ extension OnboardingView {
         return OnboardingVoicePairingPlan.resolve(
             tool: settings.onboardingVoiceTool,
             controlSource: settings.onboardingControlSource,
-            preferredGesture: settings.onboardingPreferredGesture,
+            preferredGesture: settings.onboardingPreferredGesture ??
+                (settings.selectedVoiceTrigger.voiceFnTapModeEnabled ? .toggle :
+                    (settings.onboardingVoiceTool.supportsHoldVoiceRecording ? .hold : .toggle)),
             userBinding: selectedBinding,
-            forceFunctionKey: true
+            selectedShortcut: settings.selectedVoiceTrigger.voiceKeyMode
         )
     }
 

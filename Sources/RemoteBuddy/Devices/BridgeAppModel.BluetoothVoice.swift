@@ -70,8 +70,8 @@ extension BridgeAppModel {
             )
         let reapplyMappings = Self.shouldReapplyHIDSettingsBeforeVoiceStart(
             customMappingEnabled: settings.customMappingEnabled,
-            mode: settings.voiceKeyMode,
-            fnTapModeEnabled: settings.voiceFnTapModeEnabled,
+            mode: settings.effectiveVoiceKeyMode,
+            fnTapModeEnabled: settings.effectiveVoiceFnTapModeEnabled,
             requiresOrderedFn: requiresOrderedVoiceFn,
             hasHardwareVoiceKey: !(bridge.identifiedModel?.isATVVRemote == true),
             hasMatchingHIDServices: voiceFunctionMapper.hasMatchingServices,
@@ -93,8 +93,8 @@ extension BridgeAppModel {
             scheduleHIDMappingRecoveryIfNeeded()
         }
         guard Self.canStartBluetoothVoice(
-            mode: settings.voiceKeyMode,
-            voiceFnTapModeEnabled: settings.voiceFnTapModeEnabled,
+            mode: settings.effectiveVoiceKeyMode,
+            voiceFnTapModeEnabled: settings.effectiveVoiceFnTapModeEnabled,
             isVoiceKeyNeutralized: voiceFunctionMapper.isVoiceKeyNeutralized,
             hasHardwareVoiceKey: !(bridge.identifiedModel?.isATVVRemote == true),
             accessibilityGranted: currentPermissionSnapshot.accessibilityGranted,
@@ -104,7 +104,7 @@ extension BridgeAppModel {
             cancelPendingBluetoothVoiceStart(for: identifier)
             AppLogger.shared.write(
                 "ATVV STREAM rejected reason=voice_key_not_neutralized " +
-                    "mode=\(settings.voiceKeyMode.rawValue)"
+                    "mode=\(settings.effectiveVoiceKeyMode.rawValue)"
             )
 
             return
@@ -128,7 +128,7 @@ extension BridgeAppModel {
         updateVoiceKeyState(
             streaming: true,
             forceSoftware: requiresOrderedVoiceFn ||
-                (bridge.identifiedModel?.isATVVRemote == true && !settings.voiceFnTapModeEnabled),
+                (bridge.identifiedModel?.isATVVRemote == true && !settings.effectiveVoiceFnTapModeEnabled),
             owner: .bluetooth,
             completion: { [self] activated in
             guard activated else {
@@ -138,7 +138,7 @@ extension BridgeAppModel {
                 voiceSession.pendingStart.cancel()
                 voiceSession.stopRequested = false
                 AppLogger.shared.write(
-                    "ATVV STREAM rejected reason=voice_key mode=\(settings.voiceKeyMode.rawValue)"
+                    "ATVV STREAM rejected reason=voice_key mode=\(settings.effectiveVoiceKeyMode.rawValue)"
                 )
 
                 return

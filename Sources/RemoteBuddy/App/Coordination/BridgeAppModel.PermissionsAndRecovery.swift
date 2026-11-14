@@ -126,8 +126,8 @@ extension BridgeAppModel {
         guard HIDPermissionRecoveryPolicy.shouldReapplySettings(
             started: started,
             customMappingEnabled: settings.customMappingEnabled,
-            voiceKeyMode: settings.voiceKeyMode,
-            voiceFnTapModeEnabled: settings.voiceFnTapModeEnabled,
+            voiceKeyMode: settings.effectiveVoiceKeyMode,
+            voiceFnTapModeEnabled: settings.effectiveVoiceFnTapModeEnabled,
             softwareVoiceKeyHeld: voiceKeyLatch.isHeld,
             monitoringInterrupted: hidMonitoringInterrupted,
             previous: appliedHIDPermissionSnapshot,

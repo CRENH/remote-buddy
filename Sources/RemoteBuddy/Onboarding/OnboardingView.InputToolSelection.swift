@@ -12,6 +12,20 @@ extension OnboardingView {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
+            Text(voiceToolGuideText("onboarding.voice_tool.guide.match_shortcut"))
+                .font(.callout).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            onboardingActionButton(id: "voice-trigger.change") {
+                settings.discardOnboardingVoiceTrial()
+                settings.setOnboardingStep(.voiceTrigger)
+            } label: {
+                Text(localization.text("onboarding.voice_trigger.change"))
+            }
+            if proposedPairingPlan == nil && settings.onboardingVoiceTool != .unselected {
+                Text(localization.text("onboarding.voice_tool.trigger_incompatible"))
+                    .foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
+            }
+
             if allRecognizedVoiceToolsUnavailable {
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: "exclamationmark.triangle.fill")
@@ -148,36 +162,4 @@ extension OnboardingView {
         }
     }
 
-    private var onboardingVoiceKeyControl: some View {
-        let profile = VoiceToolAdapterProfile.profile(for: settings.onboardingVoiceTool)
-        return VStack(alignment: .leading, spacing: 7) {
-            HStack(spacing: 8) {
-                Text(verbatim: localization.text("onboarding.voice_tool.binding.title"))
-                    .font(.system(size: 13, weight: .semibold))
-                Spacer(minLength: 4)
-                onboardingActionButton(id: "voice-binding.recommended") {
-                    stageCurrentDocumentedPairingPlanIfPossible()
-                } label: {
-                    Label {
-                        Text(verbatim: localization.text("onboarding.voice_tool.binding.recommended"))
-                    } icon: {
-                        Image(systemName: "checkmark.circle.fill")
-                    }
-                }
-                .buttonStyle(.bordered)
-            }
-
-            Text(verbatim: localization.text("onboarding.voice_tool.binding.recommended_detail"))
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text(defaultBindingSummary(profile: profile))
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(profile.evidenceState == .verified ? Color.green : Color.orange)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(10)
-        .background(Color.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 10))
-    }
 }

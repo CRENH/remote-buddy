@@ -12,7 +12,7 @@ enum ShortcutEventSequence {
         let rightDeviceBit: CGEventFlags
     }
 
-    private struct SelectedModifier {
+    struct SelectedModifier {
         let flag: CGEventFlags
         let key: CGKeyCode
         let deviceBit: CGEventFlags
@@ -60,7 +60,7 @@ enum ShortcutEventSequence {
         )
     ]
 
-    private static func selectedModifiers(for requested: CGEventFlags) -> [SelectedModifier] {
+    static func selectedModifiers(for requested: CGEventFlags) -> [SelectedModifier] {
         modifierFamilies.compactMap { family in
             guard requested.contains(family.flag) else { return nil }
             if let rightKey = family.rightKey,

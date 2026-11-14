@@ -219,7 +219,7 @@ struct ProductBoundaryTests {
         #expect(settings.onboardingVoiceTool == .voiceBuddy)
         #expect(settings.onboardingControlSource == .chromecastRemote)
         #expect(settings.onboardingPurpose == .integration)
-        #expect(settings.onboardingStep == .voiceTool)
+        #expect(settings.onboardingStep == .permissions)
         #expect(!settings.isOnboardingComplete)
         let restored = AppSettings(defaults: defaults)
         #expect(restored.onboardingVoiceTool == .voiceBuddy)
@@ -394,7 +394,8 @@ struct ProductBoundaryTests {
         let ready = OnboardingCapabilities(
             bluetoothGranted: true,
             inputMonitoringGranted: true,
-            accessibilityGranted: true
+            accessibilityGranted: true, microphoneDriverInstalled: true,
+            audioReady: true, audioOutputSelected: true
         )
         #expect(OnboardingFlowPolicy.canContinue(
             from: .permissions, voiceTool: .unselected, remoteAvailability: .unselected,
@@ -413,21 +414,17 @@ struct ProductBoundaryTests {
         }
     }
 
-    @Test func driverIsRequiredAtAudioSetupRatherThanPermissions() {
+    @Test func permissionsStepRequiresDriverAndPreparedAudio() {
         var ready = OnboardingCapabilities(
             bluetoothGranted: true, inputMonitoringGranted: true,
             accessibilityGranted: true, audioReady: true, audioOutputSelected: true
         )
-        #expect(OnboardingFlowPolicy.canContinue(
-            from: .permissions, voiceTool: .unselected, remoteAvailability: .unselected,
-            controlMethod: .unselected, capabilities: ready
-        ))
         #expect(!OnboardingFlowPolicy.canContinue(
-            from: .audio, voiceTool: .unselected, capabilities: ready
+            from: .permissions, voiceTool: .unselected, capabilities: ready
         ))
         ready.microphoneDriverInstalled = true
         #expect(OnboardingFlowPolicy.canContinue(
-            from: .audio, voiceTool: .unselected, capabilities: ready
+            from: .permissions, voiceTool: .unselected, capabilities: ready
         ))
     }
 
@@ -480,8 +477,8 @@ struct ProductBoundaryTests {
         #expect(OnboardingStep.permissions.next == .remoteAvailability)
         #expect(OnboardingStep.remoteAvailability.next == .remote)
         #expect(OnboardingStep.remote.next == .controls)
-        #expect(OnboardingStep.controls.next == .audio)
-        #expect(OnboardingStep.audio.next == .voiceTool)
+        #expect(OnboardingStep.controls.next == .voiceTrigger)
+        #expect(OnboardingStep.voiceTrigger.next == .voiceTool)
         #expect(OnboardingStep(rawValue: "welcome") == nil)
         #expect(OnboardingStep(rawValue: "controlMethod") == nil)
         settings.completeOnboarding()

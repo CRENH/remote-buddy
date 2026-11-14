@@ -282,18 +282,18 @@
 "connection.status.voice_active" = "Microphone in Use";
 "common.status.ready" = "Ready";
 "connection.status.voice_trigger" = "Voice trigger";
-"connection.voice_fn_tap.enabled" = "Use Fn Taps for Voice Typing";
-"connection.voice_fn_tap.hint" = "Supported remotes only record audio while the voice button is held, stopping on release. Tools like NetEase Bageshuo and Typeless require single taps to toggle dictation. Tap conversion bridges this: pressing sends a single Fn click to start recognition; releasing waits for trailing audio to finish transferring, then sends a second Fn click to finish. Keep disabled for hold-to-talk tools (WeType, Doubao Hold mode). Requires Accessibility permission.";
-"connection.voice_fn_tap.hint_short" = "For tap-to-toggle tools like NetEase Bageshuo and Typeless: clicks Fn once on press to start, and again after trailing audio finishes on release.";
+"connection.voice_fn_tap.enabled" = "Tap Mode";
+"connection.voice_fn_tap.hint" = "For tools that press once to start and again to stop: tap the selected voice shortcut when recording starts, then tap it again after recording ends and buffered audio drains. Test the shortcut and tap mode together with your input tool.";
+"connection.voice_fn_tap.hint_short" = "Tap the selected shortcut when recording starts, then again after recording ends and buffered audio drains. Single keys and chords are supported; set the same trigger behavior in your input tool.";
 "connection.voice_key_mode.title" = "Voice Trigger Key";
 "connection.voice_key.mode.fn" = "Fn/Globe";
 "connection.voice_key.mode.left_command" = "Left Command";
 "connection.voice_key.mode.right_command" = "Right Command";
 "connection.voice_key.mode.left_option" = "Left Option";
 "connection.voice_key.mode.right_option" = "Right Option";
-"connection.voice_key_mode.help" = "Fn/Globe is the default. Command and Option modes require Accessibility permission and a target voice app that supports the corresponding standalone key hold; many apps merge both sides into a generic modifier. Pressing another key while held may trigger a modifier shortcut.";
+"connection.voice_key_mode.help" = "Choose the voice trigger first, then set the same shortcut and hold or tap mode in your input tool. Chords and Command/Option require Accessibility permission.";
 "connection.voice_key_mode.unverified" = "Check Your Voice Trigger Key";
-"connection.voice_key_mode.unverified_detail" = "Set the same trigger key in your voice typing app, then dictate a sentence to check it. Remote Buddy cannot check that app's settings. If no text appears, switch back to Fn/Globe.";
+"connection.voice_key_mode.unverified_detail" = "Confirm your input tool supports the selected trigger, then speak to verify text appears. Remote Buddy cannot read third-party shortcut settings.";
 "connection.voice_key_mode.command_permission" = "Modifier-key mode requires Accessibility permission";
 "connection.action.reconnect" = "Reconnect Now";
 "audio.section.title" = "Audio Settings";
@@ -337,8 +337,8 @@
 "button_mapping.selection_lock_hint_short" = "Keep the current item selected while using the remote.";
 "button_mapping.voice_button.title" = "Voice Button";
 "button_mapping.voice_button.fixed" = "Voice Trigger Key";
-"button_mapping.voice_button.detail" = "Hold to talk. Choose Fn/Globe, Left or Right Command, or Left or Right Option as the trigger key. The voice button is separate from other button actions.";
-"button_mapping.voice_button.t1_detail" = "Press and release to start talking, then press again to stop. Choose Fn/Globe, Left or Right Command, or Left or Right Option; excluded from regular button actions.";
+"button_mapping.voice_button.detail" = "Hold to talk. Choose Fn, left/right Command or Option, or a custom chord for the voice trigger. Ordinary button actions do not apply.";
+"button_mapping.voice_button.t1_detail" = "Press and release to start talking; press again to stop. Choose Fn, left/right Command or Option, or a custom voice chord.";
 "button_mapping.action.not_set" = "Not Set";
 "button_mapping.single_click.help" = "Runs after one press. It waits briefly when a double-click action is set.";
 "button_mapping.double_click.effect" = "A single press waits briefly to distinguish it from a double press. Long press can still use a separate action or Hold to Repeat.";
@@ -431,9 +431,9 @@
 "common.action.choose" = "Choose";
 "common.action.continue" = "Continue";
 "remote.photo.missing" = "Remote image unavailable";
-"remote.mapping.instructions" = "Click or press a physical button to select its mapping. The microphone button remains fixed for voice input and Fn functions.";
-"remote.voice_button.help" = "Hold the microphone button for voice input; it can also act as the Mac Fn key when needed.";
-"remote.voice_button.accessibility_label" = "Voice button. Used for voice input and Fn; cannot be reassigned.";
+"remote.mapping.instructions" = "Click or press a physical button to locate its mapping. The microphone button is reserved for voice input; configure its trigger in Input Tool Integration.";
+"remote.voice_button.help" = "Use the microphone button for voice input. Configure its trigger in Input Tool Integration.";
+"remote.voice_button.accessibility_label" = "Voice input button with configurable trigger";
 "menu.open_settings" = "Open Settings…";
 "menu.show_logs" = "Show Logs";
 "menu.about" = "About Remote Buddy";
@@ -582,7 +582,7 @@
 "onboarding.welcome.ai_prompt.copied" = "Prompt copied. Paste it into your usual AI tool.";
 "onboarding.welcome.ai_prompt.failed" = "Copy failed; try again";
 "onboarding.voice_tool.title" = "Which app do you use for voice typing?";
-"onboarding.voice_tool.detail" = "Choose the app you normally use for voice typing. You can change it later in Settings.";
+"onboarding.voice_tool.detail" = "Choose your voice input tool and configure the same trigger and recording mode selected on the previous page.";
 "onboarding.voice_tool.none_detected" = "No supported voice typing app was detected. You can still choose Other Voice App, but please install and open a supported voice tool before testing.";
 "onboarding.voice_tool.unselected.title" = "Not Selected";
 "onboarding.voice_tool.unselected.detail" = "No voice app selected yet.";
@@ -603,34 +603,32 @@
 "onboarding.voice_tool.doubao.install" = "Install Doubao";
 "onboarding.voice_tool.typeless.fn_required" = "In Typeless, press Fn once to start voice typing, then again to stop.";
 "onboarding.voice_tool.voice_key_help" = "Voice trigger key: %1$@. The voice app must use the same key; Remote Buddy does not intercept input-source shortcuts.";
-"onboarding.voice_tool.fn_only" = "Use Fn/Globe for the first-time setup";
 "onboarding.voice_tool.guide.title" = "Set up your voice app";
 "onboarding.voice_tool.guide.detail" = "Review every step for the selected app. Remote Buddy never changes third-party settings.";
 "onboarding.voice_tool.guide.continue_hint" = "View each setup step on the right before continuing.";
 "onboarding.voice_tool.guide.microphone_hint" = "Confirm the microphone choice in step 3 before continuing.";
 "onboarding.voice_tool.guide.microphone_detail" = "In %@ → Voice Input settings, choose “%@” as the microphone. Set this in the voice app itself.";
-"onboarding.voice_tool.guide.match_shortcut" = "Set the voice shortcut to %@ to match this setup. The screenshot shows the installed app's current settings.";
+"onboarding.voice_tool.guide.match_shortcut" = "Voice trigger: %@. Input-tool mode: %@. Set both to match in your tool. Screenshots are examples; use the current selection.";
 "onboarding.voice_tool.guide.screenshot.doubao_input_microphone" = "In Doubao → Voice Input → Microphone, select Remote Buddy Mic.";
 "onboarding.voice_tool.guide.select_step" = "Click a step on the right to view its setup instructions.";
 "onboarding.voice_tool.guide.select_doubao" = "Select Doubao";
-"onboarding.voice_tool.guide.configure_doubao" = "Set Fn as Doubao’s voice shortcut";
+"onboarding.voice_tool.guide.configure_doubao" = "Set the Doubao Voice Shortcut";
 "onboarding.voice_tool.guide.select_weixin" = "Select WeType";
-"onboarding.voice_tool.guide.configure_weixin" = "Set Fn as WeType’s voice shortcut";
+"onboarding.voice_tool.guide.configure_weixin" = "Set the Weixin Voice Shortcut";
 "onboarding.voice_tool.guide.open_bageshuo" = "Open NetEase Bageshuo Settings";
 "onboarding.voice_tool.guide.open_bageshuo.detail" = "Click the NetEase Bageshuo menu bar icon, then select Settings.";
-"onboarding.voice_tool.guide.configure_bageshuo" = "Set Voice Shortcut to Fn";
-"onboarding.voice_tool.guide.configure_bageshuo.detail" = "In Settings → Shortcuts, set Dictation shortcut to Fn (press once to start, press again to stop). Because remotes only record while held, Remote Buddy automatically converts gestures: pressing clicks Fn once to start dictation, and releasing waits for trailing audio to finish before clicking Fn once to stop. Simply hold to talk and release when done.";
+"onboarding.voice_tool.guide.configure_bageshuo" = "Set the Voice Shortcut";
+"onboarding.voice_tool.guide.configure_bageshuo.detail" = "In Settings → Shortcuts, set the voice shortcut to “%@” and use press-to-start/stop mode. Tap conversion follows the current pairing plan.";
 "onboarding.voice_tool.guide.open_typeless" = "Open Typeless";
 "onboarding.voice_tool.guide.open_typeless.detail" = "Start Typeless and leave it running in the background.";
 "onboarding.voice_tool.guide.configure_typeless" = "Press to start and stop";
-"onboarding.voice_tool.guide.configure_typeless.detail" = "Set Typeless shortcut to Fn (press to start, press to stop). Because remotes only record while held, Remote Buddy automatically converts gestures: pressing clicks Fn once to start dictation, and releasing waits for trailing audio to finish before clicking Fn once to stop. Simply hold to talk and release when done.";
+"onboarding.voice_tool.guide.configure_typeless.detail" = "In Typeless, set the voice shortcut to “%@” and use press-to-start/stop mode. Tap conversion follows the current pairing plan.";
 "onboarding.voice_tool.guide.open_other" = "Open your voice app";
 "onboarding.voice_tool.guide.open_other.detail" = "Start the app you want to use and confirm that it supports voice typing.";
-"onboarding.voice_tool.guide.configure_other" = "Set its voice shortcut to Fn";
-"onboarding.voice_tool.guide.configure_other.detail" = "In the app's settings, set its voice-typing shortcut to Fn.";
+"onboarding.voice_tool.guide.configure_other" = "Match the Voice Shortcut";
+"onboarding.voice_tool.guide.configure_other.detail" = "In your tool’s settings, set the voice shortcut to “%@” and match the recording mode selected here.";
 "onboarding.voice_tool.guide.select_microphone.detail" = "In the voice app, choose the same microphone selected on Remote Buddy's audio page.";
 "onboarding.voice_tool.guide.release_system_fn" = "Set the macOS Fn action to Do Nothing";
-"onboarding.voice_tool.guide.release_wechat_fn" = "Clear WeChat app Fn shortcuts";
 "onboarding.voice_tool.guide.image_missing" = "The setup image is missing from this installation. Install the latest complete package.";
 "onboarding.voice_tool.switch.selected" = "%1$@ is currently selected.";
 "onboarding.voice_tool.switch.not_selected" = "%1$@ is installed but is not the current macOS input source. Remote Buddy will not change it automatically here.";
@@ -647,7 +645,7 @@
 "onboarding.voice_tool.bageshuo.detail" = "NetEase AI voice dictation with real-time transcription and smart text polish.";
 "onboarding.voice_tool.bageshuo.install" = "Visit NetEase Bageshuo website";
 "onboarding.voice_tool.bageshuo.install_detail" = "NetEase Bageshuo is not detected on your Mac:";
-"onboarding.voice_tool.fn_tap_banner" = "Physical remotes only record audio while held. Because this tool uses tap-to-toggle, Fn Tap conversion is automatically enabled: pressing clicks Fn once to start dictation, and releasing waits for trailing audio to finish before clicking Fn once to stop. Simply hold to talk and release when done.";
+"onboarding.voice_tool.fn_tap_banner" = "Tap conversion is enabled: tap “%@” when recording starts, then again after recording ends and buffered audio drains. Start and stop recording using the remote’s normal controls.";
 "onboarding.voice_tool.status.unknown" = "Open the tool to continue";
 "onboarding.voice_tool.binding.title" = "Shortcut configuration";
 "onboarding.voice_tool.binding.recommended" = "Use Recommended";
@@ -678,22 +676,22 @@
 "onboarding.gesture.toggle" = "Press to Start/Stop";
 "onboarding.pairing_plan.title" = "Remote Buddy will try this configuration";
 "onboarding.pairing_plan.summary" = "%1$@ · %2$@ · %3$@";
-"onboarding.pairing_plan.fn_tap_on" = "Fn tap conversion on";
-"onboarding.pairing_plan.fn_tap_off" = "Fn tap conversion off";
+"onboarding.pairing_plan.fn_tap_on" = "Tap conversion enabled";
+"onboarding.pairing_plan.fn_tap_off" = "Tap conversion not needed";
 "onboarding.pairing_plan.pending_evidence" = "This setup is saved after the voice-and-text test passes.";
 "onboarding.shortcut_learning.title" = "Learn your current voice shortcut";
 "onboarding.shortcut_learning.detail" = "Choose hold or toggle, start learning, then press the complete shortcut. Remote Buddy does not read private settings from another app.";
 "onboarding.shortcut_learning.start" = "Start Learning";
 "onboarding.shortcut_learning.waiting" = "Press the current voice shortcut…";
 "onboarding.shortcut_learning.captured" = "Captured: %1$@";
-"onboarding.shortcut_learning.unsupported" = "This shortcut cannot be used as a Remote Buddy voice button. Use Fn, left/right Command, or left/right Option.";
+"onboarding.shortcut_learning.unsupported" = "Choose Fn, left/right Command or Option, or a regular key with modifiers.";
 "onboarding.shortcut_learning.incompatible" = "This shortcut cannot be converted reliably for the selected controller. Choose another behavior or shortcut.";
 "onboarding.shortcut_learning.permission_required" = "Grant Accessibility permission first.";
 "onboarding.shortcut_learning.unavailable" = "Shortcut capture is unavailable. Re-authorize and try again.";
 "onboarding.voice_test.configuration.binding_expected" = "%1$@ · %2$@";
 "onboarding.remote_availability.illustration" = "Use a physical remote when available";
-"onboarding.permissions.title" = "Allow Remote Buddy to connect and control your Mac";
-"onboarding.permissions.detail" = "Enable all three permissions before choosing a device. The microphone driver is checked in step 5.";
+"onboarding.permissions.title" = "Permissions and Microphone";
+"onboarding.permissions.detail" = "Grant Bluetooth, Input Monitoring, and Accessibility permissions, then check the virtual microphone driver and audio output before connecting a device.";
 "onboarding.permissions.bluetooth.detail" = "Discover and connect to your paired Bluetooth remote";
 "onboarding.permissions.input.detail" = "Read physical button events and support voice input";
 "onboarding.permissions.accessibility.detail" = "Run voice shortcuts and custom button actions";
@@ -761,8 +759,8 @@
 "onboarding.voice_test.microphone_confirmation.checkbox" = "I confirmed %@ uses “%@” as its microphone";
 "onboarding.voice_test.placeholder" = "Try saying: Remote Buddy is connected";
 "onboarding.voice_test.waiting_voice" = "Waiting for you to use the voice button as described above…";
-"onboarding.voice_test.fn_tap_explanation" = "Remote Recording & Fn Tap Conversion: Supported remotes only record audio while held, stopping on release. Tap conversion bridges this: pressing clicks Fn once to start recognition; releasing waits for trailing audio to finish, then clicks Fn once to finish. Simply hold to talk and release when done.";
-"onboarding.voice_test.t1_fn_tap_explanation" = "T1-Remote & Fn Tap Conversion: Pressing and releasing T1’s voice key starts continuous recording until you press it once more. Tap conversion clicks Fn once when recording starts, then waits for trailing audio to finish after the second press before clicking Fn once to stop.";
+"onboarding.voice_test.fn_tap_explanation" = "Hold the voice button to talk and release to finish. The app taps “%@” to start recognition, then taps it again after release and buffered audio delivery.";
+"onboarding.voice_test.t1_fn_tap_explanation" = "Press the T1 voice button to start and again to finish. The app taps “%@” at the start and again after buffered audio drains.";
 "onboarding.voice_test.receiving" = "Receiving voice audio…";
 "onboarding.voice_test.waiting_text" = "Audio received. Waiting for text to appear…";
 "onboarding.voice_test.tool_not_running" = "Open the selected voice app before starting the test…";
@@ -796,7 +794,7 @@
 "onboarding.complete.illustration" = "Start using Remote Buddy";
 
 "common.action.delete" = "Delete";
-"onboarding.side.permissions" = "Permission Check";
+"onboarding.side.permissions" = "Permissions and Microphone Status";
 "onboarding.side.remote" = "Connection Check";
 "onboarding.side.audio" = "Audio Check";
 "onboarding.side.voice_test" = "Voice Typing Check";
@@ -979,12 +977,12 @@
 "custom_application.accessibility.test" = "Test input field";
 
 "onboarding.voice_tool.guide.screenshot.doubao_menu" = "In the input menu, choose Doubao (豆包输入法), then Settings (设置).";
-"onboarding.voice_tool.guide.screenshot.doubao_settings" = "In Voice Input (语音输入), set the matching mode’s shortcut to Fn. The image shows Hold mode (长按模式). Enable global voice input (全局唤起语音) and select Remote Buddy as the microphone (麦克风选择).";
+"onboarding.voice_tool.guide.screenshot.doubao_settings" = "In Voice Input, set the shortcut for the selected mode to “%@”. Enable global voice activation and select the Remote Buddy virtual microphone.";
 "onboarding.voice_tool.guide.screenshot.weixin_input_menu" = "In the input menu, choose WeType (微信输入法), then Settings (设置).";
-"onboarding.voice_tool.guide.screenshot.weixin_input_settings" = "In Voice Input (语音输入), enable Hold to Talk (按住说话) and set its shortcut to Fn.";
-"onboarding.voice_tool.guide.screenshot.weixin_app_shortcuts" = "In WeChat Settings → Shortcuts (快捷键), clear any Fn shortcut under Voice Typing (语音输入文字), for both hold and press-to-start modes.";
+"onboarding.voice_tool.guide.screenshot.weixin_input_settings" = "In Voice Input, set the shortcut to “%@” and match the recording mode in the current pairing plan.";
+"onboarding.voice_tool.guide.screenshot.weixin_app_shortcuts" = "Check whether the WeChat app uses “%@” for voice input. Clear only conflicting shortcuts; leave Fn settings alone when using another trigger.";
 "onboarding.voice_tool.guide.screenshot.bageshuo_menu" = "In the menu bar, click the NetEase Bageshuo icon, then select Settings.";
-"onboarding.voice_tool.guide.screenshot.bageshuo_settings" = "In Settings → Shortcuts, set Dictation shortcut to Fn (press once to start, press again to stop).";
+"onboarding.voice_tool.guide.screenshot.bageshuo_settings" = "In Settings → Shortcuts, set the voice shortcut to “%@” and use press-to-start/stop mode.";
 "onboarding.voice_tool.guide.screenshot.system_fn" = "In System Settings → Keyboard (键盘), set Press Globe key to (按下🌐键时) to Do Nothing (不执行任何操作).";
 "siri_remote.activation.enable" = "Enable";
 "siri_remote.activation.disable" = "Disable";
@@ -1005,12 +1003,12 @@
 "settings.integration.title" = "Input Method & Voice Tool Integration";
 "settings.integration.introduction" = "Configure the tool that receives your remote audio and voice shortcut. Use the setup guide to verify the complete path, rather than assuming a detected device is ready for dictation.";
 "settings.integration.current" = "Current integration";
-"settings.integration.microphone_help" = "Choose the same virtual microphone inside the input tool. Its voice shortcut and press/release behavior must match the settings below.";
+"settings.integration.microphone_help" = "Choose the same virtual microphone in your input tool, and match the shortcut and press/release behavior configured on this page.";
 "settings.integration.other_title" = "Other Tools";
 "settings.integration.configure" = "Configure & Test with Guide";
 "settings.integration.select_tool" = "Choose an input tool";
 "settings.integration.shortcut_title" = "Voice trigger";
-"settings.integration.shortcut_help" = "These controls affect the voice trigger. Configure ordinary remote buttons in Buttons. The selected input tool performs recognition and text cleanup.";
+"settings.integration.shortcut_help" = "Select an input tool below, then use the wizard to change and test the trigger and tap mode. Cancelling or failing the test keeps the committed configuration.";
 
 "remote.device.illustration" = "Remote control illustration";
 
@@ -1023,8 +1021,8 @@
 "onboarding.voice_tool.voice_buddy.website" = "Visit myvoicebuddy.com ↗";
 "onboarding.voice_tool.macos_dictation.title" = "macOS Dictation";
 "onboarding.voice_tool.macos_dictation.detail" = "Use the built-in Dictation. You do not need a third-party app.";
-"onboarding.voice_tool.dictation_fn_tap_explanation" = "Hold the remote's voice key to talk and release when done. Remote Buddy clicks Fn twice to start macOS Dictation, then waits for trailing audio to finish before clicking Fn once to stop it. Fn Tap conversion is enabled automatically.";
-"onboarding.voice_tool.t1_dictation_fn_tap_explanation" = "Press and release T1’s voice key to start talking, then press it once more to finish. Remote Buddy clicks Fn twice to start macOS Dictation, and after the second press waits for trailing audio to finish before clicking Fn once to stop it. Fn Tap conversion is enabled automatically.";
+"onboarding.voice_tool.dictation_fn_tap_explanation" = "Hold the remote's voice key to talk and release when done. Remote Buddy clicks Fn twice to start macOS Dictation, then waits for trailing audio to finish before clicking Fn once to stop it. Tap conversion is enabled automatically.";
+"onboarding.voice_tool.t1_dictation_fn_tap_explanation" = "Press and release T1’s voice key to start talking, then press it once more to finish. Remote Buddy clicks Fn twice to start macOS Dictation, and after the second press waits for trailing audio to finish before clicking Fn once to stop it. Tap conversion is enabled automatically.";
 "onboarding.voice_tool.guide.enable_dictation" = "Turn on macOS Dictation";
 "onboarding.voice_tool.guide.screenshot.macos_dictation_enable" = "Open System Settings → Keyboard → Dictation. Turn on Dictation and confirm the system privacy prompt. Add the languages you speak and wait for any language downloads to finish.";
 "onboarding.voice_tool.guide.configure_dictation" = "Set the Dictation shortcut to Press 🌐 Twice";
@@ -1033,9 +1031,8 @@
 
 "onboarding.step.welcome" = "Welcome";
 "onboarding.step.remoteAvailability" = "Your device";
-"onboarding.step.permissions" = "Permissions";
+"onboarding.step.permissions" = "Permissions & Mic";
 "onboarding.step.remote" = "Connect remote";
-"onboarding.step.audio" = "Driver check";
 "onboarding.step.voiceTool" = "Input tool";
 "onboarding.step.voiceTest" = "Voice test";
 "onboarding.step.controls" = "Button test";
@@ -1043,8 +1040,8 @@
 
 "onboarding.voice_tool.guide.open_voice_buddy" = "Open Voice Buddy";
 "onboarding.voice_tool.guide.open_voice_buddy.detail" = "Open Voice Buddy → General to configure its trigger key, matching recording mode, and microphone input source.";
-"onboarding.voice_tool.guide.configure_voice_buddy" = "Set Trigger key to Fn / 🌐 and Hold to talk";
-"onboarding.voice_tool.guide.screenshot.voicebuddy_setting_fn" = "In Voice Buddy → General → Shortcut & Recording, set Trigger key to Fn / 🌐 and Recording Mode to Hold to talk (as shown) so recording stays in sync with the remote.";
+"onboarding.voice_tool.guide.configure_voice_buddy" = "Set the Trigger and Recording Mode";
+"onboarding.voice_tool.guide.screenshot.voicebuddy_setting_fn" = "In Voice Buddy → General → Shortcuts and Recording, set the trigger to “%@” and match the recording mode selected here.";
 "onboarding.voice_tool.guide.voice_buddy.match_toggle_mode" = "Since toggle mode is selected for this remote, set Voice Buddy’s Recording Mode to Press to start / stop instead.";
 "onboarding.voice_tool.guide.screenshot.voicebuddy_setting_mic" = "In Voice Buddy → General → Audio & Feedback, select Remote Buddy Mic as the Microphone input source.";
 
@@ -1081,7 +1078,7 @@
 
 "button_mapping.unsupported_device" = "This remote is not supported yet. Choose a Xiaomi, T1-Remote, or G9N9N remote to configure buttons.";
 
-"voice_button.status.cleanup_failed" = "Could not release Fn. Restore Accessibility permission and try again.";
+"voice_button.status.cleanup_failed" = "Could not release the voice shortcut. Restore Accessibility permission and try again.";
 
 "button_mapping.error.filter_unavailable" = "Button mapping paused because remote button input could not be captured. Recheck input permissions or reconnect the remote to retry.";
 
@@ -1146,9 +1143,9 @@
 "onboarding.audio.automatic_ready" = "Driver and audio output are ready. Click Continue to proceed.";
 
 "onboarding.audio.checking" = "Checking the driver and audio output.";
-"onboarding.voice_prompt.t1.fn_tap" = "Press and release the T1 voice button to start speaking, then press it once more to stop (Fn tap conversion enabled).";
+"onboarding.voice_prompt.t1.fn_tap" = "Press and release the T1 voice button to start speaking, then press it once more to stop (tap conversion enabled).";
 "onboarding.voice_prompt.t1.hold" = "Press and release the T1 voice button to start speaking, then press it once more to stop (Remote Buddy holds the voice key for you while speaking).";
-"onboarding.voice_prompt.generic.fn_tap" = "Hold the voice button while speaking, then release it (Fn tap conversion enabled).";
+"onboarding.voice_prompt.generic.fn_tap" = "Hold the voice button while speaking, then release it (tap conversion enabled).";
 "onboarding.voice_prompt.generic.hold" = "Hold the voice button while speaking, then release it.";
 "onboarding.voice_prompt.generic.toggle" = "Press the voice button once to start, then once more to finish.";
 
@@ -1237,3 +1234,19 @@
 "application_integration.status.triggered_preserved" = "Kept your selected text box and sent the voice input request.";
 
 "application_integration.voice_key_note" = "When any app is enabled, Remote Buddy handles Fn hold-to-talk in all apps.";
+"connection.voice_key.mode.custom" = "Custom Shortcut";
+"connection.voice_key.customize" = "Customize Shortcut…";
+"connection.voice_key.custom_help" = "Record or choose a key with modifiers, such as Control + Shift + Option + V. Set the same shortcut and hold or tap mode in your voice tool.";
+"connection.voice_key.custom_unsupported" = "Choose a regular key with Control, Shift, Option, or Command. For a standalone modifier, use Fn, left/right Command, or left/right Option. Chords containing Fn are not supported.";
+"onboarding.voice_tool.selected_trigger_help" = "Choose the voice trigger and tap mode to test, then configure your input tool in the next step. The new configuration is saved and enabled only after a real voice-to-text test passes.";
+"onboarding.voice_tool.trigger_incompatible" = "This tool’s trigger mode does not support the selected shortcut. The dedicated double-press sequence for macOS Dictation requires Fn. Go back to adjust the trigger or choose another tool.";
+"onboarding.voice_tool.guide.release_wechat_shortcut" = "Check WeChat App Shortcut Conflicts";
+"voice_button.status.custom_enabled" = "Custom voice shortcut enabled";
+"voice_button.status.custom_pressed" = "Voice shortcut held; releases after audio ends";
+"voice_button.status.custom_released" = "Voice shortcut released";
+"onboarding.step.voiceTrigger" = "Voice Trigger";
+"onboarding.voice_trigger.title" = "Choose the Voice Trigger";
+"settings.integration.tap_enabled" = "Tap mode: On";
+"settings.integration.tap_disabled" = "Tap mode: Off";
+"settings.integration.trigger_readonly" = "Change the trigger and tap mode only in the input-tool integration wizard. Changes take effect after the voice test passes.";
+"onboarding.voice_trigger.change" = "Back to Voice Trigger";

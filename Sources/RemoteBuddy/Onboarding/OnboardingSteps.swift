@@ -5,14 +5,14 @@ enum OnboardingStep: String, CaseIterable, Codable {
     case remoteAvailability
     case permissions
     case remote
-    case audio
+    case voiceTrigger
     case voiceTest
     case controls
     case complete
 
     /// Match the main navigation: environment, connection, buttons, then integration.
     static let visibleCases: [Self] = [
-        .permissions, .remoteAvailability, .remote, .controls, .audio, .voiceTool,
+        .permissions, .remoteAvailability, .remote, .controls, .voiceTrigger, .voiceTool,
         .voiceTest, .complete,
     ]
 
@@ -20,7 +20,7 @@ enum OnboardingStep: String, CaseIterable, Codable {
         switch self {
         case .remoteAvailability:
             return false
-        case .permissions, .remote, .audio, .voiceTool, .voiceTest, .controls, .complete:
+        case .permissions, .remote, .voiceTrigger, .voiceTool, .voiceTest, .controls, .complete:
             return true
         }
     }
@@ -49,7 +49,7 @@ enum OnboardingPurpose: String, Codable {
         switch self {
         case .initialSetup: return OnboardingStep.visibleCases
         case .addDevice: return [.remoteAvailability, .remote, .controls, .complete]
-        case .integration: return [.voiceTool, .voiceTest, .complete]
+        case .integration: return [.permissions, .voiceTrigger, .voiceTool, .voiceTest, .complete]
         }
     }
 

@@ -22,6 +22,9 @@ extension OnboardingView {
                     )
                 }
                 sideCheck("permission.accessibility.title", isComplete: accessibilityGranted)
+                sideCheck("onboarding.side.device_found", isComplete: microphoneDriverInstalled)
+                sideCheck("onboarding.side.device_selected", isComplete: audioOutputSelected)
+                sideCheck("onboarding.side.audio_ready", isComplete: onboardingAudioReady)
             }
         case .remote:
             sidePanel(titleKey: "onboarding.side.remote") {
@@ -30,12 +33,6 @@ extension OnboardingView {
                     isComplete: selectedControlConnected
                 )
                 sideCheck("onboarding.side.button_received", isComplete: !observedRemoteButtons.isEmpty)
-            }
-        case .audio:
-            sidePanel(titleKey: "onboarding.side.audio") {
-                sideCheck("onboarding.side.device_found", isComplete: !supportedAudioDevices.isEmpty)
-                sideCheck("onboarding.side.device_selected", isComplete: audioOutputSelected)
-                sideCheck("onboarding.side.audio_ready", isComplete: onboardingAudioReady)
             }
         case .voiceTest:
             sidePanel(titleKey: "onboarding.side.voice_test") {

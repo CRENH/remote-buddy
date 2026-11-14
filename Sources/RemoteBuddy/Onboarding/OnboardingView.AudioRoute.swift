@@ -1,9 +1,9 @@
 import SwiftUI
 
 extension OnboardingView {
-    var audioContent: some View {
+    var microphoneSetupContent: some View {
         VStack(alignment: .leading, spacing: 18) {
-            onboardingTitle("onboarding.audio.title")
+            Text(localization.text("onboarding.audio.title")).font(.headline)
             Text(verbatim: localization.text("onboarding.audio.detail"))
                 .foregroundStyle(.secondary)
             statusCard(icon: "mic.fill", title: localization.text("settings.driver.title"),
@@ -22,6 +22,23 @@ extension OnboardingView {
         }
         .onAppear { prepareAutomaticDriverCheck() }
         .onChange(of: model.audioDevices) { _, _ in prepareAutomaticDriverCheck() }
+    }
+
+    var voiceTriggerContent: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            onboardingTitle("onboarding.voice_trigger.title")
+            Text(localization.text("onboarding.voice_tool.selected_trigger_help"))
+                .foregroundStyle(.secondary)
+            VoiceTriggerPicker(selection: settings.selectedVoiceTrigger.voiceKeyMode, onSelect: settings.selectOnboardingVoiceTrigger)
+            Toggle(localization.text("connection.voice_fn_tap.enabled"), isOn: Binding(
+                get: { settings.selectedVoiceTrigger.voiceFnTapModeEnabled },
+                set: settings.selectOnboardingFnTapMode
+            ))
+            Text(localization.text("connection.voice_fn_tap.hint_short"))
+                .font(.caption).foregroundStyle(.secondary)
+            Text(localization.text("connection.voice_key_mode.unverified_detail"))
+                .font(.callout).foregroundStyle(.secondary)
+        }
     }
 
     private func prepareAutomaticDriverCheck() {
