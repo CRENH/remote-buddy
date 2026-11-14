@@ -582,7 +582,7 @@
 "onboarding.welcome.ai_prompt.copied" = "Prompt copied. Paste it into your usual AI tool.";
 "onboarding.welcome.ai_prompt.failed" = "Copy failed; try again";
 "onboarding.voice_tool.title" = "Which app do you use for voice typing?";
-"onboarding.voice_tool.detail" = "Choose your voice input tool and configure the same trigger and recording mode selected on the previous page.";
+"onboarding.voice_tool.detail" = "Choose an input tool and follow the setup steps on the right.";
 "onboarding.voice_tool.none_detected" = "No supported voice typing app was detected. You can still choose Other Voice App, but please install and open a supported voice tool before testing.";
 "onboarding.voice_tool.unselected.title" = "Not Selected";
 "onboarding.voice_tool.unselected.detail" = "No voice app selected yet.";
@@ -608,7 +608,7 @@
 "onboarding.voice_tool.guide.continue_hint" = "View each setup step on the right before continuing.";
 "onboarding.voice_tool.guide.microphone_hint" = "Confirm the microphone choice in step 3 before continuing.";
 "onboarding.voice_tool.guide.microphone_detail" = "In %@ → Voice Input settings, choose “%@” as the microphone. Set this in the voice app itself.";
-"onboarding.voice_tool.guide.match_shortcut" = "Voice trigger: %@. Input-tool mode: %@. Set both to match in your tool. Screenshots are examples; use the current selection.";
+"onboarding.voice_tool.guide.match_shortcut" = "Shortcut: %@ · Mode: %@";
 "onboarding.voice_tool.guide.screenshot.doubao_input_microphone" = "In Doubao → Voice Input → Microphone, select Remote Buddy Mic.";
 "onboarding.voice_tool.guide.select_step" = "Click a step on the right to view its setup instructions.";
 "onboarding.voice_tool.guide.select_doubao" = "Select Doubao";

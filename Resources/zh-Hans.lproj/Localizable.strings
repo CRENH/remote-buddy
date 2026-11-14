@@ -582,7 +582,7 @@
 "onboarding.welcome.ai_prompt.copied" = "配置提示已复制，请粘贴到常用的 AI 工具。";
 "onboarding.welcome.ai_prompt.failed" = "复制失败，请重试。";
 "onboarding.voice_tool.title" = "你准备在哪个工具里说话？";
-"onboarding.voice_tool.detail" = "选择常用的语音输入工具，并在该工具中设置与上一页一致的热键及录音模式。";
+"onboarding.voice_tool.detail" = "选择输入工具，并按右侧说明完成设置。";
 "onboarding.voice_tool.none_detected" = "未检测到已安装的微信输入法、豆包输入法、网易叭哥说或 Typeless。你仍可选择“其他语音工具”，但请先安装并打开一个支持语音输入的工具。";
 "onboarding.voice_tool.unselected.title" = "尚未选择";
 "onboarding.voice_tool.unselected.detail" = "尚未选择常用语音工具。";
@@ -608,7 +608,7 @@
 "onboarding.voice_tool.guide.continue_hint" = "请先查看右侧的每一个设置步骤，再继续。";
 "onboarding.voice_tool.guide.microphone_hint" = "请在第 3 个步骤中确认输入工具的麦克风选择，再继续。";
 "onboarding.voice_tool.guide.microphone_detail" = "请在%@的语音输入设置中，将麦克风选择为“%@”。这项设置需要在输入工具中手动完成。";
-"onboarding.voice_tool.guide.match_shortcut" = "本次语音热键：%@；输入工具模式：%@。请在工具中设置一致。截图仅供参考，以本次选择为准。";
+"onboarding.voice_tool.guide.match_shortcut" = "热键：%@ · 模式：%@";
 "onboarding.voice_tool.guide.select_step" = "请点击右侧步骤，查看对应设置说明。";
 "onboarding.voice_tool.guide.select_doubao" = "选择豆包输入法";
 "onboarding.voice_tool.guide.configure_doubao" = "设置豆包语音热键";
