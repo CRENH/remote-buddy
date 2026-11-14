@@ -1233,7 +1233,7 @@
 "application_integration.voice_key_note" = "When any app is enabled, Remote Buddy handles Fn hold-to-talk in all apps.";
 "connection.voice_key.mode.custom" = "Custom Shortcut";
 "connection.voice_key.customize" = "Customize Shortcut…";
-"connection.voice_key.custom_help" = "Record or choose a key with modifiers, such as Control + Shift + Option + V. Set the same shortcut and hold or tap mode in your voice tool.";
+"connection.voice_key.custom_help" = "Record or choose a key with modifiers, such as Control + Shift + V. Set the same shortcut and hold or tap mode in your voice tool.";
 "connection.voice_key.custom_unsupported" = "Choose a regular key with Control, Shift, Option, or Command. For a standalone modifier, use Fn, left/right Command, or left/right Option. Chords containing Fn are not supported.";
 "onboarding.voice_tool.selected_trigger_help" = "Choose the shortcut to send to your input tool.";
 "onboarding.voice_tool.trigger_incompatible" = "This tool’s trigger mode does not support the selected shortcut. The dedicated double-press sequence for macOS Dictation requires Fn. Go back to adjust the trigger or choose another tool.";

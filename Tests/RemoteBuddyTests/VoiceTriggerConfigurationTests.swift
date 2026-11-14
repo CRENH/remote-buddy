@@ -144,6 +144,13 @@ struct VoiceTriggerConfigurationTests {
         }
     }
 
+    @Test func voiceShortcutPresetsMatchTheSupportedMenuChoices() {
+        let expected: [NSEvent.ModifierFlags] = [[.control, .shift], [.control, .option], [.control, .command]]
+        #expect(VoiceKeyMode.shortcutPresets == expected.map {
+            .shortcut(CustomKeyboardShortcut(keyCode: 9, modifierFlags: $0, keyLabel: "V"))
+        })
+    }
+
     @Test func customTriggersRoundTripInSettingsAndBindings() throws {
         for mode in VoiceKeyMode.allCases + [.shortcut(CustomKeyboardShortcut(
             keyCode: 40, modifierFlags: [.command, .option], keyLabel: "K"))] {
