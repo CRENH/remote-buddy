@@ -39,13 +39,25 @@ extension KeyboardInjector {
     }
 
     static func postVoiceShortcutState(code: CGKeyCode, isDown: Bool, flags: CGEventFlags) -> Bool {
+        postVoiceShortcutState(code: code, isDown: isDown, flags: flags,
+            eventPoster: { location, event in event.post(tap: location) })
+    }
+
+    static func postVoiceShortcutState(
+        code: CGKeyCode, isDown: Bool, flags: CGEventFlags,
+        eventPoster: (CGEventTapLocation, CGEvent) -> Void
+    ) -> Bool {
+        // HeldVoiceShortcut already composes the complete physical + owned flags.
+        // Do not read them again here: HID posting can leave a synthetic modifier
+        // in the snapshot, which would reassert it during its release.
         guard let event = makeMarkedKeyEvent(code: code, isDown: isDown, flags: flags,
-            marker: orderedVoiceEventMarker, hardwareFlags: KeyboardHardwareModifierPolicy.currentForMappedAction)
+            marker: orderedVoiceEventMarker, hardwareFlags: { [] })
         else { return false }
-        // Session-level posting keeps held synthetic modifiers out of the physical HID snapshot.
-        event.post(tap: .cgSessionEventTap)
+        // Match standalone voice keys: an input tool's HID tap runs before the
+        // session entry point and cannot observe events posted only at that point.
+        eventPoster(.cghidEventTap, event)
         AppLogger.shared.write("VOICE SHORTCUT EVENT key_code=\(code) edge=\(isDown ? "down" : "up") " +
-            "modifier_flags=\(event.flags.rawValue) result=submitted target_response=unknown")
+            "modifier_flags=\(event.flags.rawValue) tap=hid result=submitted target_response=unknown")
         return true
     }
 

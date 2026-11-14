@@ -176,6 +176,35 @@ struct HeldVoiceShortcutTests {
         CustomKeyboardShortcut(keyCode: 9, modifierFlags: [.control, .shift, .option], keyLabel: "V")
     }
 
+    @Test func voiceChordsReachHIDListenersAndKeepTheComposedFlagsThroughRelease() throws {
+        var events: [CGEvent] = []
+        var locations: [CGEventTapLocation] = []
+        let post: (CGEventTapLocation, CGEvent) -> Void = { location, event in
+            locations.append(location)
+            events.append(event)
+        }
+        let chord: CGEventFlags = [.maskControl, .maskShift]
+        #expect(KeyboardInjector.postVoiceShortcutState(code: 59, isDown: true,
+            flags: .maskControl, eventPoster: post))
+        #expect(KeyboardInjector.postVoiceShortcutState(code: 56, isDown: true,
+            flags: chord, eventPoster: post))
+        #expect(KeyboardInjector.postVoiceShortcutState(code: 9, isDown: true,
+            flags: chord, eventPoster: post))
+        #expect(KeyboardInjector.postVoiceShortcutState(code: 9, isDown: false,
+            flags: chord, eventPoster: post))
+        #expect(KeyboardInjector.postVoiceShortcutState(code: 56, isDown: false,
+            flags: .maskControl, eventPoster: post))
+        #expect(KeyboardInjector.postVoiceShortcutState(code: 59, isDown: false,
+            flags: [], eventPoster: post))
+        #expect(locations == Array(repeating: .cghidEventTap, count: 6))
+        #expect(events.map(\.type) == [.flagsChanged, .flagsChanged, .keyDown, .keyUp, .flagsChanged, .flagsChanged])
+        #expect(events.map(\.flags) == [.maskControl, chord, chord, chord, .maskControl, []])
+        #expect(events.allSatisfy {
+            $0.getIntegerValueField(.eventSourceUserData) == KeyboardInjector.orderedVoiceEventMarker &&
+                $0.getIntegerValueField(.eventSourceStateID) != Int64(CGEventSourceStateID.hidSystemState.rawValue)
+        })
+    }
+
     @Test func chordStaysPressedUntilReleaseAndReleasesInReverseOrder() {
         let session = HeldVoiceShortcut()
         var edges: [(UInt16, Bool, CGEventFlags)] = []
