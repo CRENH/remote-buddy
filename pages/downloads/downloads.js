@@ -77,12 +77,12 @@
           '<span>' + spec.archLabel + '</span>' +
         '</div>' +
         '<div class="download-actions">' +
-          '<a class="button primary" href="' + encodeURIComponent(pkg.name) + '" download>' +
-            (english ? 'Download from Website ↓' : '从官网直接下载 ↓') +
+          '<a class="button secondary" href="' + encodeURIComponent(pkg.name) + '" download>' +
+            (english ? 'Download from Website ↓' : '从官网下载 ↓') +
           '</a>' +
           '<a class="button secondary" href="https://github.com/zfdang/remote-buddy/releases/download/' +
             encodeURIComponent(tag) + '/' + encodeURIComponent(pkg.name) + '">' +
-            (english ? 'GitHub Mirror ↗' : 'GitHub Releases 备选 ↗') +
+            (english ? 'Download from GitHub ↗' : '从 GitHub 下载 ↗') +
           '</a>' +
         '</div>';
 
