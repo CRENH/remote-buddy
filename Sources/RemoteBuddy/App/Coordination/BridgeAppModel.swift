@@ -169,6 +169,7 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
         let customMappingEnabled: Bool
         let backOnlyMode: Bool
         let powerKeySuppressed: Bool
+        let waitForMatchingServices: Bool
         let allowedLocationIDs: Set<UInt32>?
         let targets: [HIDMonitorTargetConfiguration]
         let compatibleHIDIdentities: [RemoteHIDIdentity]

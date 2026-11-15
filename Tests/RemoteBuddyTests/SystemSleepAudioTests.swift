@@ -290,12 +290,14 @@ struct SystemSleepAudioTests {
 
             // On resume when the bridge remained .ready (no .ready transition callback),
             // applyHIDSettings() restores discovery/suppressor/input-source monitors and reschedules HID mapping recovery.
-            // configuredMonitor stays stopped until recovery matches services and suppresses power key.
+            // The configured monitor observes service arrival without opening/routing input
+            // until recovery suppresses the power key.
             model.handleSystemAudioLifecycle(.sessionDidBecomeActive)
             #expect(model.discoveryHIDMonitor?.isMonitoring == true)
             #expect(model.hidEventSuppressor.isRunning)
             #expect(model.preferredInputSourceMonitor.isMonitoring)
-            #expect(model.hidMonitoringInterrupted)
+            #expect(!model.hidMonitoringInterrupted)
+            #expect(model.hidMonitors["test-remote"]?.isWaitingForMatchingServices == true)
             #expect(model.hidMappingRecoveryWorkItem != nil)
             #expect(isReady(bridge.state))
         }
