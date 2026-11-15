@@ -24,7 +24,10 @@ struct VoiceTriggerPicker: View {
                 .pickerStyle(.menu)
                 Button(localization.text("connection.voice_key.customize")) { editing = true }
             }
-            Text(localization.text("connection.voice_key_mode.help"))
+            Text(localization.text({
+                if case .shortcut = selection { return "connection.voice_key.chord_help" }
+                return "connection.voice_key_mode.help"
+            }()))
                 .font(.caption).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }

@@ -285,13 +285,13 @@
 "connection.voice_fn_tap.enabled" = "点按模式";
 "connection.voice_fn_tap.hint" = "适配按一下开始、再按一下结束的工具：收音开始时点按一次所选语音热键，停止收音并送完尾部音频后，再点按一次结束识别。热键和点按模式需要与输入工具一起测试。";
 "connection.voice_fn_tap.hint_short" = "开启：自动点按热键开始和结束；关闭：收音期间持续按住热键。";
-"connection.voice_key_mode.title" = "语音触发键";
+"connection.voice_key_mode.title" = "语音热键";
 "connection.voice_key.mode.fn" = "Fn/地球键";
 "connection.voice_key.mode.left_command" = "左 Command (⌘)";
 "connection.voice_key.mode.right_command" = "右 Command (⌘)";
 "connection.voice_key.mode.left_option" = "左 Option (⌥)";
 "connection.voice_key.mode.right_option" = "右 Option (⌥)";
-"connection.voice_key_mode.help" = "下一步请在输入工具中设置相同热键。";
+"connection.voice_key_mode.help" = "下一步请在输入工具中设置相同语音热键和录音方式。";
 "connection.voice_key_mode.unverified" = "修饰键模式尚未验证";
 "onboarding.voice_trigger.save_hint" = "通过后续语音测试后，新设置才会生效。";
 "connection.voice_key_mode.command_permission" = "修饰键模式需要辅助功能权限";
@@ -1067,8 +1067,8 @@
 
 "button_mapping.unsupported_device" = "此遥控器目前尚未支持。请选择小米、T1-Remote 或 G9N9N 遥控器进行按键设置。";
 
-"onboarding.voice_tool.guide.screenshot.doubao_input_microphone" = "豆包输入法：选择遥控搭子的麦克风";
-"onboarding.voice_tool.guide.screenshot.weixin_input_microphone" = "微信输入法：选择遥控搭子的麦克风";
+"onboarding.voice_tool.guide.screenshot.doubao_input_microphone" = "在豆包输入法 → 语音输入 → 麦克风中，选择 Remote Buddy Mic。";
+"onboarding.voice_tool.guide.screenshot.weixin_input_microphone" = "在微信输入法 → 语音输入 → 麦克风中，选择 Remote Buddy Mic。";
 "onboarding.voice_tool.guide.screenshot.bageshuo_input_microphone" = "网易叭哥说：在设置 → 常规 → 麦克风中选择 Remote Buddy Mic。";
 
 "voice_button.status.cleanup_failed" = "语音热键释放失败，请恢复辅助功能权限后重试。";
@@ -1237,7 +1237,7 @@
 "voice_button.status.custom_pressed" = "语音组合键已按下；收音结束后释放";
 "voice_button.status.custom_released" = "语音组合键已释放";
 "onboarding.step.voiceTrigger" = "语音热键";
-"onboarding.voice_trigger.title" = "选择语音键的热键";
+"onboarding.voice_trigger.title" = "选择语音热键";
 "settings.integration.tap_enabled" = "点按模式：已开启";
 "settings.integration.tap_disabled" = "点按模式：已关闭";
 "settings.integration.trigger_readonly" = "热键和点按模式只能在输入法集成向导中修改，通过语音测试后才生效。";
@@ -1289,3 +1289,5 @@
 "onboarding.voice_tool.use_fn" = "改用 Fn/地球键";
 
 "shortcut.keyboard.main_key_required" = "请再选择一个普通按键，或只保留一个修饰键。";
+
+"connection.voice_key.chord_help" = "请在输入工具中设置相同组合键和录音方式，并避开其他应用已用的快捷键。";

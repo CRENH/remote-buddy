@@ -285,13 +285,13 @@
 "connection.voice_fn_tap.enabled" = "Tap Mode";
 "connection.voice_fn_tap.hint" = "For tools that press once to start and again to stop: tap the selected voice shortcut when recording starts, then tap it again after recording ends and buffered audio drains. Test the shortcut and tap mode together with your input tool.";
 "connection.voice_fn_tap.hint_short" = "On: tap the shortcut to start and stop. Off: hold it throughout recording.";
-"connection.voice_key_mode.title" = "Voice Trigger Key";
+"connection.voice_key_mode.title" = "Voice Shortcut";
 "connection.voice_key.mode.fn" = "Fn/Globe";
 "connection.voice_key.mode.left_command" = "Left Command (⌘)";
 "connection.voice_key.mode.right_command" = "Right Command (⌘)";
 "connection.voice_key.mode.left_option" = "Left Option (⌥)";
 "connection.voice_key.mode.right_option" = "Right Option (⌥)";
-"connection.voice_key_mode.help" = "Set the same shortcut in your input tool in the next step.";
+"connection.voice_key_mode.help" = "Set the same voice shortcut and recording mode in your input tool in the next step.";
 "connection.voice_key_mode.unverified" = "Check Your Voice Trigger Key";
 "onboarding.voice_trigger.save_hint" = "New settings take effect after the voice test passes.";
 "connection.voice_key_mode.command_permission" = "Modifier-key mode requires Accessibility permission";
@@ -612,7 +612,7 @@
 "onboarding.voice_tool.guide.select_doubao" = "Select Doubao";
 "onboarding.voice_tool.guide.configure_doubao" = "Set the Doubao Voice Shortcut";
 "onboarding.voice_tool.guide.select_weixin" = "Select WeType";
-"onboarding.voice_tool.guide.configure_weixin" = "Set the Weixin Voice Shortcut";
+"onboarding.voice_tool.guide.configure_weixin" = "Set the WeType Voice Shortcut";
 "onboarding.voice_tool.guide.open_bageshuo" = "Open NetEase Bageshuo Settings";
 "onboarding.voice_tool.guide.open_bageshuo.detail" = "Click the NetEase Bageshuo menu bar icon, then select Settings.";
 "onboarding.voice_tool.guide.configure_bageshuo" = "Set the Voice Shortcut";
@@ -748,7 +748,7 @@
 "onboarding.voice_test.configuration.no_commit" = "No text appeared. Recheck the voice input behavior, global activation, and microphone settings above.";
 "onboarding.voice_test.microphone_confirmation.title" = "The voice app must use the same microphone";
 "onboarding.voice_tool.guide.select_microphone" = "Choose the voice app's microphone";
-"onboarding.voice_tool.guide.screenshot.weixin_input_microphone" = "In WeChat Input Method → Voice Input → Microphone, select Remote Buddy Mic. This screenshot was captured from the installed app.";
+"onboarding.voice_tool.guide.screenshot.weixin_input_microphone" = "In WeType → Voice Input → Microphone, select Remote Buddy Mic.";
 "onboarding.voice_tool.guide.screenshot.bageshuo_input_microphone" = "In NetEase Bageshuo Settings → General → Microphone, select Remote Buddy Mic.";
 "onboarding.voice_test.microphone_confirmation.detail" = "Selecting “%@” in Remote Buddy only routes remote audio; it does not change %@’s own microphone setting. In that tool, set the microphone to “%@” too.";
 "onboarding.voice_test.microphone_confirmation.checkbox" = "I confirmed %@ uses “%@” as its microphone";
@@ -1236,7 +1236,7 @@
 "voice_button.status.custom_pressed" = "Voice shortcut held; releases after audio ends";
 "voice_button.status.custom_released" = "Voice shortcut released";
 "onboarding.step.voiceTrigger" = "Voice Trigger";
-"onboarding.voice_trigger.title" = "Choose the Voice Trigger";
+"onboarding.voice_trigger.title" = "Choose a Voice Shortcut";
 "settings.integration.tap_enabled" = "Tap mode: On";
 "settings.integration.tap_disabled" = "Tap mode: Off";
 "settings.integration.trigger_readonly" = "Change the trigger and tap mode only in the input-tool integration wizard. Changes take effect after the voice test passes.";
@@ -1288,3 +1288,5 @@
 "onboarding.voice_tool.use_fn" = "Use Fn/Globe";
 
 "shortcut.keyboard.main_key_required" = "Choose a main key, or keep just one standalone modifier.";
+
+"connection.voice_key.chord_help" = "Set the same chord and recording mode in your input tool, and avoid shortcuts already used by other apps.";
