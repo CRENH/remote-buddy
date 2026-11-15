@@ -91,9 +91,7 @@
 
     if (fallbackPanel) fallbackPanel.hidden = true;
     if (statusNote) {
-      statusNote.textContent = english
-        ? 'If direct download from remote.zfdang.com is slow or unavailable, use the GitHub Releases mirror button.'
-        : '若从官网（remote.zfdang.com）直接下载较慢或不可用，可使用右侧 GitHub Releases 备选按钮。';
+      statusNote.hidden = true;
     }
   }
 
