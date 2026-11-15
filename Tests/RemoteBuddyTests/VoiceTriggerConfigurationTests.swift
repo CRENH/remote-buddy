@@ -149,6 +149,25 @@ struct VoiceTriggerConfigurationTests {
         }
     }
 
+    @Test func correctingDictationTriggerChangesOnlyTheCandidateAndStillRequiresTesting() throws {
+        try withSettings { settings, defaults in
+            settings.voiceKeyMode = .rightOption
+            settings.setOnboardingControlSource(.xiaomiRemote)
+            settings.setOnboardingVoiceTool(.macosDictation)
+            settings.selectOnboardingVoiceTrigger(.suggestedShortcut)
+            settings.selectOnboardingFnTapMode(true)
+            let view = OnboardingView(model: BridgeAppModel(settings: settings, initialAudioDevices: []),
+                permissionOverrides: .allGranted)
+            #expect(view.voiceToolBlockingHintKey == "onboarding.voice_tool.trigger_incompatible")
+            view.selectFunctionTriggerForVoiceTool()
+            #expect(settings.selectedVoiceTrigger.voiceKeyMode == .function)
+            #expect(settings.voiceKeyMode == .rightOption)
+            #expect(AppSettings(defaults: defaults).voiceKeyMode == .rightOption)
+            #expect(settings.stagedVoiceToolBinding?.validationState == .staged)
+            #expect(!view.canContinue)
+        }
+    }
+
     @Test func unavailableToolsAndUnsupportedShortcutsExplainWhyContinueIsBlocked() throws {
         try withSettings { settings, _ in
             settings.setOnboardingControlSource(.xiaomiRemote)

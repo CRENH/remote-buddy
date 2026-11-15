@@ -1233,7 +1233,7 @@
 "connection.voice_key.customize" = "Customize Shortcut…";
 "connection.voice_key.custom_unsupported" = "Choose a regular key with Control, Shift, Option, or Command. For a standalone modifier, use Fn, left/right Command, or left/right Option. Chords containing Fn are not supported.";
 "onboarding.voice_tool.selected_trigger_help" = "Choose the shortcut to send to your input tool.";
-"onboarding.voice_tool.trigger_incompatible" = "This tool’s trigger mode does not support the selected shortcut. The dedicated double-press sequence for macOS Dictation requires Fn. Go back to adjust the trigger or choose another tool.";
+"onboarding.voice_tool.trigger_incompatible" = "macOS Dictation requires Fn/Globe. Use Fn or choose another tool.";
 "onboarding.voice_tool.guide.release_wechat_shortcut" = "Check WeChat App Shortcut Conflicts";
 "voice_button.status.custom_enabled" = "Custom voice shortcut enabled";
 "voice_button.status.custom_pressed" = "Voice shortcut held; releases after audio ends";
@@ -1287,3 +1287,5 @@
 "shortcut.keyboard.choose" = "Choose Shortcut…";
 
 "voice.keyboard.fn_replaced" = "Fn is standalone only. This selection replaced the previously selected keys.";
+
+"onboarding.voice_tool.use_fn" = "Use Fn/Globe";

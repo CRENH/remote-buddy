@@ -1234,7 +1234,7 @@
 "connection.voice_key.customize" = "自定义热键…";
 "connection.voice_key.custom_unsupported" = "请选择带 Control、Shift、Option 或 Command 的普通按键组合；单独修饰键请使用 Fn、左右 Command 或左右 Option。组合键暂不支持 Fn。";
 "onboarding.voice_tool.selected_trigger_help" = "选择要发送给输入工具的热键。";
-"onboarding.voice_tool.trigger_incompatible" = "当前工具的触发模式不支持所选热键。macOS 听写的专用双击启动目前需要 Fn，请返回上一步调整热键或选择其他工具。";
+"onboarding.voice_tool.trigger_incompatible" = "macOS 听写需要 Fn/地球键，请改用 Fn 或选择其他工具。";
 "onboarding.voice_tool.guide.release_wechat_shortcut" = "检查微信 App 热键冲突";
 "voice_button.status.custom_enabled" = "已启用自定义语音组合键";
 "voice_button.status.custom_pressed" = "语音组合键已按下；收音结束后释放";
@@ -1265,7 +1265,7 @@
 "onboarding.voice_tool.install_required" = "请先安装并在系统中启用所选输入工具，再回到此页。";
 "onboarding.voice_tool.tap_required" = "此工具需要开启点按模式，请确认后继续。";
 "onboarding.voice_tool.enable_tap" = "开启点按模式";
-"onboarding.voice_tool.choose_another" = "返回选择工具";
+"onboarding.voice_tool.choose_another" = "改选其他工具";
 "onboarding.guide.viewed" = "已查看";
 "onboarding.summary.detail" = "请核对本次配置，点击“打开遥控搭子”完成设置。";
 "onboarding.summary.remote" = "遥控器";
@@ -1288,3 +1288,5 @@
 "shortcut.keyboard.choose" = "选择快捷键…";
 
 "voice.keyboard.fn_replaced" = "Fn 仅支持单独使用，已替换之前选择的按键。";
+
+"onboarding.voice_tool.use_fn" = "改用 Fn/地球键";

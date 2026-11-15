@@ -33,6 +33,23 @@ extension OnboardingView {
                 }
             }
 
+            if voiceToolBlockingHintKey == "onboarding.voice_tool.trigger_incompatible" {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(localization.text("onboarding.voice_tool.trigger_incompatible"))
+                        .foregroundStyle(.orange)
+                    HStack {
+                        onboardingActionButton(id: "voice-tool.use-fn") {
+                            selectFunctionTriggerForVoiceTool()
+                        } label: { Text(localization.text("onboarding.voice_tool.use_fn")) }
+                        .buttonStyle(.borderedProminent)
+                        onboardingActionButton(id: "voice-tool.choose-another") {
+                            selectVoiceTool(.unselected)
+                        } label: { Text(localization.text("onboarding.voice_tool.choose_another")) }
+                        .buttonStyle(.bordered)
+                    }
+                }
+            }
+
             if allRecognizedVoiceToolsUnavailable {
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: "exclamationmark.triangle.fill")
@@ -167,6 +184,13 @@ extension OnboardingView {
             }
 
         }
+    }
+    func selectFunctionTriggerForVoiceTool() {
+        settings.selectOnboardingVoiceTrigger(.function)
+        selectedInputMethodGuideStep = nil
+        viewedInputMethodGuideSteps.removeAll()
+        refreshSystemFunctionKeyUsage()
+        stageCurrentDocumentedPairingPlanIfPossible()
     }
 
 }
