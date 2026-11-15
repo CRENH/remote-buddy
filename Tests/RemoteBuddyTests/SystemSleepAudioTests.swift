@@ -447,7 +447,7 @@ struct SystemSleepAudioTests {
             model.handleSystemAudioLifecycle(.systemDidWake)
             #expect(!model.audio.suspensionState.pendingSystemWakeRecovery)
             #expect(!model.connections.bridges.isEmpty)
-            #expect(model.connections.discoveryBridge != nil)
+            #expect(model.connections.discoveryBridge == nil)
         }
 
         // finishAudioStartup with empty bridges/discoveryBridge runs completeBluetoothResume and resumes Fn-tap when connected.
@@ -471,7 +471,7 @@ struct SystemSleepAudioTests {
             #expect(model.hidMonitors["test-remote"]?.isMonitoring == true)
             #expect(!model.voiceFnTapSession.isSuspended)
             #expect(!model.connections.bridges.isEmpty)
-            #expect(model.connections.discoveryBridge != nil)
+            #expect(model.connections.discoveryBridge == nil)
         }
     }
 

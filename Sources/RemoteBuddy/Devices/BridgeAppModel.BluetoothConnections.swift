@@ -29,11 +29,40 @@ extension BridgeAppModel {
             )
             bridge.start()
         }
-        startBluetoothDiscoveryIfNeeded()
+        synchronizeBluetoothDiscovery()
+    }
+
+    var shouldDiscoverNewBluetoothRemotes: Bool {
+        settings.remoteDeviceProfiles.isEmpty || !remoteDiscoveryRequests.isEmpty ||
+            (!settings.isOnboardingComplete &&
+                [.remoteAvailability, .remote, .controls].contains(settings.onboardingStep))
+    }
+
+    func beginRemoteDiscovery(requestID: UUID) {
+        remoteDiscoveryRequests.insert(requestID)
+        synchronizeBluetoothDiscovery()
+    }
+
+    func endRemoteDiscovery(requestID: UUID) {
+        remoteDiscoveryRequests.remove(requestID)
+        synchronizeBluetoothDiscovery()
+    }
+
+    func synchronizeBluetoothDiscovery() {
+        guard started else { return }
+        if shouldDiscoverNewBluetoothRemotes {
+            startBluetoothDiscoveryIfNeeded()
+        } else if let bridge = connections.discoveryBridge {
+            connections.discoveryBridge = nil
+            bridge.stop()
+            connections.states.removeValue(forKey: ObjectIdentifier(bridge))
+            refreshBluetoothPresentation()
+            AppLogger.shared.write("BLE DISCOVERY phase=completed result=stopped reason=registered_devices_only")
+        }
     }
 
     func startBluetoothDiscoveryIfNeeded() {
-        guard started, connections.discoveryBridge == nil else { return }
+        guard started, shouldDiscoverNewBluetoothRemotes, connections.discoveryBridge == nil else { return }
         let bridge = BluetoothRemoteBridge(
             settings: settings,
             delegate: self,

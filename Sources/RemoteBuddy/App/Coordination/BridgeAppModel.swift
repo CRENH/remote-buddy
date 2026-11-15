@@ -120,6 +120,8 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
     lazy var voiceFnTapSession = makeVoiceFnTapSession()
     private var voiceToolCancellable: AnyCancellable?
     private var applicationIntegrationCancellable: AnyCancellable?
+    private var remoteDiscoverySettingsCancellable: AnyCancellable?
+    var remoteDiscoveryRequests = Set<UUID>()
     var testToneGeneration = 0
     var voiceKeyLatch = VoiceKeyLatch()
     var voiceKeyReleaseRetry: ScheduledOperation?
@@ -265,6 +267,15 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
                 self?.clearApplicationIntegrationStatus()
                 self?.voiceToolDidChange()
             }
+        remoteDiscoverySettingsCancellable = Publishers.CombineLatest3(
+            settings.$onboardingStep, settings.$onboardingCompletedVersion, settings.$remoteDeviceProfiles
+        )
+            .map { step, completedVersion, profiles in
+                profiles.isEmpty || (completedVersion < AppSettings.currentOnboardingVersion &&
+                    [.remoteAvailability, .remote, .controls].contains(step))
+            }
+            .removeDuplicates().dropFirst().receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.synchronizeBluetoothDiscovery() }
         audio.output.onConfigurationChange = { @Sendable [weak self] in
             DispatchQueue.main.async { [weak self] in self?.scheduleAudioRecovery(reason: "engine_configuration_change") }
         }

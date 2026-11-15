@@ -5,6 +5,58 @@ import Testing
 @Suite("Bluetooth discovery promotion")
 @MainActor
 struct BluetoothDiscoveryPromotionTests {
+    @Test func dailyRuntimeStopsDiscoveryWithoutStoppingRegisteredBridges() throws {
+        let suite = UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = AppSettings(defaults: defaults)
+        settings.onboardingCompletedVersion = AppSettings.currentOnboardingVersion
+        let model = BridgeAppModel(settings: settings)
+        let identifier = UUID()
+        _ = settings.registerBluetoothRemote(identifier: identifier, model: .rc003)
+        let registered = BluetoothRemoteBridge(settings: settings, delegate: model, targetIdentifier: identifier)
+        let discovery = BluetoothRemoteBridge(settings: settings, delegate: model)
+        model.connections.bridges[identifier] = registered
+        model.connections.discoveryBridge = discovery
+        model.connections.states[ObjectIdentifier(discovery)] = .scanning
+        model.started = true
+        defer { model.started = false }
+        #expect(!model.shouldDiscoverNewBluetoothRemotes)
+        model.synchronizeBluetoothDiscovery()
+        #expect(model.connections.discoveryBridge == nil)
+        #expect(model.connections.states[ObjectIdentifier(discovery)] == nil)
+        #expect(model.connections.bridges[identifier] === registered)
+        model.refreshRemoteDiscovery()
+        #expect(model.connections.discoveryBridge == nil)
+    }
+
+    @Test func discoveryRemainsAvailableForFirstDeviceSetupAndOverlappingRebindingRequests() throws {
+        let suite = UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = AppSettings(defaults: defaults)
+        settings.onboardingCompletedVersion = AppSettings.currentOnboardingVersion
+        let model = BridgeAppModel(settings: settings)
+        #expect(model.shouldDiscoverNewBluetoothRemotes)
+        _ = settings.registerBluetoothRemote(identifier: UUID(), model: .rc003)
+        #expect(!model.shouldDiscoverNewBluetoothRemotes)
+        let first = UUID(), second = UUID()
+        model.beginRemoteDiscovery(requestID: first)
+        model.beginRemoteDiscovery(requestID: second)
+        #expect(model.shouldDiscoverNewBluetoothRemotes)
+        model.endRemoteDiscovery(requestID: first)
+        #expect(model.shouldDiscoverNewBluetoothRemotes)
+        model.endRemoteDiscovery(requestID: second)
+        #expect(!model.shouldDiscoverNewBluetoothRemotes)
+        settings.onboardingCompletedVersion = 0
+        for step: OnboardingStep in [.remoteAvailability, .remote, .controls] {
+            settings.onboardingStep = step
+            #expect(model.shouldDiscoverNewBluetoothRemotes)
+        }
+        settings.onboardingStep = .voiceTest
+        #expect(!model.shouldDiscoverNewBluetoothRemotes)
+    }
+
     @Test func registrationPinsTheKnownBridgeIdentity() throws {
         let suite = "bluetooth-registration-" + UUID().uuidString
         let defaults = try #require(UserDefaults(suiteName: suite))

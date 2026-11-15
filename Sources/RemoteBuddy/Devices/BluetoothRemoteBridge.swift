@@ -821,6 +821,7 @@ final class BluetoothRemoteBridge: NSObject {
             },
             connectedCandidates: {
                 let candidates = central.retrieveConnectedPeripherals(withServices: [serviceUUID])
+                    .filter { acceptsCandidateIdentifier($0.identifier) }
                 if !candidates.isEmpty {
                     AppLogger.shared.write(
                         "BLE SYSTEM CONNECTED CANDIDATES count=\(candidates.count) names=" +
