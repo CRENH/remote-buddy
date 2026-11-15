@@ -220,7 +220,7 @@ extension OnboardingView {
                 .font(.system(size: 46))
                 .foregroundStyle(canContinue ? Color.green : Color.orange)
             onboardingTitle(canContinue ? completionTitleKey : "onboarding.complete.runtime_changed")
-            Text(localization.text("onboarding.summary.detail"))
+            Text(localization.text(canContinue ? "onboarding.summary.detail" : "onboarding.complete.runtime_changed_detail"))
                 .font(.system(size: 14)).foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 12) {
                 if let name = summary.remoteName {
