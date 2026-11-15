@@ -729,6 +729,27 @@ struct ApplicationIntegrationTests {
             controlLabels: { _ in ["Send", "More actions", "Voice input"] }))
     }
 
+    @Test func integratedAppsCanFocusTheirComposerWithEitherSendOrStopControls() {
+        let fields: [(ApplicationIntegration, KeyboardInjector.AccessibilityTextCandidate)] = [
+            (.chatGPT, candidate("Ask anything")), (.antigravity, candidate("Message input")),
+            (.claude, candidate("Write your prompt to Claude")),
+            (.weChat, candidate(identifier: "chat_input_field")),
+        ]
+        for (app, field) in fields {
+            for action in ["发送", "停止", "Send", "Stop generating"] {
+                var focused: [Int] = []
+                let candidates = [(element: 0, snapshot: candidate(action, role: "AXButton")),
+                                  (element: 1, snapshot: field)]
+                let result = KeyboardInjector.focusIntegratedCandidates(candidates, integration: app,
+                    windowFrame: window, canContinue: { true },
+                    focus: { focused.append($0); return true },
+                    click: { _, _ in Issue.record("Focusing the editor must not click Send or Stop"); return false })
+                #expect(result)
+                #expect(focused == [1])
+            }
+        }
+    }
+
     @Test func workBuddyComposerRemainsRecognizableWhileGeneratingAReply() {
         let roles = [0: "AXGroup", 1: "AXTextArea", 2: "AXPopUpButton", 3: "AXGroup", 4: "AXButton", 5: "AXButton"]
         let tree = [0: [1, 2, 3], 3: [4, 5]]
