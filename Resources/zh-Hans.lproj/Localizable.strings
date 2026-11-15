@@ -467,8 +467,10 @@
 "about.info.architecture" = "芯片架构";
 "about.info.updates" = "软件更新";
 "about.info.project" = "项目介绍与链接";
-"about.info.releases" = "最新发布与下载";
-"about.info.open_releases" = "查看发布";
+"about.info.website_downloads" = "官网直接下载";
+"about.info.open_website_downloads" = "前往官网下载";
+"about.info.releases" = "GitHub 发布下载";
+"about.info.open_releases" = "查看 GitHub Releases";
 "about.version.latest" = "最新版本";
 "about.version.available" = "可更新";
 "about.version.update_to" = "更新到 %1$@";
@@ -484,7 +486,6 @@
 "about.version.release_notes_unavailable" = "此版本暂未提供可展示的更新内容。";
 "about.version.check_prerelease" = "接收测试版（Preview）更新";
 "about.version.check_prerelease_help" = "默认关闭。开启后，自动检查和手动检查都会包含尚未正式发布的测试版（Preview）。";
-"about.version.check_prerelease_help_short" = "包含尚未正式发布的测试版（Preview）更新。";
 "about.version.history" = "版本历史";
 "help.glossary.open" = "术语表";
 "about.support.github" = "GitHub";

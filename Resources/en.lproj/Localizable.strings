@@ -467,8 +467,10 @@
 "about.info.architecture" = "Architecture";
 "about.info.updates" = "Software updates";
 "about.info.project" = "Project and links";
-"about.info.releases" = "Latest releases";
-"about.info.open_releases" = "View releases";
+"about.info.website_downloads" = "Website downloads";
+"about.info.open_website_downloads" = "Download from website";
+"about.info.releases" = "GitHub Releases";
+"about.info.open_releases" = "View GitHub Releases";
 "about.version.latest" = "Latest Version";
 "about.version.available" = "Update Available";
 "about.version.update_to" = "Update to %1$@";
@@ -484,7 +486,6 @@
 "about.version.release_notes_unavailable" = "Release notes are not available for this version.";
 "about.version.check_prerelease" = "Include preview updates";
 "about.version.check_prerelease_help" = "Off by default. When enabled, automatic and manual checks also include preview releases before general availability.";
-"about.version.check_prerelease_help_short" = "Include preview updates before they reach stable release.";
 "about.version.history" = "Version History";
 "help.glossary.open" = "Glossary";
 "about.support.github" = "GitHub";
