@@ -117,54 +117,7 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
         }
     )
     lazy var voiceTapTrigger = VoiceTapTrigger(selectedMode: { [settings] in settings.effectiveVoiceKeyMode })
-    lazy var voiceFnTapSession = VoiceFnTapSessionController(
-        startTapCount: { [weak self] in
-            self?.settings.onboardingVoiceTool.functionKeyStartTapCount ?? 1
-        },
-        destinationReadiness: { [weak self] completion in
-            self?.prepareIntegratedVoiceInputDestination(completion: completion) ?? .immediate
-        },
-        setTriggerPressed: { [weak self, trigger = voiceTapTrigger] pressed in
-            let submitted = trigger.setPressed(pressed)
-            if pressed {
-                self?.completeApplicationIntegrationVoiceTrigger(started: submitted)
-                if submitted { self?.preferredInputSourceMonitor.markVoiceTriggerSubmitted() }
-            }
-            return submitted
-        },
-        enqueueAudio: { [weak self] samples in
-            self?.enqueueVoiceFnTapAudio(samples)
-        },
-        drainAudio: { [weak self] operationID, completion in
-            guard let self else {
-                completion()
-                return
-            }
-            self.audio.output.endSessionAfterDraining(
-                source: "voice_fn_tap",
-                operationID: operationID,
-                maximumDelay: self.audio.output.pendingPlaybackDuration + 0.75
-            ) { outcome in
-                AppLogger.shared.write(
-                    "VOICE FN TAP playback_stop operation_id=\(operationID) " +
-                        "phase=completed result=\(outcome.rawValue)"
-                )
-                completion()
-            }
-        },
-        onFailure: { [weak self] failure in
-            self?.handleVoiceFnTapFailure(failure)
-        },
-        enqueuePreRollAudio: { [weak self] in self?.enqueueVoiceFnTapAudio($0, isPreRoll: true) },
-        pendingPlaybackDuration: { [weak self] in self?.audio.output.pendingPlaybackDuration ?? 0 },
-        logger: { AppLogger.shared.write($0) },
-        onIdle: { [weak self, trigger = voiceTapTrigger] in
-            trigger.reset()
-            self?.preferredInputSourceMonitor.endVoiceSession()
-            self?.flushPendingVoiceToolMappingRefresh()
-            self?.releaseVirtualAudioOutputIfUnused(reason: "voice_fn_tap_idle")
-        }
-    )
+    lazy var voiceFnTapSession = makeVoiceFnTapSession()
     private var voiceToolCancellable: AnyCancellable?
     private var applicationIntegrationCancellable: AnyCancellable?
     var testToneGeneration = 0

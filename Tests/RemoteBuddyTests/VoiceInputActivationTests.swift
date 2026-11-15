@@ -63,7 +63,7 @@ struct VoiceInputActivationTests {
         }
     }
 
-    @Test func productionTapSessionMarksSuccessfulTriggerAndRetainsInputSource() async throws {
+    @Test func productionTapSessionMarksSuccessfulTriggerAndRetainsInputSource() throws {
         let (model, defaults, suite) = try makeModel()
         defer { defaults.removePersistentDomain(forName: suite) }
         let target = try #require(OnboardingVoiceTool.weixin.preferredInputSourceID)
@@ -81,9 +81,11 @@ struct VoiceInputActivationTests {
             edges.append(down)
             return true
         })
+        let clock = ControlledTestScheduler()
+        model.voiceFnTapSession = model.makeVoiceFnTapSession(schedule: clock.voiceSchedule)
         model.voiceFnTapSession.setEnabled(true)
         #expect(model.voiceFnTapSession.startVoice())
-        try await Task.sleep(for: .milliseconds(400))
+        clock.runAll()
         #expect(edges == [true, false])
         model.voiceFnTapSession.setEnabled(false)
         #expect(source == target)
