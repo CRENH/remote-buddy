@@ -36,3 +36,8 @@ dist/videos/venv/bin/python scripts/demo-video/render.py
 旁白采用 `zh-CN-XiaoxiaoNeural`，首次生成或文字变化时通过 Edge TTS 合成，
 相同文字的音频缓存在 `dist/videos/source/`。脚本同步生成 MP4、WebVTT 字幕和封面，
 直接写入 `pages/assets/video/`。完成后检查画面、字幕时间和声音，再提交这些资产。
+
+## 部署体积限制
+
+- GitHub Pages 单个部署文件上限为 25 MB。
+- 发布工作流会将 `arm64`、`intel` 安装包与通用卸载包镜像至官网 `downloads/` 目录，目前单个 `.pkg` 约 17 MB，余量约 8 MB；`scripts/verify-pages-update-feeds.py` 会在部署前校验单个镜像文件不超过 25 MB。新增驱动或资源时需关注包体大小，避免超出 Pages 限制。

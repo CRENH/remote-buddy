@@ -60,7 +60,7 @@ fi
 
 # 3. Try recent successful release workflow runs.
 if [[ "$valid_candidate" == false ]]; then
-    recent_runs=$(gh run list --workflow release.yml --status success --limit 5 --json databaseId --jq '.[].databaseId' 2>/dev/null || true)
+    recent_runs=$(gh run list --workflow release.yml --status success --branch main --limit 3 --json databaseId --jq '.[].databaseId' 2>/dev/null || true)
     for candidate_run in $recent_runs; do
         [[ "$candidate_run" == "${PAGES_UPDATE_RUN_ID:-}" ]] && continue
         rm -rf "$work/candidate" && mkdir -p "$work/candidate"

@@ -107,6 +107,54 @@ class FeedDeploymentTests(unittest.TestCase):
         (self.root / 'appcast-intel.xml').unlink()
         with self.assertRaises(FileNotFoundError): feeds.verify(self.root, self.release)
 
+    def test_mismatched_build_version_and_missing_arm64_requirement_are_rejected(self):
+        path = self.root / 'appcast-arm64.xml'
+        xml = ET.parse(path)
+        ver = xml.find(f'channel/item/{{{appcast.SPARKLE}}}version')
+        # Carry-over thousands digit matching tag suffix passes (e.g. 1043 for .043).
+        ver.text = '1043'
+        xml.write(path)
+        feeds.verify(self.root, self.release)
+
+        # Mismatched suffix fails.
+        ver.text = '44'
+        xml.write(path)
+        with self.assertRaises(ValueError) as ctx:
+            feeds.verify(self.root, self.release)
+        self.assertIn("Mismatched build version", str(ctx.exception))
+
+        # Restore version, break arm64 hardwareRequirements.
+        ver.text = '43'
+        req = xml.find(f'channel/item/{{{appcast.SPARKLE}}}hardwareRequirements')
+        req.text = 'x86_64'
+        xml.write(path)
+        with self.assertRaises(ValueError) as ctx:
+            feeds.verify(self.root, self.release)
+        self.assertIn("Missing Apple Silicon requirement", str(ctx.exception))
+
+    def test_oversized_mirrored_package_is_rejected(self):
+        downloads = self.root / 'downloads'
+        downloads.mkdir()
+        for path in self.root.glob('*.pkg'):
+            shutil.copy2(path, downloads / path.name)
+        feeds.write_latest_manifest(self.root, self.release)
+
+        oversized_size = feeds.MAX_PAGES_FILE_BYTES + 1
+        arm64_name = f'Remote_Buddy_{self.tag}_macOS_arm64.pkg'
+        with open(downloads / arm64_name, 'wb') as handle:
+            handle.seek(oversized_size - 1)
+            handle.write(b'\0')
+        for asset in self.release['assets']:
+            if asset['name'] == arm64_name:
+                asset['size'] = oversized_size
+        xml = ET.parse(self.root / 'appcast-arm64.xml')
+        xml.find('channel/item/enclosure').set('length', str(oversized_size))
+        xml.write(self.root / 'appcast-arm64.xml')
+
+        with self.assertRaises(ValueError) as ctx:
+            feeds.verify(self.root, self.release, require_packages=True)
+        self.assertIn("25 MB limit", str(ctx.exception))
+
     def deploy(self, artifact, valid=True, live_valid=True, release_assets=False, prebuilt_pages=False, recent_run=False):
         project = self.root / 'project'
         scripts = project / 'scripts'; scripts.mkdir(parents=True, exist_ok=True)

@@ -13,12 +13,6 @@
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
 
-  function detectPreferredArch() {
-    var ua = (navigator.userAgent || '').toLowerCase();
-    if (ua.indexOf('arm') !== -1 || ua.indexOf('apple') !== -1) return 'arm64';
-    return null;
-  }
-
   function renderPackages(manifest) {
     var tag = manifest && manifest.tag;
     var packages = manifest && manifest.packages;
@@ -34,7 +28,6 @@
       githubLink.href = manifest.releasesUrl;
     }
 
-    var preferred = detectPreferredArch();
     var specs = [
       {
         key: 'arm64',
@@ -42,8 +35,7 @@
         subtitle: english
           ? 'For M1 / M2 / M3 / M4 and newer Apple Silicon Macs. Includes the app and virtual microphone driver.'
           : '适用于 M1 / M2 / M3 / M4 及更新款芯片 Mac，包含应用与虚拟麦克风驱动。',
-        archLabel: 'arm64 · .pkg',
-        recommended: preferred === 'arm64'
+        archLabel: 'arm64 · .pkg'
       },
       {
         key: 'intel',
@@ -51,8 +43,7 @@
         subtitle: english
           ? 'For Intel-based Macs running macOS 14 or later. Includes the app and virtual microphone driver.'
           : '适用于运行 macOS 14 及以上的 Intel 芯片 Mac，包含应用与虚拟麦克风驱动。',
-        archLabel: 'x86_64 · .pkg',
-        recommended: preferred === 'intel'
+        archLabel: 'x86_64 · .pkg'
       }
     ];
 
@@ -63,8 +54,7 @@
         subtitle: english
           ? 'Removes the app, virtual microphone driver, and optionally preferences/logs on Apple Silicon & Intel.'
           : '一键移除 App、虚拟麦克风驱动，并可选择清理设置与日志（Apple Silicon / Intel 通用）。',
-        archLabel: 'universal · .pkg',
-        recommended: false
+        archLabel: 'universal · .pkg'
       });
     }
 
@@ -74,15 +64,12 @@
       if (!pkg || !pkg.name) return;
 
       var card = document.createElement('article');
-      card.className = 'download-card' + (spec.recommended ? ' is-recommended' : '');
+      card.className = 'download-card';
 
-      var badgeHtml = spec.recommended
-        ? '<span class="download-badge">' + (english ? 'Recommended' : '当前设备推荐') + '</span>'
-        : '';
       var sizeText = formatBytes(pkg.size);
 
       card.innerHTML =
-        '<h2>' + spec.title + badgeHtml + '</h2>' +
+        '<h2>' + spec.title + '</h2>' +
         '<p>' + spec.subtitle + '</p>' +
         '<div class="download-meta">' +
           '<span><code>' + pkg.name + '</code></span>' +
@@ -106,7 +93,7 @@
     if (statusNote) {
       statusNote.textContent = english
         ? 'If direct download from remote.zfdang.com is slow or unavailable, use the GitHub Releases mirror button.'
-        : '所有安装包均使用相同的签名产物：默认优先从官网镜像（remote.zfdang.com）下载，也可随时使用 GitHub Releases 备选通道。';
+        : '若从官网（remote.zfdang.com）直接下载较慢或不可用，可使用右侧 GitHub Releases 备选按钮。';
     }
   }
 

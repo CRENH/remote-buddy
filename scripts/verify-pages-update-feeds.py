@@ -10,6 +10,7 @@ import xml.etree.ElementTree as ET
 SPARKLE = 'http://www.andymatuschak.org/xml-namespaces/sparkle'
 PAGES_DOWNLOADS_BASE = 'https://remote.zfdang.com/downloads'
 GITHUB_RELEASE_BASE = 'https://github.com/zfdang/remote-buddy/releases/download'
+MAX_PAGES_FILE_BYTES = 25 * 1024 * 1024
 
 
 def _release_packages(release):
@@ -80,8 +81,16 @@ def verify(directory, release, *, require_packages=False):
         if short_version != tag:
             raise ValueError(f'{path.name} shortVersionString {short_version!r} does not match release {tag!r}')
         version = item.findtext(f'{{{SPARKLE}}}version', '')
-        if not version.isdigit() or int(version) <= 0:
-            raise ValueError(f'{path.name} has invalid sparkle:version {version!r}')
+        tag_suffix = tag.rsplit('.', 1)[-1]
+        if (
+            not version.isdigit()
+            or int(version) <= 0
+            or not tag_suffix.isdigit()
+            or int(version) % 1000 != int(tag_suffix)
+        ):
+            raise ValueError('Mismatched build version')
+        if architecture == 'arm64' and item.findtext(f'{{{SPARKLE}}}hardwareRequirements') != 'arm64':
+            raise ValueError('Missing Apple Silicon requirement')
         enclosure = item.find('enclosure')
         expected_url = f'{PAGES_DOWNLOADS_BASE}/{package}'
         if enclosure is None or enclosure.get('url') != expected_url:
@@ -90,6 +99,10 @@ def verify(directory, release, *, require_packages=False):
             raise ValueError(f'Release metadata is missing expected asset {package}')
         asset = assets[package]
         if 'size' in asset:
+            if int(asset['size']) > MAX_PAGES_FILE_BYTES:
+                raise ValueError(
+                    f'Mirrored package {package} exceeds GitHub Pages 25 MB limit ({asset["size"]} bytes)'
+                )
             expected_length = str(asset['size'])
             if enclosure.get('length') != expected_length:
                 raise ValueError(
@@ -110,6 +123,10 @@ def verify(directory, release, *, require_packages=False):
             if not pkg_path.is_file():
                 raise FileNotFoundError(f'Missing mirrored package in Pages downloads: {pkg_path.name}')
             actual_size = pkg_path.stat().st_size
+            if actual_size > MAX_PAGES_FILE_BYTES:
+                raise ValueError(
+                    f'Mirrored package {filename} exceeds GitHub Pages 25 MB limit ({actual_size} bytes)'
+                )
             asset = assets.get(filename, {})
             if 'size' in asset and actual_size != asset['size']:
                 raise ValueError(
