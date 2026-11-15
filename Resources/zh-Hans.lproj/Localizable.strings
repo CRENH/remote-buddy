@@ -667,7 +667,6 @@
 "onboarding.control_source.apple_remote.generation_7.title" = "苹果遥控器第 7 代";
 "onboarding.control_source.chromecast_remote.title" = "Chromecast 语音遥控器";
 "onboarding.control_source.chromecast_remote.detail" = "支持按住说话或按一次说话。";
-"onboarding.gesture.title" = "说话方式";
 "onboarding.gesture.hold" = "按住说话";
 "onboarding.gesture.toggle" = "按一次说话";
 "onboarding.pairing_plan.title" = "遥控搭子将按这个方案试用";
@@ -1034,7 +1033,6 @@
 "onboarding.voice_tool.guide.open_voice_buddy.detail" = "打开 Voice Buddy（语音搭子）主窗口并切换到“通用”，配置触发按键、与当前遥控器一致的录音触发模式及麦克风输入源。";
 "onboarding.voice_tool.guide.configure_voice_buddy" = "设置触发热键和录音模式";
 "onboarding.voice_tool.guide.screenshot.voicebuddy_setting_fn" = "在 Voice Buddy → 通用 → 快捷键与录音方式中，将触发按键设为“%@”，并让录音触发模式与本页方案一致。";
-"onboarding.voice_tool.guide.voice_buddy.match_toggle_mode" = "当前向导选择了按一次切换模式，请将 Voice Buddy 的“录音触发模式”改为“按键切换录音”。";
 "onboarding.voice_tool.guide.screenshot.voicebuddy_setting_mic" = "在 Voice Buddy → 通用 → 音频输入与提示中，将“麦克风输入源”选为 Remote Buddy Mic。";
 
 "diagnostics.logs.open_failed" = "无法打开日志文件";

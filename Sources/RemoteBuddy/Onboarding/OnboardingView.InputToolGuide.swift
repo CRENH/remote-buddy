@@ -268,20 +268,6 @@ extension OnboardingView {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            if ["doubao-settings", "weixin-input-settings", "bageshuo-settings", "voicebuddy-setting-fn", "macos-dictation-shortcut"].contains(resourceName) {
-                Text(LocalizedMessage("onboarding.voice_tool.guide.match_shortcut",
-                    arguments: [settings.selectedVoiceTrigger.voiceKeyMode.displayName(using: localization),
-                        localization.text("onboarding.gesture.\(voiceToolGuideGesture.rawValue)")]).text(using: localization))
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            if resourceName == "voicebuddy-setting-fn", proposedPairingPlan?.binding.gestureMode == .toggle {
-                Text(verbatim: localization.text("onboarding.voice_tool.guide.voice_buddy.match_toggle_mode"))
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Color.accentColor)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
         }
     }
 
@@ -523,10 +509,6 @@ extension OnboardingView {
         refreshSelectedInputMethodStatus()
         refreshSystemFunctionKeyUsage()
         stageCurrentDocumentedPairingPlanIfPossible()
-    }
-
-    func selectPreferredGesture(_ gesture: VoiceGestureMode) {
-        settings.setOnboardingPreferredGesture(gesture)
     }
 
     func stageCurrentDocumentedPairingPlanIfPossible() {

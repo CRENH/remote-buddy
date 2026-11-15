@@ -668,7 +668,6 @@
 "onboarding.control_source.apple_remote.generation_7.title" = "Apple Remote (7th Generation)";
 "onboarding.control_source.chromecast_remote.title" = "Chromecast Voice Remote";
 "onboarding.control_source.chromecast_remote.detail" = "Choose hold-to-talk or tap once to start and again to stop.";
-"onboarding.gesture.title" = "Voice Input Mode";
 "onboarding.gesture.hold" = "Hold to Talk";
 "onboarding.gesture.toggle" = "Press to Start/Stop";
 "onboarding.pairing_plan.title" = "Remote Buddy will try this configuration";
@@ -1037,7 +1036,6 @@
 "onboarding.voice_tool.guide.open_voice_buddy.detail" = "Open Voice Buddy → General to configure its trigger key, matching recording mode, and microphone input source.";
 "onboarding.voice_tool.guide.configure_voice_buddy" = "Set the Trigger and Recording Mode";
 "onboarding.voice_tool.guide.screenshot.voicebuddy_setting_fn" = "In Voice Buddy → General → Shortcuts and Recording, set the trigger to “%@” and match the recording mode selected here.";
-"onboarding.voice_tool.guide.voice_buddy.match_toggle_mode" = "Since toggle mode is selected for this remote, set Voice Buddy’s Recording Mode to Press to start / stop instead.";
 "onboarding.voice_tool.guide.screenshot.voicebuddy_setting_mic" = "In Voice Buddy → General → Audio & Feedback, select Remote Buddy Mic as the Microphone input source.";
 
 "diagnostics.logs.open_failed" = "Unable to open the log file";

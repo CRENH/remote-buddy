@@ -65,29 +65,6 @@ extension OnboardingView {
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
-    var gestureModeChoice: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(verbatim: localization.text("onboarding.gesture.title"))
-                .font(.system(size: 13, weight: .semibold))
-            HStack(spacing: 6) {
-                ForEach(VoiceGestureMode.allCases) { mode in
-                    onboardingActionButton(id: "gesture.\(mode.rawValue)") {
-                        selectPreferredGesture(mode)
-                    } label: {
-                        Label(
-                            localization.text("onboarding.gesture.\(mode.rawValue)"),
-                            systemImage: effectivePreferredGesture == mode
-                                ? "checkmark.circle.fill"
-                                : "circle"
-                        )
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                }
-            }
-        }
-    }
-
     private func pairingPlanSummary(_ plan: OnboardingVoicePairingPlan) -> some View {
         VStack(alignment: .leading, spacing: 7) {
             Label {

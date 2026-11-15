@@ -179,10 +179,6 @@ extension OnboardingView {
                 }
             }
 
-            if settings.onboardingControlSource.supportedGestureModes.count > 1 {
-                gestureModeChoice
-            }
-
         }
     }
     func selectFunctionTriggerForVoiceTool() {
