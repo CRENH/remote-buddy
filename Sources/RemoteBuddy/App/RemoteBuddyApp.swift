@@ -271,6 +271,7 @@ private final class RemoteBuddyAppDelegate: NSObject, NSApplicationDelegate, NSM
     )
     private var updateCheckTask: Task<Void, Never>?
     private var resolvedUpdateFeedURLString: String?
+    private var packageFallbackCoordinator = UpdatePackageDownloadCoordinator()
     private var updaterStarted = false
     private var completedUpdateVersion: String?
     private lazy var updateUserDriver = LocalizedUpdateUserDriver(localization: localization)
@@ -1059,6 +1060,7 @@ private final class RemoteBuddyAppDelegate: NSObject, NSApplicationDelegate, NSM
     }
 
     @objc private func checkForUpdates() {
+        packageFallbackCoordinator.resetForManualCheck()
         performUpdateCheck(.userInitiated)
     }
 
@@ -1160,11 +1162,53 @@ private final class RemoteBuddyAppDelegate: NSObject, NSApplicationDelegate, NSM
         updateInformation.setUpToDate()
     }
 
+    func updater(_ updater: SPUUpdater, willDownloadUpdate item: SUAppcastItem, with request: NSMutableURLRequest) {
+        if let fallbackURL = packageFallbackCoordinator.downloadURLOverride(
+            forVersion: item.versionString,
+            fileURL: item.fileURL
+        ) {
+            request.url = fallbackURL
+        }
+    }
+
+    func updater(_ updater: SPUUpdater, didDownloadUpdate item: SUAppcastItem) {
+        packageFallbackCoordinator.recordDownloadSucceeded(forVersion: item.versionString)
+        updateUserDriver.clearFallbackState()
+    }
+
+    func updater(_ updater: SPUUpdater, failedToDownloadUpdate item: SUAppcastItem, error: Error) {
+        if case .retryWithFallback = packageFallbackCoordinator.recordDownloadFailure(
+            forVersion: item.versionString,
+            fileURL: item.fileURL,
+            error: error
+        ) {
+            updateUserDriver.prepareForFallbackDownload(autoConfirmVersion: item.versionString)
+        } else {
+            updateUserDriver.clearFallbackState()
+        }
+    }
+
+    func userDidCancelDownload(_ updater: SPUUpdater) {
+        packageFallbackCoordinator.cancelFallback()
+        updateUserDriver.clearFallbackState()
+    }
+
     func updater(
         _ updater: SPUUpdater,
         didFinishUpdateCycleFor updateCheck: SPUUpdateCheck,
         error: Error?
     ) {
+        if error != nil, packageFallbackCoordinator.consumePendingRetry() {
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                if updateCheck == .updatesInBackground {
+                    self.updater.checkForUpdatesInBackground()
+                } else {
+                    self.performUpdateCheck(.userInitiated)
+                }
+            }
+            return
+        }
         if error != nil, updateInformation.state == .checking {
             updateInformation.setUnavailable()
         }

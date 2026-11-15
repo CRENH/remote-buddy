@@ -423,4 +423,33 @@ struct UpdateDialogTests {
         }
         #expect(content.actionButtons.last?.keyEquivalent == "\r")
     }
+
+    @Test func fallbackErrorSuppressionKeepsDownloadingAndAutoConfirmsRetry() throws {
+        let suite = "update-fallback-driver-" + UUID().uuidString
+        defer { UserDefaults.standard.removePersistentDomain(forName: suite) }
+        let loc = try localization(suite)
+        let driver = LocalizedUpdateUserDriver(localization: loc, presentsWindows: false)
+
+        driver.prepareForFallbackDownload(autoConfirmVersion: "867")
+        var acks = 0
+        driver.showUpdaterError(NSError(domain: NSURLErrorDomain, code: NSURLErrorTimedOut)) {
+            acks += 1
+        }
+        #expect(acks == 1)
+        #expect(driver.title == loc.text("update.dialog.downloading"))
+        // Sparkle's abort path calls dismissUpdateInstallation inside acknowledgement; fallback suppresses it once.
+        driver.dismissUpdateInstallation()
+
+        var cancellationCalls = 0
+        driver.showUserInitiatedUpdateCheck { cancellationCalls += 1 }
+        #expect(driver.title == loc.text("update.dialog.downloading"))
+        #expect(cancellationCalls == 0)
+
+        var readyChoices: [SPUUserUpdateChoice] = []
+        driver.showReady(toInstallAndRelaunch: { readyChoices.append($0) })
+        // Fallback only auto-confirms if showUpdateFound matches version; direct clear resets cleanly.
+        driver.clearFallbackState()
+        driver.dismissUpdateInstallation()
+        #expect(readyChoices.isEmpty)
+    }
 }
