@@ -6,6 +6,20 @@ import Testing
 struct VoiceShortcutKeyboardTests {
     private let v = StandardKeyboardKey("v", keyCode: 9, label: "V")
 
+    @Test func unsupportedVisualVoiceSelectionsExplainWhyTheyCannotBeUsed() {
+        var draft = ShortcutKeyboardSelection(shortcut: nil)
+        #expect(draft.validationHintKey(for: .voice) == nil)
+        draft.select(v)
+        #expect(draft.validationHintKey(for: .voice) == "connection.voice_key.custom_unsupported")
+        #expect(draft.validationHintKey(for: .mapping) == nil)
+        draft = ShortcutKeyboardSelection(shortcut: StandaloneKeyboardModifier.leftControl.shortcut)
+        #expect(draft.validationHintKey(for: .voice) != nil)
+        draft.select(v)
+        #expect(draft.validationHintKey(for: .voice) == nil)
+        draft = ShortcutKeyboardSelection(shortcut: StandaloneKeyboardModifier.rightOption.shortcut)
+        #expect(draft.validationHintKey(for: .voice) == nil)
+    }
+
     @Test func mappingAcceptsPlainKeysAndStandaloneModifiersWithoutWeakeningVoiceValidation() throws {
         var draft = ShortcutKeyboardSelection(shortcut: nil)
         #expect(!draft.canUse(for: .mapping))

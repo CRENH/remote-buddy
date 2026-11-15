@@ -1285,3 +1285,5 @@
 
 "shortcut.keyboard.title" = "Custom Shortcut";
 "shortcut.keyboard.choose" = "Choose Shortcut…";
+
+"voice.keyboard.fn_replaced" = "Fn is standalone only. This selection replaced the previously selected keys.";

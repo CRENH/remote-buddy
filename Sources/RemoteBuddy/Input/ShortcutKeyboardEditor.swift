@@ -59,6 +59,11 @@ struct ShortcutKeyboardSelection {
         return VoiceKeyMode.supportsShortcut(shortcut)
     }
 
+    func validationHintKey(for purpose: ShortcutKeyboardPurpose) -> String? {
+        guard purpose == .voice, key != nil || !modifiers.isEmpty, !canUse(for: purpose) else { return nil }
+        return "connection.voice_key.custom_unsupported"
+    }
+
     @MainActor func displayName(using localization: LocalizationStore) -> String {
         if key != nil, let shortcut {
             return shortcut.detailedDisplayName(using: localization, showsModifierSymbols: true)
@@ -115,6 +120,7 @@ struct KeyboardShortcutEditor: View {
     @State private var selection: ShortcutKeyboardSelection
     @State private var recording = false
     @State private var errorKey: String?
+    @State private var replacedFnSelection = false
 
     init(shortcut: CustomKeyboardShortcut?, purpose: ShortcutKeyboardPurpose = .voice, onSelect: @escaping (CustomKeyboardShortcut) -> Void,
          onCancel: @escaping () -> Void) {
@@ -145,7 +151,8 @@ struct KeyboardShortcutEditor: View {
                 ShortcutCaptureView(onCapture: { shortcut in
                     recording = false
                     selection = ShortcutKeyboardSelection(shortcut: shortcut)
-                    errorKey = selection.canUse(for: purpose) ? nil : "connection.voice_key.custom_unsupported"
+                    errorKey = nil
+                    replacedFnSelection = false
                 }, onFailure: { failure in
                     recording = false
                     errorKey = failure == .accessibilityPermissionRequired
@@ -160,8 +167,9 @@ struct KeyboardShortcutEditor: View {
                 }.padding(10)
                     .background(Color.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 12))
             }
-            if let errorKey {
-                Text(localization.text(errorKey)).font(.caption).foregroundStyle(.orange)
+            if let hint = errorKey ?? selection.validationHintKey(for: purpose)
+                ?? (replacedFnSelection ? "voice.keyboard.fn_replaced" : nil) {
+                Text(localization.text(hint)).font(.caption).foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             }
             HStack {
@@ -198,6 +206,9 @@ struct KeyboardShortcutEditor: View {
             keyButton(selected: selection.modifiers.contains(modifier), title: modifier.displayName(using: localization)) {
                 recording = false
                 errorKey = nil
+                replacedFnSelection = purpose == .voice && (
+                    (modifier == .function && (selection.key != nil || selection.modifiers.contains { $0 != .function })) ||
+                    (modifier != .function && selection.modifiers.contains(.function)))
                 selection.toggle(modifier, purpose: purpose)
             } label: {
                 VStack(spacing: 1) {
@@ -219,6 +230,7 @@ struct KeyboardShortcutEditor: View {
         keyButton(selected: selection.key?.keyCode == key.keyCode, title: key.keyLabel) {
             recording = false
             errorKey = nil
+            replacedFnSelection = purpose == .voice && selection.modifiers.contains(.function)
             selection.select(key, purpose: purpose)
         } label: {
             Text(key.keyCode == 49 ? localization.text("voice.keyboard.space") : (key.keyCode == 53 ? "esc" : key.visualLabel))

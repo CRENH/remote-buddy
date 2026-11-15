@@ -1286,3 +1286,5 @@
 
 "shortcut.keyboard.title" = "自定义快捷键";
 "shortcut.keyboard.choose" = "选择快捷键…";
+
+"voice.keyboard.fn_replaced" = "Fn 仅支持单独使用，已替换之前选择的按键。";
