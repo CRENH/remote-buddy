@@ -90,7 +90,15 @@ extension OnboardingView {
             return "onboarding.voice_tool.trigger_incompatible"
         }
         if voiceToolRequiresTapConfirmation { return "onboarding.voice_tool.tap_required" }
+        if !hasViewedInputMethodGuideSteps(viewedInputMethodGuideSteps) {
+            return "onboarding.voice_tool.guide.continue_hint"
+        }
         return nil
+    }
+
+    func hasViewedInputMethodGuideSteps(_ viewed: Set<Int>) -> Bool {
+        let steps = inputMethodGuideSteps(for: settings.onboardingVoiceTool)
+        return !steps.isEmpty && steps.allSatisfy { viewed.contains($0.id) }
     }
 
     var effectivePreferredGesture: VoiceGestureMode {

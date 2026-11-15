@@ -109,7 +109,7 @@ struct VoiceTriggerConfigurationTests {
         }
     }
 
-    @Test func toolSetupCanAdvanceWithoutViewingInstructionsButStillRequiresVoiceValidation() throws {
+    @Test func toolSetupRequiresEveryApplicableInstructionToBeViewed() throws {
         try withSettings { settings, _ in
             settings.setOnboardingControlSource(.xiaomiRemote)
             settings.setOnboardingVoiceTool(.weixin)
@@ -117,13 +117,19 @@ struct VoiceTriggerConfigurationTests {
             settings.selectOnboardingVoiceTrigger(.rightOption)
             let view = OnboardingView(model: BridgeAppModel(settings: settings, initialAudioDevices: []),
                 voiceToolAvailabilityOverride: [.weixin: .available], permissionOverrides: .allGranted)
-            #expect(view.voiceToolBlockingHintKey == nil)
-            #expect(view.canContinue)
+            #expect(view.voiceToolBlockingHintKey == "onboarding.voice_tool.guide.continue_hint")
+            #expect(!view.canContinue)
+            let ids = Set(view.inputMethodGuideSteps(for: .weixin).map(\.id))
+            #expect(view.hasViewedInputMethodGuideSteps(ids))
+            for id in ids {
+                #expect(!view.hasViewedInputMethodGuideSteps(ids.subtracting([id])))
+            }
             view.continueFlow()
-            #expect(settings.onboardingStep == .voiceTest)
-            #expect(settings.stagedVoiceToolBinding?.validationState == .staged)
+            #expect(settings.onboardingStep == .voiceTool)
             #expect(settings.voiceKeyMode == .function)
-            #expect(settings.effectiveVoiceKeyMode == .rightOption)
+            // Switching to Fn adds its system-conflict instruction to the required views.
+            settings.selectOnboardingVoiceTrigger(.function)
+            #expect(!view.hasViewedInputMethodGuideSteps(ids))
         }
     }
 
