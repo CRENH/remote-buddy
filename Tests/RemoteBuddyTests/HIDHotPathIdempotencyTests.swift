@@ -518,6 +518,48 @@ struct HIDHotPathIdempotencyTests {
         ))
     }
 
+    @Test func absentHIDServicesWaitWithoutRepeatedPermissionRecovery() throws {
+        let harness = try makeHarness(hasMatchingHIDServices: false)
+        defer { harness.cleanup() }
+        let model = harness.model
+        model.hidMonitoringInterrupted = true
+        model.applyHIDSettings()
+        let target = try #require(model.hidMonitors["test-remote"])
+        let discovery = try #require(model.discoveryHIDMonitor)
+        #expect(target.isMonitoring)
+        #expect(target.isWaitingForMatchingServices)
+        #expect(!model.hidMonitoringInterrupted)
+        #expect(model.hidStatus.key == "button_mapping.status.waiting_for_device")
+        #expect(model.appliedHIDMonitoringConfiguration?.waitForMatchingServices == true)
+        let starts = harness.counters.tapStartCount
+        for _ in 0..<3 { model.refreshHIDAfterPermissionChange() }
+        #expect(model.hidMonitors["test-remote"] === target)
+        #expect(model.discoveryHIDMonitor === discovery)
+        #expect(harness.counters.tapStartCount == starts)
+
+        // A later service arrival must replace the observer with a mapped monitor.
+        harness.counters.hasMatchingHIDServices = true
+        model.applyHIDSettings()
+        #expect(model.hidMonitors["test-remote"] !== target)
+        #expect(model.appliedHIDMonitoringConfiguration?.waitForMatchingServices == false)
+        #expect(model.hidPowerKeySuppressed)
+        #expect(model.hidMonitors["test-remote"]?.isWaitingForMatchingServices == false)
+        #expect(!model.hidMonitoringInterrupted)
+    }
+
+    @Test func presentServiceWithFailedMappingDoesNotBecomeHealthyWaitingState() throws {
+        let harness = try makeHarness(hasMatchingHIDServices: true)
+        defer { harness.cleanup() }
+        harness.counters.allowWrites = false
+        harness.counters.hidMappings = []
+        harness.model.hidMonitoringInterrupted = true
+        harness.model.applyHIDSettings()
+        #expect(harness.model.voiceFunctionMapper.hasMatchingServices)
+        #expect(harness.model.hidMonitors["test-remote"]?.isMonitoring == false)
+        #expect(harness.model.hidMonitoringInterrupted)
+        #expect(harness.model.appliedHIDMonitoringConfiguration == nil)
+    }
+
     @Test func voiceStartSkipsHIDTeardownWhenOrderedFnAlreadyNeutralizedAndRecoversWhenNeeded() throws {
         let harness = try makeHarness(
             customMappingEnabled: true,

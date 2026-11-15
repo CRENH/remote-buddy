@@ -183,6 +183,8 @@ final class HIDRemoteMonitor {
     var onMonitoringInterrupted: (() -> Void)?
     var onCandidateAvailable: (() -> Void)?
     var onDeviceConnected: ((UUID?, String) -> Void)?
+    private(set) var isWaitingForMatchingServices = false
+
     var isMonitoring: Bool { manager != nil }
     var onInternalAction: ((UUID?, ButtonAction) -> Void)?
     var onT1VoiceHoldChanged: ((UUID?, Bool) -> Void)?
@@ -269,7 +271,8 @@ final class HIDRemoteMonitor {
     func start(
         powerKeySuppressed: Bool,
         allowedLocationIDs: Set<UInt32>? = nil,
-        allowBackOnly: Bool = false
+        allowBackOnly: Bool = false,
+        waitForMatchingServices: Bool = false
     ) {
         stop()
         self.allowedLocationIDs = allowedLocationIDs
@@ -279,10 +282,15 @@ final class HIDRemoteMonitor {
             return
         }
         let targetModel = settings.remoteDeviceProfiles.first { $0.id == profileID }?.model
+        // An absent service is a normal reconnect state. Observe matching devices so
+        // their arrival can reapply mappings, but never open or route unsafe input.
+        let waitingForServices = waitForMatchingServices && !powerKeySuppressed &&
+            !backOnlyMode && targetFingerprint != nil && targetModel?.isChromecastRemote != true
+        isWaitingForMatchingServices = waitingForServices
         let families = Self.monitorFamilies(targetModel: targetModel,
-            powerKeySuppressed: powerKeySuppressed || backOnlyMode, allowsGoogle: allowsG9N9N)
+            powerKeySuppressed: powerKeySuppressed || backOnlyMode || waitingForServices, allowsGoogle: allowsG9N9N)
         let allowT1 = Self.monitorsT1Family(targetModel: targetModel,
-            powerKeySuppressed: powerKeySuppressed || backOnlyMode, allowsT1Remote: allowsT1Remote)
+            powerKeySuppressed: powerKeySuppressed || backOnlyMode || waitingForServices, allowsT1Remote: allowsT1Remote)
         let permissions = permissionSnapshot()
         let inputGranted = permissions.inputMonitoringGranted
         let accessibilityGranted = permissions.accessibilityGranted
@@ -350,12 +358,13 @@ final class HIDRemoteMonitor {
         self.manager = manager
         startPermissionMonitor()
         updateStatus(LocalizedMessage("button_mapping.status.waiting_for_device"))
-        AppLogger.shared.write("HID START mode=adaptive")
+        AppLogger.shared.write("HID START mode=\(waitingForServices ? "waiting_for_services" : "adaptive")")
     }
 
     isolated deinit { stop() }
 
     func stop() {
+        isWaitingForMatchingServices = false
         if ownsEventSuppressor { eventSuppressor.stop() }
         permissionPollSubscription?.cancel()
         permissionPollSubscription = nil
@@ -412,6 +421,7 @@ final class HIDRemoteMonitor {
         // HID may become visible after BLE readiness. Retry association outside the
         // matching callback because learning can restart the manager.
         DispatchQueue.main.async { [weak self] in self?.onCandidateAvailable?() }
+        guard !isWaitingForMatchingServices else { return }
         let deviceMetadata = metadata(for: device)
         currentReportIsGoogle = allowsG9N9N && isGoogleDevice(device, metadata: deviceMetadata)
         currentReportIsT1 = !currentReportIsGoogle && allowsT1Remote && isT1Device(device, metadata: deviceMetadata)
@@ -601,6 +611,7 @@ final class HIDRemoteMonitor {
             diagnosticLogger("HID REPORT rejected reason=monitor_inactive")
             return
         }
+        guard !isWaitingForMatchingServices else { return }
         guard settings.customMappingEnabled || backOnlyMode else {
             diagnosticLogger("HID REPORT rejected reason=mapping_disabled")
             return
