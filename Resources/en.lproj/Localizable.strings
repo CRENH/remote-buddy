@@ -1226,7 +1226,7 @@
 
 "shortcut.keyboard.main_key_required" = "Choose a main key, or keep just one standalone modifier.";
 
-"connection.voice_key.chord_help" = "Set the same chord and recording mode in your input tool, and avoid shortcuts already used by other apps.";
+"connection.voice_key.chord_help" = "Your input tool must support this chord in the selected recording mode. Set it to match and avoid shortcuts already used by other apps.";
 
 "shortcut.keyboard.help" = "Combine modifier and main keys, or record a shortcut directly. Left and right modifiers are distinct.";
 "shortcut.keyboard.use_shortcut" = "Use This Shortcut";

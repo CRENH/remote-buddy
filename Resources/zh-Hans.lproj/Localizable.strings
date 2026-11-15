@@ -1227,7 +1227,7 @@
 
 "shortcut.keyboard.main_key_required" = "请再选择一个普通按键，或只保留一个修饰键。";
 
-"connection.voice_key.chord_help" = "请在输入工具中设置相同组合键和录音方式，并避开其他应用已用的快捷键。";
+"connection.voice_key.chord_help" = "输入工具须支持此组合键和所选录音方式。请设置一致，并避开其他应用已用的快捷键。";
 
 "shortcut.keyboard.help" = "点击修饰键和普通按键来组合快捷键，也可以直接录入。左右按键分别设置。";
 "shortcut.keyboard.use_shortcut" = "使用此快捷键";
