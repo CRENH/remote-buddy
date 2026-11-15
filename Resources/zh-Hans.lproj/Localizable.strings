@@ -1232,7 +1232,6 @@
 "application_integration.voice_key_note" = "开启任一应用后，在所有应用里按住 Fn 说话，都会由遥控搭子处理。";
 "connection.voice_key.mode.custom" = "自定义组合键";
 "connection.voice_key.customize" = "自定义热键…";
-"connection.voice_key.custom_help" = "录入或选择一个带修饰键的组合，例如 Control + Shift + V。请在语音工具中设置相同热键，并匹配按住或点按模式。";
 "connection.voice_key.custom_unsupported" = "请选择带 Control、Shift、Option 或 Command 的普通按键组合；单独修饰键请使用 Fn、左右 Command 或左右 Option。组合键暂不支持 Fn。";
 "onboarding.voice_tool.selected_trigger_help" = "选择要发送给输入工具的热键。";
 "onboarding.voice_tool.trigger_incompatible" = "当前工具的触发模式不支持所选热键。macOS 听写的专用双击启动目前需要 Fn，请返回上一步调整热键或选择其他工具。";
@@ -1278,3 +1277,9 @@
 "onboarding.diagnostics.copied" = "诊断信息已复制，可粘贴到问题反馈中。";
 "onboarding.diagnostics.copy_failed" = "未能复制诊断信息，请重试。";
 "button_mapping.voice_button.configure" = "请在输入法集成向导中设置语音热键和点按模式。";
+"voice.keyboard.help" = "点击修饰键和主键来组合热键，也可以直接录入。左右按键分别设置。";
+"voice.keyboard.choose_keys" = "请选择热键";
+"voice.keyboard.stop_recording" = "停止录入";
+"voice.keyboard.use_shortcut" = "使用此热键";
+"voice.keyboard.space" = "空格";
+"voice.keyboard.title" = "自定义语音热键";

@@ -1,13 +1,11 @@
 import SwiftUI
 
-/// Shared by settings and the wizard so both edit the same trigger.
+/// Trigger choices and the keyboard editor for the integration wizard.
 struct VoiceTriggerPicker: View {
     let selection: VoiceKeyMode
     let onSelect: (VoiceKeyMode) -> Void
     @EnvironmentObject private var localization: LocalizationStore
     @State private var editing = false
-    @State private var recording = false
-    @State private var errorKey: String?
 
     private var choices: [VoiceKeyMode] {
         VoiceKeyMode.allCases.contains(selection) ? VoiceKeyMode.allCases : VoiceKeyMode.allCases + [selection]
@@ -31,50 +29,22 @@ struct VoiceTriggerPicker: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .sheet(isPresented: $editing) {
-            VStack(alignment: .leading, spacing: 14) {
-                Text(localization.text("connection.voice_key.customize")).font(.headline)
-                Text(localization.text("connection.voice_key.custom_help"))
-                HStack {
-                    Text(selection.displayName(using: localization)).font(.title3)
-                    Spacer()
-                    Button(localization.text(recording ? "onboarding.shortcut_learning.waiting" : "shortcut.action.record")) {
-                        errorKey = nil
-                        recording = true
-                    }
-                    .disabled(recording)
-                }
-                if recording {
-                    ShortcutCaptureView(onCapture: accept, onFailure: { failure in
-                        recording = false
-                        errorKey = failure == .accessibilityPermissionRequired
-                            ? "shortcut.editor.permission_required" : "shortcut.editor.capture_unavailable"
-                    })
-                    .frame(width: 1, height: 1)
-                }
-                if let errorKey {
-                    Text(localization.text(errorKey)).foregroundStyle(.orange)
-                }
-                ScrollView {
-                    KeyboardShortcutPicker(shortcut: customShortcut,
-                        showsStandardKeyboardInitially: true, onSelect: accept)
-                }
-                HStack {
-                    Spacer()
-                    Button(localization.text("common.action.close")) { recording = false; editing = false }
-                }
-            }
-            .padding(20)
-            .frame(width: 820, height: 600)
+            VoiceShortcutEditor(shortcut: editableShortcut, onSelect: accept, onCancel: { editing = false })
         }
     }
 
-    private var customShortcut: CustomKeyboardShortcut? {
-        if case let .shortcut(shortcut) = selection { return shortcut }
-        return nil
+    private var editableShortcut: CustomKeyboardShortcut {
+        switch selection {
+        case let .shortcut(shortcut): return shortcut
+        case .function: return StandaloneKeyboardModifier.function.shortcut
+        case .leftCommand: return StandaloneKeyboardModifier.leftCommand.shortcut
+        case .rightCommand: return StandaloneKeyboardModifier.rightCommand.shortcut
+        case .leftOption: return StandaloneKeyboardModifier.leftOption.shortcut
+        case .rightOption: return StandaloneKeyboardModifier.rightOption.shortcut
+        }
     }
 
     private func accept(_ shortcut: CustomKeyboardShortcut) {
-        recording = false
         if let modifier = shortcut.standaloneModifier,
            let mode = VoiceKeyMode(standaloneModifier: modifier) {
             onSelect(mode)
@@ -82,8 +52,6 @@ struct VoiceTriggerPicker: View {
         } else if VoiceKeyMode.supportsShortcut(shortcut) {
             onSelect(.shortcut(shortcut))
             editing = false
-        } else {
-            errorKey = "connection.voice_key.custom_unsupported"
         }
     }
 }

@@ -235,26 +235,33 @@ enum OnboardingScreenshotRenderer {
             }
             settings.setOnboardingStep(step)
             let actionProbe = OnboardingInteractionProbe(openURL: { _ in })
-            let rootView = OnboardingView(
-                model: model,
-                completeRuntimeReadyOverride: true,
-                allowsInputSourceSwitching: false,
-                systemFunctionKeyAvailableOverride: systemFunctionKeyAvailable,
-                voiceToolAvailabilityOverride: [
-                    .weixin: allVoiceToolsUnavailable ? .notInstalled : .available,
-                    .doubao: allVoiceToolsUnavailable ? .notInstalled : .available,
-                    .voiceBuddy: allVoiceToolsUnavailable ? .notInstalled : .available,
-                    .bageshuo: allVoiceToolsUnavailable ? .notInstalled : .available,
-                    .typeless: allVoiceToolsUnavailable ? .notInstalled : .available,
-                    .other: .unknown,
-                ],
-                initialInputMethodGuideStep: requestedGuideStep,
-                remoteInputDiagnosticOverride: remoteInputDiagnostic,
-                interactionProbe: actionProbe,
-                permissionOverrides: onboardingPermissionsOverride
-            )
-                .environmentObject(localization)
-                .frame(width: size.width, height: size.height)
+            let rootView = Group {
+                if ProcessInfo.processInfo.environment["REMOTE_BUDDY_ONBOARDING_SCREENSHOT_SHORTCUT_EDITOR"] == "1" {
+                    VoiceShortcutEditor(shortcut: CustomKeyboardShortcut(keyCode: 9,
+                        modifierFlags: [.control, .option], keyLabel: "V"), onSelect: { _ in }, onCancel: {})
+                } else {
+                    OnboardingView(
+                        model: model,
+                        completeRuntimeReadyOverride: true,
+                        allowsInputSourceSwitching: false,
+                        systemFunctionKeyAvailableOverride: systemFunctionKeyAvailable,
+                        voiceToolAvailabilityOverride: [
+                            .weixin: allVoiceToolsUnavailable ? .notInstalled : .available,
+                            .doubao: allVoiceToolsUnavailable ? .notInstalled : .available,
+                            .voiceBuddy: allVoiceToolsUnavailable ? .notInstalled : .available,
+                            .bageshuo: allVoiceToolsUnavailable ? .notInstalled : .available,
+                            .typeless: allVoiceToolsUnavailable ? .notInstalled : .available,
+                            .other: .unknown,
+                        ],
+                        initialInputMethodGuideStep: requestedGuideStep,
+                        remoteInputDiagnosticOverride: remoteInputDiagnostic,
+                        interactionProbe: actionProbe,
+                        permissionOverrides: onboardingPermissionsOverride
+                    )
+                }
+            }
+            .environmentObject(localization)
+            .frame(width: size.width, height: size.height)
             let hostingController = NSHostingController(rootView: rootView)
             let window = makeWindow(hostingController: hostingController, size: size)
 
