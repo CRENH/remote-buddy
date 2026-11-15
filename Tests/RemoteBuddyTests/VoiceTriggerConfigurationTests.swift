@@ -125,6 +125,23 @@ struct VoiceTriggerConfigurationTests {
         }
     }
 
+    @Test func anExpiredVoiceTrialCanReturnToToolSetupWithoutCommittingTheCandidate() throws {
+        try withSettings { settings, defaults in
+            settings.voiceKeyMode = .rightOption
+            settings.setOnboardingControlSource(.xiaomiRemote)
+            settings.setOnboardingVoiceTool(.weixin)
+            settings.selectOnboardingVoiceTrigger(.suggestedShortcut)
+            settings.setOnboardingStep(.voiceTest)
+            let view = OnboardingView(model: BridgeAppModel(settings: settings, initialAudioDevices: []))
+            #expect(!settings.isTestingVoiceTrigger)
+            #expect(!view.canContinue)
+            view.returnToVoiceToolConfiguration()
+            #expect(settings.onboardingStep == .voiceTool)
+            #expect(settings.voiceKeyMode == .rightOption)
+            #expect(AppSettings(defaults: defaults).voiceKeyMode == .rightOption)
+        }
+    }
+
     @Test func toolSetupRequiresEveryApplicableInstructionToBeViewed() throws {
         try withSettings { settings, _ in
             settings.setOnboardingControlSource(.xiaomiRemote)

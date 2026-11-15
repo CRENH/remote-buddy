@@ -1297,3 +1297,6 @@
 "voice.keyboard.caps_unsupported" = "语音热键不支持 Caps Lock，请选择其他按键。";
 "shortcut.standalone_modifier.left_control_short" = "左 Ctrl";
 "shortcut.standalone_modifier.right_control_short" = "右 Ctrl";
+
+"onboarding.voice_test.trial_missing" = "本次语音测试配置已失效，请返回输入工具重新配置后再测试。";
+"onboarding.voice_test.reconfigure" = "返回配置输入工具";

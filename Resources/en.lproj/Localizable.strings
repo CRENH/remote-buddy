@@ -1296,3 +1296,6 @@
 "voice.keyboard.caps_unsupported" = "Caps Lock cannot be used as a voice shortcut. Choose another key.";
 "shortcut.standalone_modifier.left_control_short" = "Left Ctrl";
 "shortcut.standalone_modifier.right_control_short" = "Right Ctrl";
+
+"onboarding.voice_test.trial_missing" = "The voice test configuration is no longer active. Return to input tool setup before testing again.";
+"onboarding.voice_test.reconfigure" = "Return to Input Tool Setup";
