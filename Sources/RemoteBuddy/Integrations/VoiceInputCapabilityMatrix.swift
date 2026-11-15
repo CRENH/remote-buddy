@@ -65,16 +65,6 @@ struct RemoteVoiceCapabilities: Equatable {
     }
 }
 
-/// 「点按模式」的适用性：界面据此决定是否展示该开关。
-///
-/// 该开关存在的唯一理由是把遥控器的「按住」模拟成「点按」，去驱动只认点按的输入工具。
-/// 因此只有在**不支持按一次收音**的遥控器档案页面上才适用。
-enum VoiceFunctionKeyTapApplicability {
-    static func isApplicable(capabilities: RemoteVoiceCapabilities) -> Bool {
-        !capabilities.supportsToggleVoiceRecording
-    }
-}
-
 /// 触摸面类设置（滑动箭头、光标反馈）的适用性。
 enum TouchSurfaceControlApplicability {
     /// 页面请求了触摸类控件、且该遥控器确实有触摸面时才显示。

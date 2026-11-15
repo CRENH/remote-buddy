@@ -172,7 +172,7 @@ enum SettingsScreenshotRenderer {
             settings.customMappingEnabled = true
             settings.setAction(.customShortcut, for: .ok, trigger: .singleClick)
             settings.setShortcut(
-                KeyboardShortcutPreset.spotlight.shortcut,
+                CustomKeyboardShortcut(keyCode: 49, modifierFlags: .command, keyLabel: "Space"),
                 for: .ok,
                 trigger: .singleClick
             )

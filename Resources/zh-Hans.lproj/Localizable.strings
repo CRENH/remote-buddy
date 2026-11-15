@@ -283,7 +283,6 @@
 "common.status.ready" = "已就绪";
 "connection.status.voice_trigger" = "语音触发";
 "connection.voice_fn_tap.enabled" = "点按模式";
-"connection.voice_fn_tap.hint" = "适配按一下开始、再按一下结束的工具：收音开始时点按一次所选语音热键，停止收音并送完尾部音频后，再点按一次结束识别。热键和点按模式需要与输入工具一起测试。";
 "connection.voice_fn_tap.hint_short" = "开启：自动点按热键开始和结束；关闭：收音期间持续按住热键。";
 "connection.voice_key_mode.title" = "语音热键";
 "connection.voice_key.mode.fn" = "Fn/地球键";
@@ -292,7 +291,6 @@
 "connection.voice_key.mode.left_option" = "左 Option (⌥)";
 "connection.voice_key.mode.right_option" = "右 Option (⌥)";
 "connection.voice_key_mode.help" = "下一步请在输入工具中设置相同语音热键和录音方式。";
-"connection.voice_key_mode.unverified" = "修饰键模式尚未验证";
 "onboarding.voice_trigger.save_hint" = "通过后续语音测试后，新设置才会生效。";
 "connection.voice_key_mode.command_permission" = "修饰键模式需要辅助功能权限";
 "connection.action.reconnect" = "立即重新连接";
@@ -348,7 +346,6 @@
 "trigger.other_actions" = "%1$@其他触发";
 "trigger.hold_repeat_disabled" = "按住重复已停用";
 "trigger.timing.help" = "双击会等待约 0.3 秒确认单击；长按约 0.55 秒触发。未配置时保持原有即时响应。";
-"shortcut.action.click_to_record" = "点击录入";
 "permissions.page.title" = "权限与隐私";
 "permissions.page.subtitle" = "按顺序完成权限设置，确保遥控器正常连接和发送按键";
 "permissions.required.title" = "所需权限";
@@ -372,10 +369,6 @@
 "common.status.connected" = "已连接";
 "common.status.connecting" = "连接中";
 "common.status.preparing" = "准备中";
-"shortcut.editor.title" = "录入%1$@%2$@快捷键";
-"shortcut.editor.instructions" = "直接按下单个按键或组合键；左/右 Command、Option、Control、Shift 和 Fn 也可以单独录入。";
-"shortcut.editor.waiting" = "等待按键…";
-"shortcut.editor.click_first_help" = "可直接选择常用组合，或在标准键盘中选择主按键，组合键可以留空；也可以继续使用键盘录入。";
 "shortcut.editor.not_recorded" = "尚未录入";
 "shortcut.editor.recording_prompt" = "现在请按下单个按键、组合键或单独修饰键；本次按键不会触发原本绑定的动作。";
 "shortcut.editor.success" = "快捷键录入成功";
@@ -392,8 +385,6 @@
 "shortcut.picker.keyboard.extended_functions" = "扩展功能键";
 "shortcut.picker.keyboard.number_pad" = "数字键盘";
 "shortcut.picker.keyboard.key_accessibility" = "选择快捷键 %1$@";
-"shortcut.picker.standalone_modifiers.title" = "单独修饰键";
-"shortcut.picker.standalone_modifiers.help" = "用于只短按并释放一个左侧或右侧修饰键，不需要在实体键盘上录入。";
 "shortcut.modifier.control" = "Control";
 "shortcut.modifier.option" = "Option";
 "shortcut.modifier.shift" = "Shift";
@@ -408,21 +399,6 @@
 "shortcut.standalone_modifier.left_shift" = "左 Shift";
 "shortcut.standalone_modifier.right_shift" = "右 Shift";
 "shortcut.standalone_modifier.function" = "Fn";
-"shortcut.preset.copy" = "复制";
-"shortcut.preset.paste" = "粘贴";
-"shortcut.preset.cut" = "剪切";
-"shortcut.preset.undo" = "撤销";
-"shortcut.preset.redo" = "重做";
-"shortcut.preset.select_all" = "全选";
-"shortcut.preset.save" = "保存";
-"shortcut.preset.find" = "查找";
-"shortcut.preset.app_switcher" = "切换 APP";
-"shortcut.preset.spotlight" = "聚焦搜索";
-"shortcut.preset.close_window" = "关闭窗口";
-"shortcut.preset.quit_application" = "退出 APP";
-"shortcut.preset.lock_screen" = "锁定屏幕";
-"shortcut.preset.capture_area" = "截取区域";
-"shortcut.preset.force_quit" = "强制退出";
 "common.action.clear" = "清除";
 "common.action.cancel" = "取消";
 "common.action.save" = "保存";
@@ -464,10 +440,8 @@
 
 "settings.overview.title" = "当前状态检查";
 "settings.overview.remote" = "遥控器连接";
-"settings.overview.mapping" = "按键映射";
 "settings.overview.integration" = "输入法集成";
 "settings.overview.disconnected" = "未连接";
-"settings.overview.optional" = "可选 · 未启用";
 "settings.overview.not_configured" = "未设置";
 "settings.general.display_group" = "应用显示";
 "settings.general.language_group" = "语言";
@@ -571,14 +545,6 @@
 "onboarding.action.start" = "开始设置";
 "onboarding.action.continue" = "继续";
 "onboarding.action.open_app" = "打开遥控搭子";
-"onboarding.welcome.title" = "让手边的设备成为随手可用的\n遥控搭子";
-"onboarding.welcome.detail" = "我们会一起选择控制方式，完成权限、语音输出设备和真实语音检查，让你第一次使用时就知道每一部分都在正常工作。";
-"onboarding.welcome.feature.voice" = "按住语音键，直接在常用工具里说话输入";
-"onboarding.welcome.feature.controls" = "用遥控器按键控制方向、音量和常用操作";
-"onboarding.welcome.feature.verify" = "每项设置都现场检查，出问题时直接告诉你原因";
-"onboarding.welcome.ai_prompt.action" = "让 AI 工具帮我配置";
-"onboarding.welcome.ai_prompt.copied" = "配置提示已复制，请粘贴到常用的 AI 工具。";
-"onboarding.welcome.ai_prompt.failed" = "复制失败，请重试。";
 "onboarding.voice_tool.title" = "你准备在哪个工具里说话？";
 "onboarding.voice_tool.detail" = "选择输入工具，并按右侧说明完成设置。";
 "onboarding.voice_tool.none_detected" = "未检测到已安装的微信输入法、豆包输入法、网易叭哥说或 Typeless。你仍可选择“其他语音工具”，但请先安装并打开一个支持语音输入的工具。";
@@ -644,12 +610,6 @@
 "onboarding.voice_tool.bageshuo.install_detail" = "未检测到已安装的网易叭哥说：";
 "onboarding.voice_tool.fn_tap_banner" = "已启用点按转换：收音开始时点按一次“%@”，收音结束且尾部音频送完后再点按一次。请按遥控器的正常方式开始和结束收音。";
 "onboarding.voice_tool.status.unknown" = "请打开工具后继续";
-"onboarding.voice_tool.binding.title" = "快捷键配置来源";
-"onboarding.voice_tool.binding.recommended" = "使用推荐配置";
-"onboarding.voice_tool.binding.recommended_detail" = "遥控搭子会根据控制设备和已记录的工具默认值生成配置，真实文字测试通过后才保存。";
-"onboarding.voice_tool.binding.no_documented_default" = "没有可安全自动采用的默认快捷键。";
-"onboarding.voice_tool.binding.evidence_verified" = "推荐";
-"onboarding.voice_tool.binding.evidence_pending" = "测试通过后保存";
 "onboarding.control_source.title" = "选择遥控器型号";
 "onboarding.control_source.detail" = "请选择要使用的遥控器，然后点击“继续”。";
 "onboarding.control_source.alternatives" = "备用方式";
@@ -669,20 +629,6 @@
 "onboarding.control_source.chromecast_remote.detail" = "支持按住说话或按一次说话。";
 "onboarding.gesture.hold" = "按住说话";
 "onboarding.gesture.toggle" = "按一次说话";
-"onboarding.pairing_plan.summary" = "%1$@ · %2$@ · %3$@";
-"onboarding.pairing_plan.fn_tap_on" = "已启用点按转换";
-"onboarding.pairing_plan.fn_tap_off" = "无需点按转换";
-"onboarding.pairing_plan.pending_evidence" = "语音文字测试通过后保存这套设置。";
-"onboarding.shortcut_learning.title" = "学习你当前的语音快捷键";
-"onboarding.shortcut_learning.detail" = "先选择按住或按一次，再点击开始并完整按下当前工具的快捷键。遥控搭子不会读取第三方工具的私有设置。";
-"onboarding.shortcut_learning.start" = "开始学习快捷键";
-"onboarding.shortcut_learning.waiting" = "请按下当前语音快捷键…";
-"onboarding.shortcut_learning.captured" = "已识别：%1$@";
-"onboarding.shortcut_learning.unsupported" = "请选择 Fn、左右 Command／Option，或带修饰键的普通按键组合。";
-"onboarding.shortcut_learning.incompatible" = "这个快捷键和所选控制设备的说话方式无法可靠转换，请更换模式或快捷键。";
-"onboarding.shortcut_learning.permission_required" = "需要先授予辅助功能权限。";
-"onboarding.shortcut_learning.unavailable" = "暂时无法监听快捷键，请重新授权后重试。";
-"onboarding.voice_test.configuration.binding_expected" = "%1$@ · %2$@";
 "onboarding.remote_availability.illustration" = "优先使用实体遥控器";
 "onboarding.permissions.title" = "权限与麦克风";
 "onboarding.permissions.detail" = "先开启蓝牙、输入监控和辅助功能权限，并确认虚拟麦克风驱动及音频输出就绪，再连接设备。";
@@ -725,7 +671,6 @@
 "onboarding.remote.open_bluetooth" = "打开蓝牙设置";
 "onboarding.audio.title" = "检查虚拟麦克风";
 "onboarding.audio.detail" = "Remote Buddy Mic 就是遥控搭子的虚拟麦克风。应用会自动检查并准备，无需另外选择音频设备。";
-"onboarding.audio.device_detail" = "请安装 Remote Buddy Mic 驱动，安装后仍未检测到设备时，请重启 Mac。";
 "onboarding.audio.no_devices" = "未检测到支持的虚拟音频设备";
 "onboarding.audio.selected" = "已选择 %1$@";
 "onboarding.audio.select_required" = "未检测到 Remote Buddy Mic";
@@ -738,13 +683,6 @@
 "onboarding.voice_test.gain.detail" = "增益会放大遥控搭子送到语音工具的声音。小声或气声不容易识别时，可先试 6–12 dB；过高也会放大环境噪声，调节后再说一句测试。";
 "onboarding.voice_test.gain.help" = "调整会立即用于后续语音。";
 "onboarding.voice_test.other_detail" = "请在“%@”所用的其他语音工具中开启语音输入，并在工具设置里把“%@”选为麦克风。";
-"onboarding.voice_test.configuration.title" = "测试前核对：遥控搭子与%@必须一致";
-"onboarding.voice_test.configuration.detail" = "请在%@中确认语音输入方式和麦克风与页面提示一致，确认后再开始测试。";
-"onboarding.voice_test.configuration.buddy_audio_output" = "遥控搭子音频输出";
-"onboarding.voice_test.configuration.audio_output_not_ready" = "%@（尚未连接）";
-"onboarding.voice_test.configuration.voice_gesture_checkbox" = "我已确认语音工具使用上方显示的操作方式";
-"onboarding.voice_test.configuration.global_voice_checkbox" = "我已确认豆包已开启“全局唤起语音”";
-"onboarding.voice_test.configuration.no_commit" = "没有收到文字。请重新核对上面的语音输入方式、全局唤起和麦克风设置。";
 "onboarding.voice_test.microphone_confirmation.title" = "输入工具还必须选择同一个麦克风";
 "onboarding.voice_tool.guide.select_microphone" = "选择输入工具的麦克风";
 "onboarding.voice_test.microphone_confirmation.detail" = "遥控搭子选择“%@”只负责输出遥控器声音，不会修改%@自己的麦克风设置。请先在该工具设置中把麦克风也改为“%@”。";
@@ -1140,7 +1078,6 @@
 "onboarding.voice_prompt.generic.hold" = "按住语音键说话，说完松开。";
 "onboarding.voice_prompt.generic.toggle" = "按一下语音键开始说话，再按一下结束。";
 
-"onboarding.audio.checking" = "正在准备，请稍候。";
 
 "onboarding.action.dismiss" = "退出向导";
 "onboarding.add_device.complete.title" = "设备添加完成";

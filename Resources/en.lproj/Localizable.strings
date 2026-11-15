@@ -283,7 +283,6 @@
 "common.status.ready" = "Ready";
 "connection.status.voice_trigger" = "Voice trigger";
 "connection.voice_fn_tap.enabled" = "Tap Mode";
-"connection.voice_fn_tap.hint" = "For tools that press once to start and again to stop: tap the selected voice shortcut when recording starts, then tap it again after recording ends and buffered audio drains. Test the shortcut and tap mode together with your input tool.";
 "connection.voice_fn_tap.hint_short" = "On: tap the shortcut to start and stop. Off: hold it throughout recording.";
 "connection.voice_key_mode.title" = "Voice Shortcut";
 "connection.voice_key.mode.fn" = "Fn/Globe";
@@ -292,7 +291,6 @@
 "connection.voice_key.mode.left_option" = "Left Option (⌥)";
 "connection.voice_key.mode.right_option" = "Right Option (⌥)";
 "connection.voice_key_mode.help" = "Set the same voice shortcut and recording mode in your input tool in the next step.";
-"connection.voice_key_mode.unverified" = "Check Your Voice Trigger Key";
 "onboarding.voice_trigger.save_hint" = "New settings take effect after the voice test passes.";
 "connection.voice_key_mode.command_permission" = "Modifier-key mode requires Accessibility permission";
 "connection.action.reconnect" = "Reconnect Now";
@@ -348,7 +346,6 @@
 "trigger.other_actions" = "Other %1$@ Actions";
 "trigger.hold_repeat_disabled" = "Hold-to-repeat is disabled";
 "trigger.timing.help" = "A single press waits about 0.3 seconds when a double-press action is set. A long press takes about 0.55 seconds. Buttons without these actions respond immediately.";
-"shortcut.action.click_to_record" = "Click to Record";
 "permissions.page.title" = "Permissions & Privacy";
 "permissions.page.subtitle" = "Grant these permissions in order so the remote can connect and send button actions";
 "permissions.required.title" = "Required Permissions";
@@ -372,10 +369,6 @@
 "common.status.connected" = "Connected";
 "common.status.connecting" = "Connecting";
 "common.status.preparing" = "Preparing";
-"shortcut.editor.title" = "Record a %1$@ %2$@ Shortcut";
-"shortcut.editor.instructions" = "Press a single key or key combination. Left/right Command, Option, Control, Shift, and Fn can also be recorded alone.";
-"shortcut.editor.waiting" = "Waiting for Keys…";
-"shortcut.editor.click_first_help" = "Choose a common shortcut or select a key below. Add modifier keys if needed. You can also record a shortcut with your keyboard.";
 "shortcut.editor.not_recorded" = "Not Recorded";
 "shortcut.editor.recording_prompt" = "Press a single key, key combination, or standalone modifier now. This key press will not trigger its existing action.";
 "shortcut.editor.success" = "Shortcut recorded successfully";
@@ -392,8 +385,6 @@
 "shortcut.picker.keyboard.extended_functions" = "Extended Function Keys";
 "shortcut.picker.keyboard.number_pad" = "Numeric Keypad";
 "shortcut.picker.keyboard.key_accessibility" = "Choose shortcut %1$@";
-"shortcut.picker.standalone_modifiers.title" = "Standalone Modifier Keys";
-"shortcut.picker.standalone_modifiers.help" = "Tap and release one left- or right-side modifier without recording it on a physical keyboard.";
 "shortcut.modifier.control" = "Control";
 "shortcut.modifier.option" = "Option";
 "shortcut.modifier.shift" = "Shift";
@@ -408,21 +399,6 @@
 "shortcut.standalone_modifier.left_shift" = "Left Shift";
 "shortcut.standalone_modifier.right_shift" = "Right Shift";
 "shortcut.standalone_modifier.function" = "Fn";
-"shortcut.preset.copy" = "Copy";
-"shortcut.preset.paste" = "Paste";
-"shortcut.preset.cut" = "Cut";
-"shortcut.preset.undo" = "Undo";
-"shortcut.preset.redo" = "Redo";
-"shortcut.preset.select_all" = "Select All";
-"shortcut.preset.save" = "Save";
-"shortcut.preset.find" = "Find";
-"shortcut.preset.app_switcher" = "Switch Apps";
-"shortcut.preset.spotlight" = "Spotlight";
-"shortcut.preset.close_window" = "Close Window";
-"shortcut.preset.quit_application" = "Quit App";
-"shortcut.preset.lock_screen" = "Lock Screen";
-"shortcut.preset.capture_area" = "Capture Area";
-"shortcut.preset.force_quit" = "Force Quit";
 "common.action.clear" = "Clear";
 "common.action.cancel" = "Cancel";
 "common.action.save" = "Save";
@@ -464,10 +440,8 @@
 
 "settings.overview.title" = "Readiness status";
 "settings.overview.remote" = "Remote connection";
-"settings.overview.mapping" = "Button mapping";
 "settings.overview.integration" = "Input integration";
 "settings.overview.disconnected" = "Disconnected";
-"settings.overview.optional" = "Optional · not enabled";
 "settings.overview.not_configured" = "Not configured";
 "settings.general.display_group" = "App display";
 "settings.general.language_group" = "Language";
@@ -571,14 +545,6 @@
 "onboarding.action.start" = "Start Setup";
 "onboarding.action.continue" = "Continue";
 "onboarding.action.open_app" = "Open Remote Buddy";
-"onboarding.welcome.title" = "Turn your remote into a wireless mic";
-"onboarding.welcome.detail" = "Choose how to control your Mac, grant permissions, set up audio, and test voice typing.";
-"onboarding.welcome.feature.voice" = "Dictate into the apps you already use";
-"onboarding.welcome.feature.controls" = "Use remote buttons for navigation, volume, and everyday actions";
-"onboarding.welcome.feature.verify" = "Verify each setting live and see exactly what needs attention";
-"onboarding.welcome.ai_prompt.action" = "Let an AI tool configure it";
-"onboarding.welcome.ai_prompt.copied" = "Prompt copied. Paste it into your usual AI tool.";
-"onboarding.welcome.ai_prompt.failed" = "Copy failed; try again";
 "onboarding.voice_tool.title" = "Which app do you use for voice typing?";
 "onboarding.voice_tool.detail" = "Choose an input tool and follow the setup steps on the right.";
 "onboarding.voice_tool.none_detected" = "No supported voice typing app was detected. You can still choose Other Voice App, but please install and open a supported voice tool before testing.";
@@ -645,12 +611,6 @@
 "onboarding.voice_tool.bageshuo.install_detail" = "NetEase Bageshuo is not detected on your Mac:";
 "onboarding.voice_tool.fn_tap_banner" = "Tap conversion is enabled: tap “%@” when recording starts, then again after recording ends and buffered audio drains. Start and stop recording using the remote’s normal controls.";
 "onboarding.voice_tool.status.unknown" = "Open the tool to continue";
-"onboarding.voice_tool.binding.title" = "Shortcut configuration";
-"onboarding.voice_tool.binding.recommended" = "Use Recommended";
-"onboarding.voice_tool.binding.recommended_detail" = "Remote Buddy builds a configuration from the controller and documented tool defaults, then saves it only after real text appears.";
-"onboarding.voice_tool.binding.no_documented_default" = "There is no safe documented default.";
-"onboarding.voice_tool.binding.evidence_verified" = "Recommended";
-"onboarding.voice_tool.binding.evidence_pending" = "Saved after testing";
 "onboarding.control_source.title" = "Choose Your Remote Model";
 "onboarding.control_source.detail" = "Choose your remote, then click Continue.";
 "onboarding.control_source.alternatives" = "Alternatives";
@@ -670,20 +630,6 @@
 "onboarding.control_source.chromecast_remote.detail" = "Choose hold-to-talk or tap once to start and again to stop.";
 "onboarding.gesture.hold" = "Hold to Talk";
 "onboarding.gesture.toggle" = "Press to Start/Stop";
-"onboarding.pairing_plan.summary" = "%1$@ · %2$@ · %3$@";
-"onboarding.pairing_plan.fn_tap_on" = "Tap conversion enabled";
-"onboarding.pairing_plan.fn_tap_off" = "Tap conversion not needed";
-"onboarding.pairing_plan.pending_evidence" = "This setup is saved after the voice-and-text test passes.";
-"onboarding.shortcut_learning.title" = "Learn your current voice shortcut";
-"onboarding.shortcut_learning.detail" = "Choose hold or toggle, start learning, then press the complete shortcut. Remote Buddy does not read private settings from another app.";
-"onboarding.shortcut_learning.start" = "Start Learning";
-"onboarding.shortcut_learning.waiting" = "Press the current voice shortcut…";
-"onboarding.shortcut_learning.captured" = "Captured: %1$@";
-"onboarding.shortcut_learning.unsupported" = "Choose Fn, left/right Command or Option, or a regular key with modifiers.";
-"onboarding.shortcut_learning.incompatible" = "This shortcut cannot be converted reliably for the selected controller. Choose another behavior or shortcut.";
-"onboarding.shortcut_learning.permission_required" = "Grant Accessibility permission first.";
-"onboarding.shortcut_learning.unavailable" = "Shortcut capture is unavailable. Re-authorize and try again.";
-"onboarding.voice_test.configuration.binding_expected" = "%1$@ · %2$@";
 "onboarding.remote_availability.illustration" = "Use a physical remote when available";
 "onboarding.permissions.title" = "Permissions and Microphone";
 "onboarding.permissions.detail" = "Grant Bluetooth, Input Monitoring, and Accessibility permissions, then check the virtual microphone driver and audio output before connecting a device.";
@@ -726,7 +672,6 @@
 "onboarding.remote.open_bluetooth" = "Open Bluetooth Settings";
 "onboarding.audio.title" = "Check the Virtual Microphone";
 "onboarding.audio.detail" = "Remote Buddy Mic is the app’s virtual microphone. It is checked and prepared automatically; no separate audio device selection is needed.";
-"onboarding.audio.device_detail" = "Install the Remote Buddy Mic driver, then restart your Mac if the device is still missing.";
 "onboarding.audio.no_devices" = "No supported virtual audio device was detected";
 "onboarding.audio.selected" = "%1$@ selected";
 "onboarding.audio.select_required" = "Remote Buddy Mic was not detected";
@@ -739,13 +684,6 @@
 "onboarding.voice_test.gain.detail" = "Gain boosts quiet or breathy speech. Try 6–12 dB; too much also raises background noise.";
 "onboarding.voice_test.gain.help" = "The new value applies to subsequent voice input immediately.";
 "onboarding.voice_test.other_detail" = "In the other voice app using %@, enable voice typing and choose %@ as its microphone.";
-"onboarding.voice_test.configuration.title" = "Check %@ before speaking";
-"onboarding.voice_test.configuration.detail" = "In %@, confirm that the speaking behavior and microphone match the guidance above.";
-"onboarding.voice_test.configuration.buddy_audio_output" = "Remote Buddy audio output";
-"onboarding.voice_test.configuration.audio_output_not_ready" = "%@ (not connected)";
-"onboarding.voice_test.configuration.voice_gesture_checkbox" = "I confirmed the voice app uses the action shown above";
-"onboarding.voice_test.configuration.global_voice_checkbox" = "I confirmed Doubao has global voice activation enabled";
-"onboarding.voice_test.configuration.no_commit" = "No text appeared. Recheck the voice input behavior, global activation, and microphone settings above.";
 "onboarding.voice_test.microphone_confirmation.title" = "The voice app must use the same microphone";
 "onboarding.voice_tool.guide.select_microphone" = "Choose the voice app's microphone";
 "onboarding.voice_tool.guide.screenshot.weixin_input_microphone" = "In WeType → Voice Input → Microphone, select Remote Buddy Mic.";
@@ -1134,7 +1072,6 @@
 
 "onboarding.audio.automatic_ready" = "Ready. Click Continue to proceed.";
 
-"onboarding.audio.checking" = "Preparing. Please wait.";
 "onboarding.voice_prompt.t1.fn_tap" = "Press and release the T1 voice button to start speaking, then press it once more to stop (tap conversion enabled).";
 "onboarding.voice_prompt.t1.hold" = "Press and release the T1 voice button to start speaking, then press it once more to stop (Remote Buddy holds the voice key for you while speaking).";
 "onboarding.voice_prompt.generic.fn_tap" = "Hold the voice button while speaking, then release it (tap conversion enabled).";

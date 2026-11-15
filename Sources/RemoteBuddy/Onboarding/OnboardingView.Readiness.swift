@@ -221,21 +221,4 @@ extension OnboardingView {
         default: return "onboarding.action.continue"
         }
     }
-
-    private var aiPromptCopyStatusKey: String {
-        switch aiPromptCopyResult {
-        case true: return "onboarding.welcome.ai_prompt.copied"
-        case false: return "onboarding.welcome.ai_prompt.failed"
-        case nil: return "onboarding.welcome.ai_prompt.action"
-        }
-    }
-
-    private func copyAIAssistantPrompt() {
-        let prompt = OnboardingAIAssistantPrompt.text(for: localization.locale)
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        let copied = pasteboard.setString(prompt, forType: .string)
-        aiPromptCopyResult = copied
-        AppLogger.shared.write("ONBOARDING AI_PROMPT copied=\(copied)")
-    }
 }

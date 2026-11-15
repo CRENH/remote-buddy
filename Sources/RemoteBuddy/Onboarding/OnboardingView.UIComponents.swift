@@ -138,17 +138,6 @@ extension OnboardingView {
             .fixedSize(horizontal: false, vertical: true)
     }
 
-    func featureLine(_ icon: String, _ titleKey: String) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 17, weight: .medium))
-                .foregroundStyle(Color.accentColor)
-                .frame(width: 26)
-            Text(localization.text(titleKey))
-                .font(.system(size: 14, weight: .medium))
-        }
-    }
-
     func permissionRow(
         id: String,
         icon: String,

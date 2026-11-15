@@ -60,7 +60,6 @@ struct OnboardingView: View {
     @State var buttonHelpExpanded = false
     @State var wechatHelpExpanded = false
     @State var microphonePreparationInProgress = false
-    @State var aiPromptCopyResult: Bool?
     @State var isPermissionRelaunchConfirmationPresented = false
 
     init(

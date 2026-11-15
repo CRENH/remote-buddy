@@ -267,25 +267,6 @@ extension OnboardingView {
         }
     }
 
-    private func controllerButtonStatusCard(waitingDetailKey: String) -> some View {
-        statusCard(
-            icon: observedRemoteButtons.isEmpty
-                ? "button.programmable"
-                : "checkmark.circle.fill",
-            title: localization.text(
-                observedRemoteButtons.isEmpty
-                    ? "onboarding.remote.button_waiting"
-                    : "onboarding.remote.button_received"
-            ),
-            detail: localization.text(
-                observedRemoteButtons.isEmpty
-                    ? waitingDetailKey
-                    : "onboarding.remote.button_detail"
-            ),
-            isComplete: !observedRemoteButtons.isEmpty
-        )
-    }
-
     private var openBluetoothSettingsButton: some View {
         onboardingActionButton(id: "bluetooth.settings.open") {
             openBluetoothSettings()
