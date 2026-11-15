@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Remote Buddy Supported Remotes &amp; Model Comparison · macOS</title>
+  <meta name="description" content="Compare supported, partially supported, and planned Bluetooth remote models for Remote Buddy on macOS, including voice-button hold vs. toggle behavior and button mapping support.">
+  <link rel="icon" href="../assets/app-icon.png">
+  <link rel="stylesheet" href="../style.css?v=261115">
+</head>
+<body>
+<header class="nav wrap">
+  <a class="brand" href="../index.en.html"><img src="../assets/app-icon.png" alt="" width="38" height="38"><span>Remote Buddy<small>Voice within reach</small></span></a>
+  <nav>
+    <a href="../index.en.html#interface">Interface</a>
+    <a href="../index.en.html#start">Quick start</a>
+    <a href="../downloads/index.en.html">Download</a>
+    <span class="language-switch"><a href="index.html">中文</a><span>|</span><b>English</b></span>
+  </nav>
+</header>
+
+<main class="wrap downloads-wrap">
+  <div class="downloads-head">
+    <p class="eyebrow">HARDWARE COMPATIBILITY · macOS</p>
+    <h1 class="section-title">Supported remotes by model</h1>
+    <p class="lead-sub">Review current support status, whether the physical voice key must remain held, and button-mapping behavior for the five remote models in scope.</p>
+  </div>
+
+  <div class="devices-table-wrap">
+    <table class="devices-table">
+      <thead>
+        <tr>
+          <th>Device &amp; Model</th>
+          <th>Status</th>
+          <th>Must physical voice key stay held?</th>
+          <th>Mapping &amp; integration notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Xiaomi Bluetooth Remote 2 Pro</strong><br><span class="device-model-code">RC003</span></td>
+          <td><span class="device-status is-supported">Supported</span></td>
+          <td><strong>Yes</strong>; hold to talk, release to stop (~60s single-hold limit)</td>
+          <td>Buttons verified locally and audio confirmed by users; full single, double, and long-press button mapping.</td>
+        </tr>
+        <tr>
+          <td><strong>Xiaomi Bluetooth Remote 2</strong><br><span class="device-model-code">RC001</span></td>
+          <td><span class="device-status is-partial">Audio pending</span></td>
+          <td>Hold to talk, release to stop</td>
+          <td>Protocol and button adapters are present; full Remote 2 audio acceptance is still pending independent verification.</td>
+        </tr>
+        <tr>
+          <td><strong>T1 Air-Mouse &amp; Keyboard Remote</strong><br><span class="device-model-code">T1-Remote (and clones)</span></td>
+          <td><span class="device-status is-supported">Verified (sample)</span></td>
+          <td><strong>No</strong> on tested sample; press &amp; release to start, press again to stop</td>
+          <td>Requires <strong>direct Bluetooth pairing</strong> (not a 2.4 GHz USB dongle). 7 front buttons remappable; D-pad/OK, rear keyboard, and air mouse pass through.</td>
+        </tr>
+        <tr>
+          <td><strong>Google Chromecast Voice Remote</strong><br><span class="device-model-code">G9N9N</span></td>
+          <td><span class="device-status is-partial">Partial support</span></td>
+          <td><strong>Yes</strong>; hold Google Assistant key to capture, release to stop</td>
+          <td>Voice input works; tested sample does not support single-button mapping due to key-report constraints. <code>OK + direction</code> sends Enter when mapping is enabled.</td>
+        </tr>
+        <tr>
+          <td><strong>Google TV Streamer Voice Remote</strong><br><span class="device-model-code">GY3LE</span></td>
+          <td><span class="device-status is-planned">Planned</span></td>
+          <td>Not supported yet (push-to-talk on TV)</td>
+          <td>Adapter implementation and macOS hardware validation are pending; do not assume G9N9N results apply.</td>
+        </tr>
+        <tr>
+          <td><strong>Apple Siri Remote</strong><br><span class="device-model-code">By generation (e.g. Gen 3 A2854)</span></td>
+          <td><span class="device-status is-planned">Planned</span></td>
+          <td>Not supported yet</td>
+          <td>Adapter implementation and macOS hardware validation are pending; cannot currently be used as a voice input device.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="download-note">
+    <strong>Important:</strong> Bluetooth pairing alone does not guarantee compatibility—the remote must implement a supported ATVV/audio and HID protocol. Likewise, changing your input tool to Toggle (click-to-start/stop) <strong>will not</strong> keep a push-to-talk remote streaming audio once you release its physical button. Third-party compatibles (such as “G9N9N-compatible” clones) require per-batch verification.
+  </div>
+
+  <div class="devices-grid">
+    <article class="device-card">
+      <div class="device-card-head">
+        <div>
+          <h2>Xiaomi Bluetooth Remote 2 Pro</h2>
+          <span class="device-model-code">Model: RC003 · Direct Bluetooth</span>
+        </div>
+        <span class="device-status is-supported">Supported</span>
+      </div>
+      <ul class="device-specs">
+        <li><strong>Hardware</strong>: Slim single-sided body with a circular D-pad and bottom USB-C charging port.</li>
+        <li><strong>Voice behavior</strong>: Hold the voice button to speak and release to finish (~60-second single-hold hardware cap). Wait briefly after release for tail audio and text submission.</li>
+        <li><strong>Button mapping</strong>: Remappable single, double, and long presses. Defaults: Home switches apps, TV plays/pauses media, Menu opens context menu, Power sends Backspace, Back sends Escape.</li>
+      </ul>
+      <div class="download-actions">
+        <a class="button secondary" href="https://github.com/zfdang/remote-buddy/blob/main/devices/xiaomi-2pro-vs-t1-remote.md">Xiaomi 2 Pro vs T1 Comparison (Chinese) ↗</a>
+      </div>
+    </article>
+
+    <article class="device-card">
+      <div class="device-card-head">
+        <div>
+          <h2>T1 Air-Mouse &amp; Keyboard Remote</h2>
+          <span class="device-model-code">Model: T1-Remote · Direct Bluetooth (not 2.4 GHz dongle)</span>
+        </div>
+        <span class="device-status is-supported">Sample verified</span>
+      </div>
+      <ul class="device-specs">
+        <li><strong>Hardware</strong>: Dual-sided remote with front D-pad, 7 remappable front control buttons (Back, Home, Menu, Volume+, Volume−, Mute, Power), plus a rear QWERTY keyboard and air mouse that pass through natively.</li>
+        <li><strong>Hands-free toggle</strong>: On the tested Bluetooth sample, press and release once to start recording, then press again to stop. Tested up to nearly 2 minutes continuously (keepalive every 10s, protective cutoff around 5 minutes).</li>
+        <li><strong>Compatibility note</strong>: Lookalike clones can run different firmware—verify Bluetooth voice capability and return policy before buying.</li>
+      </ul>
+      <div class="download-actions">
+        <a class="button secondary" href="https://github.com/zfdang/remote-buddy/blob/main/docs/t1-remote-hardware-debugging.md">T1 Hardware Notes (Chinese) ↗</a>
+      </div>
+    </article>
+
+    <article class="device-card">
+      <div class="device-card-head">
+        <div>
+          <h2>Xiaomi Bluetooth Remote 2</h2>
+          <span class="device-model-code">Model: RC001 · Direct Bluetooth</span>
+        </div>
+        <span class="device-status is-partial">Audio pending</span>
+      </div>
+      <ul class="device-specs">
+        <li><strong>Model distinction</strong>: <code>RC001</code> is Xiaomi Remote 2, distinct from <code>RC003</code> (2 Pro). Do not assume 2 Pro audio acceptance automatically covers RC001.</li>
+        <li><strong>Current status</strong>: Protocol and button adapters are in place; end-to-end audio validation on RC001 hardware is still pending.</li>
+      </ul>
+    </article>
+
+    <article class="device-card">
+      <div class="device-card-head">
+        <div>
+          <h2>Google Chromecast Voice Remote</h2>
+          <span class="device-model-code">Model: G9N9N · 2× AAA batteries</span>
+        </div>
+        <span class="device-status is-partial">Partial (Voice + Combo)</span>
+      </div>
+      <ul class="device-specs">
+        <li><strong>Voice behavior</strong>: Requires holding the Google Assistant button for the entire utterance; audio stops immediately upon release (always use Hold mode).</li>
+        <li><strong>Button restriction</strong>: On the tested sample, non-compliant key/release report lengths prevent macOS from forwarding ordinary single-button presses. When mapping and seizure are active, short-pressing <code>OK + any direction</code> sends Enter.</li>
+        <li><strong>Compatible clones</strong>: Community reports (issue #170) note low-cost compatible units with recognized keys but faster battery drain; each clone batch varies.</li>
+      </ul>
+      <div class="download-actions">
+        <a class="button secondary" href="https://github.com/zfdang/remote-buddy/blob/main/docs/g9n9n-compatibility.md">G9N9N Test Report (Chinese) ↗</a>
+      </div>
+    </article>
+
+    <article class="device-card">
+      <div class="device-card-head">
+        <div>
+          <h2>Google TV Streamer Voice Remote</h2>
+          <span class="device-model-code">Model: GY3LE</span>
+        </div>
+        <span class="device-status is-planned">Planned</span>
+      </div>
+      <ul class="device-specs">
+        <li><strong>Status</strong>: Uses a different layout and hardware/firmware from G9N9N. Protocol adaptation and macOS hardware verification have not been completed yet.</li>
+        <li><strong>Buying advice</strong>: Not recommended to purchase specifically for Remote Buddy voice input at this time.</li>
+      </ul>
+    </article>
+
+    <article class="device-card">
+      <div class="device-card-head">
+        <div>
+          <h2>Apple Siri Remote</h2>
+          <span class="device-model-code">By generation (e.g., 3rd-gen USB-C A2854)</span>
+        </div>
+        <span class="device-status is-planned">Planned</span>
+      </div>
+      <ul class="device-specs">
+        <li><strong>Status</strong>: Audio protocol adaptation and macOS validation are not yet complete; currently cannot act as a voice input device in Remote Buddy.</li>
+        <li><strong>Buying advice</strong>: Not recommended solely for this project yet; specs vary across generations.</li>
+      </ul>
+    </article>
+  </div>
+
+  <section class="download-card" style="margin-top:24px">
+    <h2>Looking for photos, size comparisons, or detailed hardware notes?</h2>
+    <p>Detailed teardown photos, reference prices, and community clone reports are maintained in the repository documentation.</p>
+    <div class="download-actions">
+      <a class="button secondary" href="https://github.com/zfdang/remote-buddy/blob/main/devices/supported-devices.md">Full Device Guide on GitHub (Chinese) ↗</a>
+      <a class="button secondary" href="../downloads/index.en.html">Go to Downloads →</a>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <div><strong>Remote Buddy</strong><p>Voice input, at the press of a button.</p></div>
+  <div class="footer-links">
+    <a href="../index.en.html">Home</a>
+    <a href="../downloads/index.en.html">Downloads</a>
+    <a href="https://github.com/zfdang/remote-buddy/blob/main/README.en.md">Docs &amp; References</a>
+    <a href="https://github.com/zfdang/remote-buddy/issues">Feedback</a>
+    <a href="https://github.com/zfdang/remote-buddy/blob/main/LICENSE">GPL-3.0-only</a>
+  </div>
+</footer>
+</body>
+</html>

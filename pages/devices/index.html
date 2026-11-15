@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Remote Buddy 支持的遥控器设备与型号对比 · macOS</title>
+  <meta name="description" content="查看 Remote Buddy macOS 版支持的遥控器型号、物理语音键触发方式、按键映射范围、当前验证状态与选购注意事项。">
+  <link rel="icon" href="../assets/app-icon.png">
+  <link rel="stylesheet" href="../style.css?v=261115">
+</head>
+<body>
+<header class="nav wrap">
+  <a class="brand" href="../"><img src="../assets/app-icon.png" alt="" width="38" height="38"><span>Remote Buddy<small>遥控搭子</small></span></a>
+  <nav>
+    <a href="../#interface">界面预览</a>
+    <a href="../#start">使用步骤</a>
+    <a href="../downloads/">下载安装包</a>
+    <span class="language-switch"><b>中文</b><span>|</span><a href="index.en.html">English</a></span>
+  </nav>
+</header>
+
+<main class="wrap downloads-wrap">
+  <div class="downloads-head">
+    <p class="eyebrow">硬件兼容性 · macOS 版</p>
+    <h1 class="section-title">各型号遥控器支持情况</h1>
+    <p class="lead-sub">下表记录 Remote Buddy 当前适配与规划支持的 5 类遥控器设备、物理语音键操作方式及按键映射限制。</p>
+  </div>
+
+  <div class="devices-table-wrap">
+    <table class="devices-table">
+      <thead>
+        <tr>
+          <th>设备与型号</th>
+          <th>状态</th>
+          <th>实体语音键是否需一直按住</th>
+          <th>按键映射与使用说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>小米蓝牙遥控器 2 Pro</strong><br><span class="device-model-code">RC003</span></td>
+          <td><span class="device-status is-supported">已支持</span></td>
+          <td><strong>需要</strong>；按住说话，松手停止收音（单次上限约 60 秒）</td>
+          <td>按键已在本地验证，音频已由用户确认；全键可自定义单击、双击与长按。</td>
+        </tr>
+        <tr>
+          <td><strong>小米蓝牙遥控器 2</strong><br><span class="device-model-code">RC001</span></td>
+          <td><span class="device-status is-partial">音频待验收</span></td>
+          <td>按住说话，松手停止收音</td>
+          <td>已有 ATVV 协议与按键适配；完整音频流程仍待单独真机验收，购买和反馈请核对背面型号是否为 <code>RC001</code>。</td>
+        </tr>
+        <tr>
+          <td><strong>T1 飞鼠键盘语音遥控器</strong><br><span class="device-model-code">T1-Remote（含兼容批次）</span></td>
+          <td><span class="device-status is-supported">已验证（样机）</span></td>
+          <td><strong>不需要持续按住</strong>（已测样机）；按一下松开开始，再按一下结束</td>
+          <td>需使用<strong>蓝牙直连</strong>（非 2.4 GHz USB 接收器）。7 颗正面控制键支持自定义，方向/OK、背面键盘与飞鼠直通。</td>
+        </tr>
+        <tr>
+          <td><strong>Google Chromecast Voice Remote</strong><br><span class="device-model-code">G9N9N</span></td>
+          <td><span class="device-status is-partial">部分支持</span></td>
+          <td><strong>需要</strong>；全程按住 Google Assistant 键，松手停止收音</td>
+          <td>语音输入正常；已测样机因按键报文限制不支持普通单键映射，开启自定义并独占后支持 <code>OK＋方向键</code> 发送 Enter。</td>
+        </tr>
+        <tr>
+          <td><strong>Google TV Streamer Voice Remote</strong><br><span class="device-model-code">GY3LE</span></td>
+          <td><span class="device-status is-planned">计划支持</span></td>
+          <td>尚未支持（原生电视用法为按住语音键）</td>
+          <td>尚未完成协议适配与 Mac 真机验证，请勿直接套用 G9N9N 测试结果。</td>
+        </tr>
+        <tr>
+          <td><strong>Apple Siri Remote</strong><br><span class="device-model-code">分代识别（如第 3 代 A2854）</span></td>
+          <td><span class="device-status is-planned">计划支持</span></td>
+          <td>尚未支持</td>
+          <td>尚未完成 Mac 端语音适配与真机验证，暂不可作为本项目的语音输入设备。</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="download-note">
+    <strong>重要提示：</strong>能否蓝牙配对 Mac 不代表兼容——遥控器必须使用受支持的蓝牙音频与 HID 按键协议。另外，输入法中的“点按开始/结束”设置只控制软件发送的热键节奏，<strong>不会</strong>让需要长按的遥控器在松手后继续收音。第三方标注“兼容 G9N9N”的商品需按具体批次单独验证。
+  </div>
+
+  <div class="devices-grid">
+    <article class="device-card">
+      <div class="device-card-head">
+        <div>
+          <h2>小米蓝牙遥控器 2 Pro</h2>
+          <span class="device-model-code">型号：RC003 · 蓝牙直连</span>
+        </div>
+        <span class="device-status is-supported">已支持</span>
+      </div>
+      <ul class="device-specs">
+        <li><strong>外观与供电</strong>：银灰色单面长条机身，正面圆形方向盘，底部 Type-C 充电口。</li>
+        <li><strong>语音操作</strong>：按住语音键说话，松手停止收音（单次按住上限约 60 秒）；松手后等待尾音送完与输入法识别完成即可。</li>
+        <li><strong>按键能力</strong>：全部控制键均可配置单击、双击、长按；默认主页键切换应用、TV 键播放/暂停、菜单键打开上下文菜单、电源键退格、返回键 Escape。</li>
+        <li><strong>选购参考</strong>：小米有品 / 小米商城参考价约 ¥99，请确认商品名为“蓝牙遥控器 2 Pro”。</li>
+      </ul>
+      <div class="download-actions">
+        <a class="button secondary" href="https://github.com/zfdang/remote-buddy/blob/main/devices/xiaomi-2pro-vs-t1-remote.md">查看小米 2 Pro vs T1 实拍对比 ↗</a>
+      </div>
+    </article>
+
+    <article class="device-card">
+      <div class="device-card-head">
+        <div>
+          <h2>T1 飞鼠键盘语音遥控器</h2>
+          <span class="device-model-code">型号：T1-Remote · 须蓝牙直连（非 2.4G 接收器）</span>
+        </div>
+        <span class="device-status is-supported">蓝牙样机已验证</span>
+      </div>
+      <ul class="device-specs">
+        <li><strong>外观与按键</strong>：双面设计，正面方向盘与 7 颗可自定义控制键（返回、主页、菜单、音量加减、静音、电源），背面 QWERTY 小键盘与飞鼠保持原生直通。</li>
+        <li><strong>免长按语音</strong>：已测蓝牙样机按下语音键松开即开始，说完再按一次结束；实测连续口述近 2 分钟（程序每 10 秒保活，最长约 5 分钟保护性结束）。</li>
+        <li><strong>兼容性提示</strong>：同外观贴牌批次固件差异较大，购买时请确认支持标准蓝牙直连语音且支持退换货。</li>
+      </ul>
+      <div class="download-actions">
+        <a class="button secondary" href="https://github.com/zfdang/remote-buddy/blob/main/docs/t1-remote-hardware-debugging.md">查看 T1 真机调试记录 ↗</a>
+      </div>
+    </article>
+
+    <article class="device-card">
+      <div class="device-card-head">
+        <div>
+          <h2>小米蓝牙遥控器 2</h2>
+          <span class="device-model-code">型号：RC001 · 蓝牙直连</span>
+        </div>
+        <span class="device-status is-partial">音频待验收</span>
+      </div>
+      <ul class="device-specs">
+        <li><strong>型号区分</strong>：<code>RC001</code> 对应“小米蓝牙遥控器 2”，不同于 <code>RC003</code>（2 Pro），不能直接沿用 2 Pro 的完整音频验收结论。</li>
+        <li><strong>当前状态</strong>：已实现 ATVV 语音与按键协议适配，按住说话的完整音频链路仍待独立真机验收。</li>
+        <li><strong>检索提示</strong>：购买时请核对明确型号 <code>RC001</code>，避免仅按“支持小米电视”购买到红外或不兼容型号。</li>
+      </ul>
+    </article>
+
+    <article class="device-card">
+      <div class="device-card-head">
+        <div>
+          <h2>Google Chromecast Voice Remote</h2>
+          <span class="device-model-code">型号：G9N9N · 两节 AAA 电池</span>
+        </div>
+        <span class="device-status is-partial">部分支持（仅语音 + 双键）</span>
+      </div>
+      <ul class="device-specs">
+        <li><strong>语音操作</strong>：全程按住 Google Assistant 键说话，松手即停止提供语音流，需使用“按住说话”模式（不支持点按后持续收音）。</li>
+        <li><strong>按键限制</strong>：已测样机单键与松开报文存在长度问题，macOS 不转交普通单键，<strong>不支持普通单键映射</strong>。开启自定义后，可用 <code>OK＋任意方向键</code> 短按发送 Enter。</li>
+        <li><strong>社区兼容款</strong>：issue #170 有用户分享约 ¥15 的兼容款按键可识别但耗电较快，且未验证免长按，按具体批次单独测试为准。</li>
+      </ul>
+      <div class="download-actions">
+        <a class="button secondary" href="https://github.com/zfdang/remote-buddy/blob/main/docs/g9n9n-compatibility.md">查看 G9N9N 兼容性报告 ↗</a>
+      </div>
+    </article>
+
+    <article class="device-card">
+      <div class="device-card-head">
+        <div>
+          <h2>Google TV Streamer Voice Remote</h2>
+          <span class="device-model-code">型号：GY3LE</span>
+        </div>
+        <span class="device-status is-planned">计划支持</span>
+      </div>
+      <ul class="device-specs">
+        <li><strong>当前状态</strong>：与 G9N9N 按键布局及固件不同，目前尚未完成适配与 Mac 端真机验证。</li>
+        <li><strong>购买建议</strong>：暂不建议专门为 Remote Buddy 语音输入购买此型号。</li>
+      </ul>
+    </article>
+
+    <article class="device-card">
+      <div class="device-card-head">
+        <div>
+          <h2>Apple Siri Remote</h2>
+          <span class="device-model-code">如第 3 代 USB-C A2854</span>
+        </div>
+        <span class="device-status is-planned">计划支持</span>
+      </div>
+      <ul class="device-specs">
+        <li><strong>当前状态</strong>：尚未完成 Apple 私有音频链路与 Mac 交互的适配验证，暂不能作为本项目语音输入设备。</li>
+        <li><strong>购买建议</strong>：暂不建议专为本项目购买；不同代际硬件存在差异。</li>
+      </ul>
+    </article>
+  </div>
+
+  <section class="download-card" style="margin-top:24px">
+    <h2>需要更详细的实拍图与历史购买链接记录？</h2>
+    <p>仓库中的设备指南汇总了小米 2 Pro 与 T1 的尺寸厚度实拍对比、购买与反馈记录以及问题排查细节。</p>
+    <div class="download-actions">
+      <a class="button secondary" href="https://github.com/zfdang/remote-buddy/blob/main/devices/supported-devices.md">阅读完整设备指南（GitHub）↗</a>
+      <a class="button secondary" href="../downloads/">前往下载页面 →</a>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <div><strong>Remote Buddy</strong><p>用遥控器，随手说。</p></div>
+  <div class="footer-links">
+    <a href="../">返回首页</a>
+    <a href="../downloads/">下载页面</a>
+    <a href="https://github.com/zfdang/remote-buddy/blob/main/README.md">项目文档</a>
+    <a href="https://github.com/zfdang/remote-buddy/issues">反馈问题</a>
+    <a href="https://github.com/zfdang/remote-buddy/blob/main/LICENSE">GPL-3.0-only</a>
+  </div>
+</footer>
+</body>
+</html>
