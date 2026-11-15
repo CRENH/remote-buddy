@@ -270,11 +270,9 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
         remoteDiscoverySettingsCancellable = Publishers.CombineLatest3(
             settings.$onboardingStep, settings.$onboardingCompletedVersion, settings.$remoteDeviceProfiles
         )
-            .map { step, completedVersion, profiles in
-                profiles.isEmpty || (completedVersion < AppSettings.currentOnboardingVersion &&
-                    [.remoteAvailability, .remote, .controls].contains(step))
-            }
-            .removeDuplicates().dropFirst().receive(on: RunLoop.main)
+            // Published values arrive before the property is committed. Synchronize
+            // on the next run-loop turn and let the single demand predicate decide.
+            .dropFirst().receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.synchronizeBluetoothDiscovery() }
         audio.output.onConfigurationChange = { @Sendable [weak self] in
             DispatchQueue.main.async { [weak self] in self?.scheduleAudioRecovery(reason: "engine_configuration_change") }

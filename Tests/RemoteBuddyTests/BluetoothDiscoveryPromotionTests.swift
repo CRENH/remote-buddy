@@ -57,6 +57,33 @@ struct BluetoothDiscoveryPromotionTests {
         #expect(!model.shouldDiscoverNewBluetoothRemotes)
     }
 
+    @Test(arguments: ["step", "completion", "profile"])
+    func settingsPublisherStopsDiscoveryAfterValuesAreCommitted(change: String) async throws {
+        let suite = UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = AppSettings(defaults: defaults)
+        settings.onboardingCompletedVersion = change == "profile" ? AppSettings.currentOnboardingVersion : 0
+        settings.onboardingStep = .controls
+        if change != "profile" { _ = settings.registerBluetoothRemote(identifier: UUID(), model: .rc003) }
+        let model = BridgeAppModel(settings: settings)
+        let discovery = BluetoothRemoteBridge(settings: settings, delegate: model)
+        model.connections.discoveryBridge = discovery
+        model.connections.states[ObjectIdentifier(discovery)] = .scanning
+        model.started = true
+        defer { model.started = false }
+        #expect(model.shouldDiscoverNewBluetoothRemotes)
+        switch change {
+        case "step": settings.onboardingStep = .voiceTest
+        case "completion": settings.onboardingCompletedVersion = AppSettings.currentOnboardingVersion
+        default: _ = settings.registerBluetoothRemote(identifier: UUID(), model: .rc003)
+        }
+        #expect(!model.shouldDiscoverNewBluetoothRemotes)
+        try await Task.sleep(for: .milliseconds(20))
+        #expect(model.connections.discoveryBridge == nil)
+        #expect(model.connections.states[ObjectIdentifier(discovery)] == nil)
+    }
+
     @Test func registrationPinsTheKnownBridgeIdentity() throws {
         let suite = "bluetooth-registration-" + UUID().uuidString
         let defaults = try #require(UserDefaults(suiteName: suite))

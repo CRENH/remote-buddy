@@ -57,7 +57,7 @@ extension BridgeAppModel {
             bridge.stop()
             connections.states.removeValue(forKey: ObjectIdentifier(bridge))
             refreshBluetoothPresentation()
-            AppLogger.shared.write("BLE DISCOVERY phase=completed result=stopped reason=registered_devices_only")
+            AppLogger.shared.write("BLE DISCOVERY phase=completed result=stopped reason=no_discovery_demand")
         }
     }
 
