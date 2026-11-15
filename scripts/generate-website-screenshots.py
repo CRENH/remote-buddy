@@ -26,7 +26,7 @@ ONBOARDING_STEPS = [
     ("02-control-source.png", "wizard-source"),
     ("03-remote.png", "wizard-remote"),
     ("04-controls.png", "wizard-controls"),
-    ("05-audio.png", "wizard-driver"),
+    ("05-voice-trigger.png", "wizard-driver"),
     ("06-voice-tool.png", "wizard-tool"),
     ("07-voice-test.png", "wizard-test"),
 ]

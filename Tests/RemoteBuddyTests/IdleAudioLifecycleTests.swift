@@ -113,7 +113,7 @@ struct IdleAudioLifecycleTests {
             let clock = ControlledTestScheduler()
             var drained: (() -> Void)?
             model.voiceFnTapSession = VoiceFnTapSessionController(schedule: clock.voiceSchedule,
-                setFunctionKeyPressed: { _ in true }, enqueueAudio: { _ in },
+                setTriggerPressed: { _ in true }, enqueueAudio: { _ in },
                 drainAudio: { _, done in drained = done }, onFailure: { _ in Issue.record("Unexpected failure") })
             model.voiceFnTapSession.setEnabled(true)
             #expect(model.voiceFnTapSession.startVoice())

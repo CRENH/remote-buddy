@@ -64,7 +64,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test -c release -
 
 覆盖率报告位于 `.build/debug/codecov/RemoteBuddy.json`。按文件检查未覆盖的行为，尤其是错误处理与资源释放；文件覆盖率包含系统适配代码，不能把模拟状态机的通过当作真实系统权限或硬件操作的验证。
 
-异步边界测试使用可控调度器，显式送达已经取消的旧回调，不依赖睡眠等待。权限轮询、快捷键发送与输入目标测试注入状态和事件接收器，不修改真实权限、发送系统按键或切换其他应用。常用语插入测试注入目标与按键接口，剪贴板事务只使用测试专用 pasteboard，不读取或修改系统通用剪贴板；持久化和文件锁测试使用独立 UserDefaults 域及临时目录，不读取或修改用户的应用设置。结构化诊断测试仅验证本地日志；没有诊断上传和待上传事件存储。
+异步边界测试使用可控调度器，显式送达已经取消的旧回调，不依赖睡眠等待。HID 服务映射刷新测试也显式执行受控刷新任务，检查重复回调合并和停止后的旧任务隔离；不以一次主队列往返作为完成标志，避免真实设备回调影响探测次数。权限轮询、快捷键发送与输入目标测试注入状态和事件接收器，不修改真实权限、发送系统按键或切换其他应用。常用语插入测试注入目标与按键接口，剪贴板事务只使用测试专用 pasteboard，不读取或修改系统通用剪贴板；持久化和文件锁测试使用独立 UserDefaults 域及临时目录，不读取或修改用户的应用设置。结构化诊断测试仅验证本地日志；没有诊断上传和待上传事件存储。
 
 所有映射键盘事件统一排除隐式导航标志：小米遥控器原生 Home 实测带有 `0x800100` 标志，其中包含 Fn，且不一定带数字键盘标志。普通按键、内置／自定义快捷键、独立修饰键、应用切换器和滚动动作不继承硬件状态中的 Fn／数字键盘导航标志，仍保留 Shift、Control、Option、Command 等实际修饰键；只有映射明确配置 Fn 时才在生成事件中加入 Fn。媒体键本身使用空修饰键，不合并原始 Home 状态；无需改写的原生方向键仍按原事件透传。语音 Fn 使用独立路径，保持其按住和松开行为。`MAPPED KEY EVENT` 与 `SHORTCUT SEQUENCE phase=event` 记录实际提交的键码、边沿和修饰键标志；`submitted` 不代表目标应用已经响应。回归测试覆盖原生 Home 状态下的完整选择／取消序列、普通映射键、内置快捷键和显式 Fn 映射，修复后的切换器显示和确认仍需实机复测。
 
@@ -102,7 +102,7 @@ HID 设备发现仅用受支持的 VendorID／ProductID 组合。IOHIDManager �
 
 共享日志器不再创建持久化的公开诊断上传队列；没有配置上传服务。运行日志以 UTF-8 文本保存在 `~/Library/Logs/RemoteBuddy/`，无需公钥或解密工具，用户可以自行查看；每个文件限制为 10 MiB，达到上限会在当前会话内轮转，最多保留五份旧日志，跳过仍在使用的日志及符号链接。日志不保存录音或识别正文，也不会上传。菜单“显示日志”会先刷新日志，再定位到当前 `.log` 文件。常用语 JSON 由 `scripts/generate-common-phrases.py` 从 Markdown 编辑源生成，打包测试校验生成资源确实存在。
 
-向导第六步的每种输入工具包含五个设置步骤，第三个为输入工具自身的麦克风选择；macOS 听写包含四个步骤：打开听写、把快捷键设为“按两下 🌐 键”、选择麦克风来源、清空微信 App 的 Fn 快捷键。它需要系统 🌐 键用于听写，所以不包含“去除系统 Fn 占用”。三个听写步骤使用 2026-10-25 从本机系统设置截取并标注的真实浅色 JPG：开启听写、双击 🌐 快捷键、Remote Buddy Mic 麦克风来源；深色界面回退到同一真实截图。首次开启须确认系统隐私提示，并等待所需语言支持下载完成。遥控搭子按住遥控器时连按两次 Fn 开始听写，松开并送完音频后按一次 Fn 结束；设置指引不要求手动勾选确认；查看每个步骤后可进入第七步实际测试，步骤完成标记仅表示用户已查看，不表示已检测第三方设置。第七步仅根据按键、声音和文字结果判断通过，不再重复询问设置。豆包和微信的菜单、语音设置、麦克风六张浅色截图于 2026-10-12 从本机安装版本截取并标注，使用 JPG 保存，显示时整图按原比例缩放。Voice Buddy 的触发按键与麦克风使用本地浅色截图。新增 JPG 长边最多 1600 像素，并压缩文件大小。加载和打包校验支持 JPG、JPEG、PNG；优先匹配当前主题，再回退浅色。既有深色截图保持不变；新增截图只有真实浅色版本时，深色界面使用浅色截图回退。微信 App 快捷键及未安装工具的截图保留原素材。
+向导第六步先显示所选工具的设置说明与麦克风选择；Fn 用于第三方工具时另有系统 Fn 设置检查。微信 App 热键冲突检查独立放在可整行展开的帮助区，不作为必读步骤。macOS 听写包含三个步骤：打开听写、把快捷键设为“按两下 🌐 键”、选择麦克风来源。它需要系统 🌐 键用于听写，所以不包含“去除系统 Fn 占用”。三个听写步骤使用 2026-10-25 从本机系统设置截取并标注的真实浅色 JPG：开启听写、双击 🌐 快捷键、Remote Buddy Mic 麦克风来源；深色界面回退到同一真实截图。首次开启须确认系统隐私提示，并等待所需语言支持下载完成。遥控搭子按住遥控器时连按两次 Fn 开始听写，松开并送完音频后按一次 Fn 结束；设置指引不要求手动勾选确认；必须逐一查看当前工具的设置说明后，才能进入第七步实际测试；点开的说明只标记“已查看”，不使用验证成功标记。继续按钮的阻塞说明区分未选工具、工具不可用、热键不兼容、待确认点按模式和设置说明尚未看完。第七步仅根据按键、声音和文字结果判断通过，不再重复询问设置。豆包和微信的菜单、语音设置、麦克风六张浅色截图于 2026-10-12 从本机安装版本截取并标注，使用 JPG 保存，显示时整图按原比例缩放。Voice Buddy 的触发按键与麦克风使用本地浅色截图。新增 JPG 长边最多 1600 像素，并压缩文件大小。加载和打包校验支持 JPG、JPEG、PNG；优先匹配当前主题，再回退浅色。既有深色截图保持不变；新增截图只有真实浅色版本时，深色界面使用浅色截图回退。微信 App 快捷键及未安装工具的截图保留原素材。
 
 说明图片在固定显示区内按原比例缩放，整图显示，不采用超出区域的放大和偏移裁剪；同时关闭图片命中测试，确保不会挡住步骤按钮。Debug 构建可在现有向导截图模式中设置 `REMOTE_BUDDY_ONBOARDING_SCREENSHOT_INTERACTIVE=1`，使用隔离设置打开输入工具页面，最多停留五分钟以进行真实鼠标验证；Release 构建不会启用此交互模式。
 
@@ -558,3 +558,7 @@ Validation after the latency and trigger-observation changes (runtime `1cb1d94`)
 - Integration/frame/privacy filter reported 70 tests / 4 suites passed (both live probes skipped by default). Voice activation/session/review filter reported 33 tests / 3 suites passed, including scoped modifier delivery and synthetic-owner isolation.
 - Full serial run reported 730 tests / 107 suites, both live probes skipped, with one issue at the same `HIDHotPathIdempotencyTests.swift:1307` service-provider-count assertion (6 versus 5). All other executed tests passed; the full suite remains non-green.
 - Debug app build passed and produced local build 745. Installed build 737 remains running until explicitly replaced; first-press physical-remote acceptance on 745 is pending.
+
+点按模式与按住模式都在发送热键前等待目标输入法激活；点按的应用聚焦、输入法切换和目标输入框检查共享准备时限。取消准备会撤销输入法会话并使迟到回调失效；成功发送触发键后结束会话时保留目标输入法。音频排空和结束点按仍由原状态机处理。
+
+WorkBuddy 输入框通过同一局部布局内的唯一编辑框、“更多操作”和“语音输入”控件联合识别。生成回复期间“发送”会替换为“停止”，两种状态都可识别；不读取输入框内容或对话文本，不自动发送消息或停止生成。

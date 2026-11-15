@@ -1,6 +1,6 @@
 import Foundation
 
-struct OnboardingVoiceConfigurationSnapshot: Codable {
+struct VoiceTriggerConfiguration: Codable, Equatable {
     let voiceKeyMode: VoiceKeyMode
     let voiceFnTapModeEnabled: Bool
 }

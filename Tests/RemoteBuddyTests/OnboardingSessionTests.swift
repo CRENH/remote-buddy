@@ -12,6 +12,34 @@ struct OnboardingSessionTests {
         try body(AppSettings(defaults: defaults))
     }
 
+    @Test func completedWizardsOpenTheirCorrespondingSettingsPages() throws {
+        try withSettings { settings in
+            for (purpose, destination) in [
+                (OnboardingPurpose.addDevice, SettingsSection.connection),
+                (.integration, .integration), (.initialSetup, .general),
+            ] {
+                settings.onboardingPurpose = purpose
+                settings.completeOnboarding()
+                #expect(settings.isOnboardingComplete)
+                #expect(settings.completedOnboardingDestination == destination)
+                #expect(SettingsPageBehavior.initialSection(requestedSection: settings.completedOnboardingDestination) == destination)
+            }
+        }
+    }
+
+    @Test func freshLaunchDoesNotReuseTheLastWizardsDestination() throws {
+        let suite = "onboarding-destination-" + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = AppSettings(defaults: defaults)
+        settings.onboardingPurpose = .integration
+        settings.completeOnboarding()
+        #expect(settings.completedOnboardingDestination == .integration)
+        let restored = AppSettings(defaults: defaults)
+        #expect(restored.isOnboardingComplete)
+        #expect(restored.completedOnboardingDestination == .general)
+    }
+
     @Test func unfinishedFirstSetupCannotBeDismissed() throws {
         try withSettings { settings in
             SettingsPageBehavior.beginDeviceSetup(settings: settings)
@@ -160,12 +188,13 @@ struct OnboardingSessionTests {
         #expect(device.progress(at: .controls) == 2.0 / 3.0)
         #expect(device.progress(at: .complete) == 1)
         let integration = OnboardingPurpose.integration
-        #expect(integration.steps == [.voiceTool, .voiceTest, .complete])
-        #expect(integration.previousStep(before: .voiceTool) == nil)
+        #expect(integration.steps == [.voiceTrigger, .voiceTool, .voiceTest, .complete])
+        #expect(integration.previousStep(before: .voiceTrigger) == nil)
+        #expect(integration.previousStep(before: .voiceTool) == .voiceTrigger)
         #expect(integration.nextStep(after: .voiceTool) == .voiceTest)
         #expect(integration.previousStep(before: .complete) == .voiceTest)
         #expect(integration.nextStep(after: .complete) == nil)
-        #expect(integration.progress(at: .voiceTest) == 0.5)
+        #expect(integration.progress(at: .voiceTest) == 2.0 / 3.0)
         #expect(OnboardingPurpose.initialSetup.steps == OnboardingStep.visibleCases)
     }
 

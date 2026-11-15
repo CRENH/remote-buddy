@@ -18,7 +18,7 @@ struct SessionRecoveryTests {
             schedule: { delay, action in
                 let task = scheduler.schedule(afterMilliseconds: UInt64(delay * 1000), repeatingEveryMilliseconds: nil, action)
                 return ScheduledOperation(cancellation: { task.cancel() })
-            }, setFunctionKeyPressed: { _ in true }, enqueueAudio: { _ in },
+            }, setTriggerPressed: { _ in true }, enqueueAudio: { _ in },
             drainAudio: { _, completion in completion() }, onFailure: { _ in })
         session.setEnabled(true)
         #expect(session.startVoice())

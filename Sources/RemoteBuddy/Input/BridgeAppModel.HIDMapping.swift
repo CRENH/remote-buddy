@@ -40,11 +40,11 @@ extension BridgeAppModel {
             stopLongRecording(reason: "mapping_disabled")
         }
 
-        let requestedVoiceKeyMode = settings.voiceKeyMode
+        let requestedVoiceKeyMode = settings.effectiveVoiceKeyMode
         let accessibilityGranted = permissionSnapshot.accessibilityGranted
-        let requestedFnTapMode = settings.voiceFnTapModeEnabled && requestedVoiceKeyMode == .function
+        let requestedFnTapMode = settings.effectiveVoiceFnTapModeEnabled
 
-        if settings.voiceFnTapModeEnabled != requestedFnTapMode {
+        if !settings.isTestingVoiceTrigger && settings.effectiveVoiceFnTapModeEnabled != requestedFnTapMode {
             settings.voiceFnTapModeEnabled = requestedFnTapMode
         }
         if !requestedFnTapMode, voiceFnTapSession.requiresCleanupBeforeMapping {
@@ -115,7 +115,7 @@ extension BridgeAppModel {
                 )
                 scheduleHIDMappingRecoveryIfNeeded()
             } else {
-                settings.voiceFnTapModeEnabled = false
+                if !settings.isTestingVoiceTrigger { settings.voiceFnTapModeEnabled = false }
                 voiceFnTapSession.setEnabled(false)
                 powerKeySuppressed = applyVoiceFunctionMapping(neutralizeVoiceKey: false)
             }
@@ -129,7 +129,7 @@ extension BridgeAppModel {
                             "VOICE KEY mode_preserved reason=voice_active_mapping_failed " +
                                 "mode=\(requestedVoiceKeyMode.rawValue)"
                         )
-                    } else if canFallbackVoiceKeyMode {
+                    } else if canFallbackVoiceKeyMode && !settings.isTestingVoiceTrigger {
                         settings.voiceKeyMode = .function
                         powerKeySuppressed = applyVoiceFunctionMapping(neutralizeVoiceKey: false)
                         AppLogger.shared.write(
@@ -168,7 +168,7 @@ extension BridgeAppModel {
             }
         } else {
             if requestedFnTapMode {
-                settings.voiceFnTapModeEnabled = false
+                if !settings.isTestingVoiceTrigger { settings.voiceFnTapModeEnabled = false }
             }
             voiceFnTapSession.setEnabled(false)
             powerKeySuppressed = applyVoiceFunctionMapping(neutralizeVoiceKey: false)
@@ -493,7 +493,7 @@ extension BridgeAppModel {
         guard canRefreshHIDMappingsNow else { return }
         let generation = hidServiceMappingRefreshGeneration
         // Defer outside IOHIDManager callbacks before probing/reapplying IOHIDEventSystem mappings.
-        DispatchQueue.main.async { [weak self] in
+        _ = scheduleHIDServiceMappingRefresh(0) { [weak self] in
             guard let self,
                   self.started,
                   !self.isTerminating,

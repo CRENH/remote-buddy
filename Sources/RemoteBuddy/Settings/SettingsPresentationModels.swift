@@ -262,15 +262,12 @@ enum SettingsPageBehavior {
 
     static let sidebarTopDragHeight: CGFloat = 5
 
-    static let sidebarSectionOrder: [SettingsSection] = [
-        .general,
-        .permissions,
-        .connection,
-        .mapping,
-        .integration,
-        .applicationIntegration,
-        .about,
+    static let sidebarSectionGroups: [[SettingsSection]] = [
+        [.general, .permissions, .connection, .integration],
+        [.mapping, .applicationIntegration],
+        [.about],
     ]
+    static let sidebarSectionOrder = sidebarSectionGroups.flatMap { $0 }
 
     static func sidebarSections() -> [SettingsSection] {
         sidebarSectionOrder
@@ -299,10 +296,7 @@ enum SettingsPageBehavior {
             ? .integration : .initialSetup
         settings.onboardingCompletedVersion = 0
         settings.setOnboardingVoiceTool(tool)
-        if !tool.supportsHoldVoiceRecording {
-            settings.voiceFnTapModeEnabled = true
-        }
-        let start: OnboardingStep = settings.onboardingPurpose == .integration ? .voiceTool
+        let start: OnboardingStep = settings.onboardingPurpose == .integration ? .voiceTrigger
             : (settings.canDismissOnboarding ? .remoteAvailability : .permissions)
         settings.setOnboardingStep(start)
     }

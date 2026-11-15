@@ -27,7 +27,7 @@ struct SessionRecoveryRegressionTests {
         var completions = 0
         let session = VoiceFnTapSessionController(startDelay: 0, tapDuration: 0.1,
             schedule: clock.voiceSchedule,
-            setFunctionKeyPressed: { down in down || canRelease }, enqueueAudio: { _ in },
+            setTriggerPressed: { down in down || canRelease }, enqueueAudio: { _ in },
             drainAudio: { _, done in done() }, onFailure: { _ in })
         session.setEnabled(true)
         #expect(session.startVoice())
@@ -48,7 +48,7 @@ struct SessionRecoveryRegressionTests {
         var canRelease = false
         let session = VoiceFnTapSessionController(startDelay: 0, tapDuration: 0.1,
             schedule: clock.voiceSchedule,
-            setFunctionKeyPressed: { down in down || canRelease }, enqueueAudio: { _ in },
+            setTriggerPressed: { down in down || canRelease }, enqueueAudio: { _ in },
             drainAudio: { _, done in done() }, onFailure: { _ in })
         session.setEnabled(true)
         #expect(session.startVoice())
@@ -82,7 +82,7 @@ struct SessionRecoveryRegressionTests {
         var allowRelease = false
         var answers: [Bool] = []
         let session = VoiceFnTapSessionController(startDelay: 0, tapDuration: 0.1,
-            schedule: clock.voiceSchedule, setFunctionKeyPressed: { $0 || allowRelease },
+            schedule: clock.voiceSchedule, setTriggerPressed: { $0 || allowRelease },
             enqueueAudio: { _ in }, drainAudio: { _, completion in completion() }, onFailure: { _ in })
         session.setEnabled(true)
         #expect(session.startVoice())
@@ -109,7 +109,7 @@ struct SessionRecoveryRegressionTests {
         var allowRelease = false
         var answers: [Bool] = []
         let session = VoiceFnTapSessionController(startDelay: 0, tapDuration: 0.1,
-            schedule: clock.voiceSchedule, setFunctionKeyPressed: { $0 || allowRelease },
+            schedule: clock.voiceSchedule, setTriggerPressed: { $0 || allowRelease },
             enqueueAudio: { _ in }, drainAudio: { _, done in done() }, onFailure: { _ in })
         session.setEnabled(true)
         #expect(session.startVoice())
@@ -181,6 +181,7 @@ struct SessionRecoveryRegressionTests {
         var actions = 0, releases = 0
         let monitor = HIDRemoteMonitor(settings: settings, profileID: profile, scheduler: clock,
             runtimePermissions: { true }, actionPerformer: { _, _, _ in actions += 1; return true },
+            frontmostBundleIdentifier: { "test.editor" },
             diagnosticLogger: { _ in })
         monitor.onRuntimeButton = { _, _, phase in
             if phase == .release { releases += 1 }
@@ -248,7 +249,8 @@ struct SessionRecoveryRegressionTests {
         let profile = UUID()
         var failActions = false, releases = 0
         let monitor = HIDRemoteMonitor(settings: settings, profileID: profile, scheduler: clock,
-            runtimePermissions: { true }, actionPerformer: { _, _, _ in !failActions }, diagnosticLogger: { _ in })
+            runtimePermissions: { true }, actionPerformer: { _, _, _ in !failActions },
+            frontmostBundleIdentifier: { "test.editor" }, diagnosticLogger: { _ in })
         monitor.onRuntimeButton = { _, _, phase in
             if phase == .release { releases += 1 }; return false
         }
@@ -377,7 +379,7 @@ struct SessionRecoveryRegressionTests {
         let clock = ControlledTestScheduler()
         var logs: [String] = []
         let session = VoiceFnTapSessionController(startDelay: 0,
-            schedule: clock.voiceSchedule, setFunctionKeyPressed: { _ in true },
+            schedule: clock.voiceSchedule, setTriggerPressed: { _ in true },
             enqueueAudio: { _ in }, drainAudio: { _, done in done() },
             onFailure: { _ in }, logger: { logs.append($0) })
         #expect(!session.startVoice())
@@ -422,7 +424,7 @@ struct SessionRecoveryRegressionTests {
         var events: [Bool] = []
         var session: VoiceFnTapSessionController? = VoiceFnTapSessionController(startDelay: 0,
             schedule: clock.voiceSchedule,
-            setFunctionKeyPressed: { events.append($0); return true }, enqueueAudio: { _ in },
+            setTriggerPressed: { events.append($0); return true }, enqueueAudio: { _ in },
             drainAudio: { _, done in done() }, onFailure: { _ in })
         weak let observed = session
         session!.setEnabled(true)
