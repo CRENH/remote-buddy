@@ -22,6 +22,7 @@ extension SettingsView {
     func setMappingShortcut(_ shortcut: CustomKeyboardShortcut?, for button: RemoteButton, trigger: ButtonTrigger) {
         var configured = mappingConfiguration(for: button, trigger: trigger)
         configured.shortcut = shortcut
+        if shortcut != nil { configured.action = .customShortcut }
         saveMappingBinding(configured, button: button, trigger: trigger)
     }
 

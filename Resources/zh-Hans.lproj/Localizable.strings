@@ -1283,3 +1283,6 @@
 "voice.keyboard.use_shortcut" = "使用此热键";
 "voice.keyboard.space" = "空格";
 "voice.keyboard.title" = "自定义语音热键";
+
+"shortcut.keyboard.title" = "自定义快捷键";
+"shortcut.keyboard.choose" = "选择快捷键…";

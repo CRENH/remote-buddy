@@ -1282,3 +1282,6 @@
 "voice.keyboard.use_shortcut" = "Use This Shortcut";
 "voice.keyboard.space" = "space";
 "voice.keyboard.title" = "Custom Voice Shortcut";
+
+"shortcut.keyboard.title" = "Custom Shortcut";
+"shortcut.keyboard.choose" = "Choose Shortcut…";

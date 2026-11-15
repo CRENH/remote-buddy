@@ -1,12 +1,17 @@
 import AppKit
 import SwiftUI
 
-/// A physical key selection, including the side of every acquired modifier.
-struct VoiceKeyboardSelection {
+enum ShortcutKeyboardPurpose {
+    case voice, mapping
+}
+
+/// A draft key selection that retains the side of each modifier.
+struct ShortcutKeyboardSelection {
     private(set) var modifiers: [StandaloneKeyboardModifier] = []
     private(set) var key: StandardKeyboardKey?
 
-    init(shortcut: CustomKeyboardShortcut) {
+    init(shortcut: CustomKeyboardShortcut?) {
+        guard let shortcut else { return }
         if let modifier = shortcut.standaloneModifier {
             modifiers = [modifier]
         } else {
@@ -18,23 +23,23 @@ struct VoiceKeyboardSelection {
         }
     }
 
-    mutating func toggle(_ modifier: StandaloneKeyboardModifier) {
+    mutating func toggle(_ modifier: StandaloneKeyboardModifier, purpose: ShortcutKeyboardPurpose = .voice) {
         if modifiers.contains(modifier) {
             modifiers.removeAll { $0 == modifier }
-        } else if modifier == .function {
+        } else if modifier == .function && purpose == .voice {
             modifiers = [.function]
             key = nil
         } else {
             let family = modifier.modifierFlags.intersection(CustomKeyboardShortcut.supportedModifiers)
             modifiers.removeAll {
-                $0 == .function || $0.modifierFlags.intersection(CustomKeyboardShortcut.supportedModifiers) == family
+                (purpose == .voice && $0 == .function) || $0.modifierFlags.intersection(CustomKeyboardShortcut.supportedModifiers) == family
             }
             modifiers.append(modifier)
         }
     }
 
-    mutating func select(_ key: StandardKeyboardKey) {
-        modifiers.removeAll { $0 == .function }
+    mutating func select(_ key: StandardKeyboardKey, purpose: ShortcutKeyboardPurpose = .voice) {
+        if purpose == .voice { modifiers.removeAll { $0 == .function } }
         self.key = key
     }
 
@@ -47,8 +52,9 @@ struct VoiceKeyboardSelection {
         return modifiers.count == 1 ? modifiers[0].shortcut : nil
     }
 
-    var canUse: Bool {
+    func canUse(for purpose: ShortcutKeyboardPurpose) -> Bool {
         guard let shortcut else { return false }
+        if purpose == .mapping { return true }
         if let modifier = shortcut.standaloneModifier { return VoiceKeyMode(standaloneModifier: modifier) != nil }
         return VoiceKeyMode.supportsShortcut(shortcut)
     }
@@ -66,7 +72,7 @@ struct VoiceKeyboardSelection {
     }
 }
 
-enum VoiceKeyboardKey: Identifiable {
+enum ShortcutKeyboardKey: Identifiable {
     case key(StandardKeyboardKey)
     case modifier(StandaloneKeyboardModifier, Double)
     case arrows
@@ -88,10 +94,10 @@ enum VoiceKeyboardKey: Identifiable {
     }
 
     /// ANSI MacBook positions, with distinct left and right modifier keys.
-    static let macBookRows: [[VoiceKeyboardKey]] = Array(StandardKeyboardKey.mainRows.prefix(4)).map {
-        $0.map(VoiceKeyboardKey.key)
+    static let macBookRows: [[ShortcutKeyboardKey]] = Array(StandardKeyboardKey.mainRows.prefix(4)).map {
+        $0.map(ShortcutKeyboardKey.key)
     } + [
-        [.modifier(.leftShift, 2.3)] + StandardKeyboardKey.mainRows[4].map(VoiceKeyboardKey.key)
+        [.modifier(.leftShift, 2.3)] + StandardKeyboardKey.mainRows[4].map(ShortcutKeyboardKey.key)
             + [.modifier(.rightShift, 2.25)],
         [.modifier(.function, 1), .modifier(.leftControl, 1), .modifier(.leftOption, 1),
          .modifier(.leftCommand, 1.3), .key(.init("space", keyCode: 49, label: "Space", widthUnits: 4.95)),
@@ -101,25 +107,27 @@ enum VoiceKeyboardKey: Identifiable {
     ]
 }
 
-struct VoiceShortcutEditor: View {
+struct KeyboardShortcutEditor: View {
+    let purpose: ShortcutKeyboardPurpose
     let onSelect: (CustomKeyboardShortcut) -> Void
     let onCancel: () -> Void
     @EnvironmentObject private var localization: LocalizationStore
-    @State private var selection: VoiceKeyboardSelection
+    @State private var selection: ShortcutKeyboardSelection
     @State private var recording = false
     @State private var errorKey: String?
 
-    init(shortcut: CustomKeyboardShortcut, onSelect: @escaping (CustomKeyboardShortcut) -> Void,
+    init(shortcut: CustomKeyboardShortcut?, purpose: ShortcutKeyboardPurpose = .voice, onSelect: @escaping (CustomKeyboardShortcut) -> Void,
          onCancel: @escaping () -> Void) {
-        let selection = VoiceKeyboardSelection(shortcut: shortcut)
+        let selection = ShortcutKeyboardSelection(shortcut: shortcut)
         _selection = State(initialValue: selection)
+        self.purpose = purpose
         self.onSelect = onSelect
         self.onCancel = onCancel
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(localization.text("voice.keyboard.title")).font(.title3.bold())
+            Text(localization.text(purpose == .voice ? "voice.keyboard.title" : "shortcut.keyboard.title")).font(.title3.bold())
             Text(localization.text("voice.keyboard.help"))
                 .font(.callout).foregroundStyle(.secondary)
             HStack(spacing: 14) {
@@ -136,8 +144,8 @@ struct VoiceShortcutEditor: View {
             if recording {
                 ShortcutCaptureView(onCapture: { shortcut in
                     recording = false
-                    selection = VoiceKeyboardSelection(shortcut: shortcut)
-                    errorKey = selection.canUse ? nil : "connection.voice_key.custom_unsupported"
+                    selection = ShortcutKeyboardSelection(shortcut: shortcut)
+                    errorKey = selection.canUse(for: purpose) ? nil : "connection.voice_key.custom_unsupported"
                 }, onFailure: { failure in
                     recording = false
                     errorKey = failure == .accessibilityPermissionRequired
@@ -146,7 +154,7 @@ struct VoiceShortcutEditor: View {
             }
             ScrollView {
                 VStack(spacing: 5) {
-                    ForEach(Array(VoiceKeyboardKey.macBookRows.enumerated()), id: \.offset) { _, row in
+                    ForEach(Array(ShortcutKeyboardKey.macBookRows.enumerated()), id: \.offset) { _, row in
                         keyboardRow(row)
                     }
                 }.padding(10)
@@ -161,10 +169,10 @@ struct VoiceShortcutEditor: View {
                 Button(localization.text("common.action.cancel")) { recording = false; onCancel() }
                     .buttonStyle(.bordered)
                 Button(localization.text("voice.keyboard.use_shortcut")) {
-                    guard selection.canUse, let shortcut = selection.shortcut else { return }
+                    guard selection.canUse(for: purpose), let shortcut = selection.shortcut else { return }
                     recording = false
                     onSelect(shortcut)
-                }.buttonStyle(.borderedProminent).disabled(!selection.canUse)
+                }.buttonStyle(.borderedProminent).disabled(!selection.canUse(for: purpose))
             }
         }
         .padding(20)
@@ -172,7 +180,7 @@ struct VoiceShortcutEditor: View {
         .onDisappear { recording = false }
     }
 
-    private func keyboardRow(_ keys: [VoiceKeyboardKey]) -> some View {
+    private func keyboardRow(_ keys: [ShortcutKeyboardKey]) -> some View {
         GeometryReader { geometry in
             let units = keys.reduce(0) { $0 + $1.widthUnits }
             let unitWidth = max(0, geometry.size.width - CGFloat(keys.count - 1) * 5) / CGFloat(units)
@@ -184,13 +192,13 @@ struct VoiceShortcutEditor: View {
         }.frame(height: 42)
     }
 
-    @ViewBuilder private func keyboardKey(_ item: VoiceKeyboardKey) -> some View {
+    @ViewBuilder private func keyboardKey(_ item: ShortcutKeyboardKey) -> some View {
         switch item {
         case let .modifier(modifier, _):
             keyButton(selected: selection.modifiers.contains(modifier), title: modifier.displayName(using: localization)) {
                 recording = false
                 errorKey = nil
-                selection.toggle(modifier)
+                selection.toggle(modifier, purpose: purpose)
             } label: {
                 VStack(spacing: 1) {
                     Text(modifier == .function ? "🌐" : modifier.symbol).font(.system(size: 14))
@@ -211,13 +219,13 @@ struct VoiceShortcutEditor: View {
         keyButton(selected: selection.key?.keyCode == key.keyCode, title: key.keyLabel) {
             recording = false
             errorKey = nil
-            selection.select(key)
+            selection.select(key, purpose: purpose)
         } label: {
             Text(key.keyCode == 49 ? localization.text("voice.keyboard.space") : (key.keyCode == 53 ? "esc" : key.visualLabel))
                 .font(.system(size: 12, weight: .medium))
         }
-        .disabled(key.keyCode == 57) // Caps Lock is not a supported voice modifier.
-        .opacity(key.keyCode == 57 ? 0.45 : 1)
+        .disabled(key.keyCode == 57 && purpose == .voice) // Voice triggers exclude Caps Lock.
+        .opacity(key.keyCode == 57 && purpose == .voice ? 0.45 : 1)
     }
 
     private func keyButton<Label: View>(selected: Bool, title: String, action: @escaping () -> Void,

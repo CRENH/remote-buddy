@@ -237,7 +237,7 @@ enum OnboardingScreenshotRenderer {
             let actionProbe = OnboardingInteractionProbe(openURL: { _ in })
             let rootView = Group {
                 if ProcessInfo.processInfo.environment["REMOTE_BUDDY_ONBOARDING_SCREENSHOT_SHORTCUT_EDITOR"] == "1" {
-                    VoiceShortcutEditor(shortcut: CustomKeyboardShortcut(keyCode: 9,
+                    KeyboardShortcutEditor(shortcut: CustomKeyboardShortcut(keyCode: 9,
                         modifierFlags: [.control, .option], keyLabel: "V"), onSelect: { _ in }, onCancel: {})
                 } else {
                     OnboardingView(

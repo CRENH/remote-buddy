@@ -29,7 +29,7 @@ struct VoiceTriggerPicker: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .sheet(isPresented: $editing) {
-            VoiceShortcutEditor(shortcut: editableShortcut, onSelect: accept, onCancel: { editing = false })
+            KeyboardShortcutEditor(shortcut: editableShortcut, onSelect: accept, onCancel: { editing = false })
         }
     }
 
