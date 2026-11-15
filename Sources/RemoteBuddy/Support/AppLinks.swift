@@ -2,10 +2,10 @@ import Foundation
 
 enum AppLinks {
     static let githubRepository = URL(
-        string: "https://github.com/zfdang/remote-buddy"
+        string: "https://github.com/CRENH/remote-buddy"
     )!
-    static let githubReleases = URL(string: "https://github.com/zfdang/remote-buddy/releases")!
-    static let githubReleasesLatest = URL(string: "https://github.com/zfdang/remote-buddy/releases/latest")!
+    static let githubReleases = URL(string: "https://github.com/CRENH/remote-buddy/releases")!
+    static let githubReleasesLatest = URL(string: "https://github.com/CRENH/remote-buddy/releases/latest")!
     static let chineseDownloads = URL(string: "https://remote.zfdang.com/downloads/")!
     static let englishDownloads = URL(string: "https://remote.zfdang.com/downloads/index.en.html")!
 
@@ -17,7 +17,7 @@ enum AppLinks {
         string: "https://remote.zfdang.com/index.en.html"
     )!
     static let feedback = URL(
-        string: "https://github.com/zfdang/remote-buddy/issues"
+        string: "https://github.com/CRENH/remote-buddy/issues"
     )!
     static let doubaoInputMethod = URL(
         string: "https://shurufa.doubao.com/"

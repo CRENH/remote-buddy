@@ -73,7 +73,7 @@ struct CommonPhraseStorageTests {
             let entries = try #require(json["entries"] as? [[String: Any]])
             #expect(entries.allSatisfy { Set($0.keys) == ["id", "text", "label"] })
             #expect(json["website"] as? String == "https://remote.zfdang.com/")
-            #expect(json["github"] as? String == "https://github.com/zfdang/remote-buddy")
+            #expect(json["github"] as? String == "https://github.com/CRENH/remote-buddy")
             let imported = CommonPhraseStore(defaults: defaults, builtInData: data)
             try imported.importArchive(decoded)
             #expect(imported.phrase(for: .ok)?.insertionText == "Continue with API v2")

@@ -342,13 +342,9 @@ extension SettingsView {
 
     private var settingsSupportSection: some View {
         VStack(alignment: .leading, spacing: 0) {
-            aboutLinkRow(titleKey: "about.support.website", symbol: "globe", label: "remote.zfdang.com", destination: localization.localizedWebsiteURL)
-            Divider()
-            aboutLinkRow(titleKey: "about.info.website_downloads", symbol: "arrow.down.circle", label: localization.text("about.info.open_website_downloads"), destination: localization.localizedDownloadsURL)
-            Divider()
             aboutLinkRow(titleKey: "about.info.releases", symbol: "shippingbox", label: localization.text("about.info.open_releases"), destination: AppLinks.githubReleases)
             Divider()
-            aboutLinkRow(titleKey: "about.support.github", symbol: "link", label: "github.com/zfdang/remote-buddy", destination: AppLinks.githubRepository)
+            aboutLinkRow(titleKey: "about.support.github", symbol: "link", label: "github.com/CRENH/remote-buddy", destination: AppLinks.githubRepository)
             Divider()
             aboutLinkRow(titleKey: "about.support.feedback", symbol: "bubble.left.and.bubble.right", label: localization.text("about.support.feedback_action"), destination: AppLinks.feedback)
         }
