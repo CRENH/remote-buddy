@@ -288,7 +288,9 @@ jobs:
         with:
           name: website-update-feeds
           overwrite: true
-          path: release/appcast-*.xml
+          path: |
+            release/appcast-*.xml
+            release/*.pkg
           if-no-files-found: error
           retention-days: 90
       - name: Publish release

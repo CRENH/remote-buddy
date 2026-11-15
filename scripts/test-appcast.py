@@ -34,7 +34,7 @@ class AppcastTests(unittest.TestCase):
             self.assertEqual(enclosure.get('length'), str(package.stat().st_size))
             self.assertEqual(item.find(f'{{{appcast.SPARKLE}}}hardwareRequirements').text, 'arm64')
             self.assertEqual(enclosure.get(f'{{{appcast.SPARKLE}}}installationType'), 'package')
-            self.assertTrue(enclosure.get('url').endswith('/v26-10-11.021/' + package.name))
+            self.assertEqual(enclosure.get('url'), 'https://remote.zfdang.com/downloads/' + package.name)
             for tag, version, sig in [('bad', '21', signature), ('v26-10-11.021', '0', signature),
                                       ('v26-10-11.021', '22', signature), ('v26-10-11.021', '21', 'bad'), ('v26-10-11.022', '22', signature)]:
                 with self.assertRaises(ValueError):
