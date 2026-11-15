@@ -13,7 +13,7 @@
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
 
-  function renderPackages(manifest) {
+  function renderPackages(manifest, websiteBaseUrl) {
     var tag = manifest && manifest.tag;
     var packages = manifest && manifest.packages;
     if (!tag || !packages || !packages.arm64 || !packages.intel) {
@@ -67,6 +67,7 @@
       card.className = 'download-card';
 
       var sizeText = formatBytes(pkg.size);
+      var websiteHref = (websiteBaseUrl || '') + encodeURIComponent(pkg.name);
 
       card.innerHTML =
         '<h2>' + spec.title + '</h2>' +
@@ -77,7 +78,7 @@
           '<span>' + spec.archLabel + '</span>' +
         '</div>' +
         '<div class="download-actions">' +
-          '<a class="button secondary" href="' + encodeURIComponent(pkg.name) + '" download>' +
+          '<a class="button secondary" href="' + websiteHref + '" download>' +
             (english ? 'Download from Website ↓' : '从官网下载 ↓') +
           '</a>' +
           '<a class="button secondary" href="https://github.com/zfdang/remote-buddy/releases/download/' +
@@ -95,18 +96,25 @@
     }
   }
 
-  fetch('latest.json', { cache: 'no-store' })
-    .then(function (response) {
+  function loadManifest(url) {
+    return fetch(url, { cache: 'no-store' }).then(function (response) {
       if (!response.ok) throw new Error('HTTP ' + response.status);
       return response.json();
+    });
+  }
+
+  loadManifest('latest.json')
+    .then(function (manifest) {
+      renderPackages(manifest, '');
     })
-    .then(renderPackages)
+    .catch(function () {
+      return loadManifest('https://remote.zfdang.com/downloads/latest.json')
+        .then(function (manifest) {
+          renderPackages(manifest, 'https://remote.zfdang.com/downloads/');
+        });
+    })
     .catch(function () {
       if (fallbackPanel) fallbackPanel.hidden = false;
-      if (statusNote) {
-        statusNote.textContent = english
-          ? 'Direct website mirror index is unavailable in this environment; please use GitHub Releases below.'
-          : '当前预览环境尚未同步官网安装包清单，请直接通过下方 GitHub Releases 下载最新安装包。';
-      }
+      if (statusNote) statusNote.hidden = true;
     });
 })();
