@@ -109,6 +109,22 @@ struct VoiceTriggerConfigurationTests {
         }
     }
 
+    @Test func guideSummaryUsesTheCandidateModeEvenWithoutAValidPairingPlan() throws {
+        try withSettings { settings, _ in
+            let view = OnboardingView(model: BridgeAppModel(settings: settings, initialAudioDevices: []))
+            settings.selectOnboardingFnTapMode(true)
+            #expect(view.proposedPairingPlan == nil)
+            #expect(view.voiceToolGuideGesture == .toggle)
+            settings.setOnboardingControlSource(.xiaomiRemote)
+            settings.setOnboardingVoiceTool(.macosDictation)
+            settings.selectOnboardingVoiceTrigger(.rightOption)
+            #expect(view.proposedPairingPlan == nil)
+            #expect(view.voiceToolGuideGesture == .toggle)
+            settings.selectOnboardingFnTapMode(false)
+            #expect(view.voiceToolGuideGesture == .hold)
+        }
+    }
+
     @Test func toolSetupRequiresEveryApplicableInstructionToBeViewed() throws {
         try withSettings { settings, _ in
             settings.setOnboardingControlSource(.xiaomiRemote)

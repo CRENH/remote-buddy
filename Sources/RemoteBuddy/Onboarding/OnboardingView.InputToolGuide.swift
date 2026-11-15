@@ -271,7 +271,7 @@ extension OnboardingView {
             if ["doubao-settings", "weixin-input-settings", "bageshuo-settings", "voicebuddy-setting-fn", "macos-dictation-shortcut"].contains(resourceName) {
                 Text(LocalizedMessage("onboarding.voice_tool.guide.match_shortcut",
                     arguments: [settings.selectedVoiceTrigger.voiceKeyMode.displayName(using: localization),
-                        localization.text("onboarding.gesture.\(proposedPairingPlan?.binding.gestureMode.rawValue ?? "hold")")]).text(using: localization))
+                        localization.text("onboarding.gesture.\(voiceToolGuideGesture.rawValue)")]).text(using: localization))
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -491,10 +491,14 @@ extension OnboardingView {
         return steps
     }
 
+    var voiceToolGuideGesture: VoiceGestureMode {
+        settings.selectedVoiceTrigger.voiceFnTapModeEnabled ? .toggle : .hold
+    }
+
     func voiceToolGuideText(_ key: String) -> String {
         LocalizedMessage(key, arguments: [
             settings.selectedVoiceTrigger.voiceKeyMode.displayName(using: localization),
-            localization.text("onboarding.gesture.\(proposedPairingPlan?.binding.gestureMode.rawValue ?? "hold")"),
+            localization.text("onboarding.gesture.\(voiceToolGuideGesture.rawValue)"),
         ]).text(using: localization)
     }
 
