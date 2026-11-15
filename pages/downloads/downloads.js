@@ -2,7 +2,6 @@
   var english = document.documentElement.lang === 'en';
   var tagBadge = document.getElementById('release-tag');
   var statusNote = document.getElementById('mirror-status');
-  var githubLink = document.getElementById('github-release-link');
   var cardsContainer = document.getElementById('mirror-cards');
   var fallbackPanel = document.getElementById('mirror-fallback');
 
@@ -23,9 +22,6 @@
     if (tagBadge) {
       tagBadge.textContent = (english ? 'Latest version: ' : '最新版本：') + tag;
       tagBadge.hidden = false;
-    }
-    if (githubLink && manifest.releasesUrl) {
-      githubLink.href = manifest.releasesUrl;
     }
 
     var specs = [

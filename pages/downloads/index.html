@@ -21,30 +21,19 @@
 
 <main class="wrap downloads-wrap">
   <div class="downloads-head">
-    <p class="eyebrow">安装与更新下载</p>
+    <p class="eyebrow">安装包下载</p>
     <h1 class="section-title">下载 Remote Buddy 安装包</h1>
     <span class="downloads-tag" id="release-tag" hidden></span>
-    <p class="lead-sub" id="mirror-status">正在加载官网最新安装包信息…</p>
+    <p class="lead-sub" id="mirror-status">正在加载安装包列表…</p>
   </div>
 
   <div class="downloads-grid" id="mirror-cards"></div>
 
   <section class="download-card" id="mirror-fallback" hidden>
-    <h2>无法自动读取安装包列表</h2>
-    <p>请检查网络连接后刷新页面，或直接前往官网下载页 / GitHub Releases 获取对应芯片的安装包（Apple Silicon 请选择 <code>*_macOS_arm64.pkg</code>，Intel 请选择 <code>*_macOS_intel.pkg</code>）。</p>
+    <h2>前往 GitHub Releases 下载安装包</h2>
+    <p>选择对应 Mac 芯片的 PKG 安装包（Apple Silicon 请下载 <code>*_macOS_arm64.pkg</code>，Intel 请下载 <code>*_macOS_intel.pkg</code>）。</p>
     <div class="download-actions">
-      <a class="button secondary" href="https://remote.zfdang.com/downloads/index.html">打开官网下载页 ↗</a>
       <a class="button secondary" href="https://github.com/zfdang/remote-buddy/releases/latest">打开 GitHub Releases ↗</a>
-    </div>
-  </section>
-
-  <section class="download-card" style="margin-top:20px">
-    <h2>两个官方下载通道</h2>
-    <p>为兼顾不同网络环境下的下载速度与稳定性，我们同时提供官网直连镜像与 GitHub Releases 两种下载方式（包体内容及签名完全一致）。</p>
-    <div class="download-actions">
-      <a class="button secondary" id="github-release-link" href="https://github.com/zfdang/remote-buddy/releases/latest">访问 GitHub Releases 全部发布 ↗</a>
-      <a class="button secondary" href="../appcast-arm64.xml">arm64 Appcast XML</a>
-      <a class="button secondary" href="../appcast-intel.xml">intel Appcast XML</a>
     </div>
   </section>
 
