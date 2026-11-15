@@ -43,13 +43,11 @@ enum VoiceKeyMode: Hashable, RawRepresentable, Codable, CaseIterable, Identifiab
         default:
             let parts = rawValue.split(separator: ":")
             guard parts.count == 3, parts[0] == "shortcut",
-                  let code = UInt16(parts[1]), code < 128, let flags = UInt(parts[2]),
-                  let cgEvent = CGEvent(keyboardEventSource: nil, virtualKey: code, keyDown: true),
-                  let event = NSEvent(cgEvent: cgEvent)
+                  let code = UInt16(parts[1]), code < 128, let flags = UInt(parts[2])
             else { return nil }
             let shortcut = CustomKeyboardShortcut(keyCode: code,
                 modifierFlags: NSEvent.ModifierFlags(rawValue: flags),
-                keyLabel: CustomKeyboardShortcut(event: event).keyLabel)
+                keyLabel: StandardKeyboardKey.keyLabel(forKeyCode: code))
             guard Self.supportsShortcut(shortcut) else { return nil }
             self = .shortcut(shortcut)
         }
