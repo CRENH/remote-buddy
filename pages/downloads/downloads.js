@@ -2,7 +2,6 @@
   var english = document.documentElement.lang === 'en';
   var tagBadge = document.getElementById('release-tag');
   var statusNote = document.getElementById('mirror-status');
-  var githubLink = document.getElementById('github-release-link');
   var cardsContainer = document.getElementById('mirror-cards');
   var fallbackPanel = document.getElementById('mirror-fallback');
 
@@ -13,7 +12,7 @@
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
 
-  function renderPackages(manifest) {
+  function renderPackages(manifest, websiteBaseUrl) {
     var tag = manifest && manifest.tag;
     var packages = manifest && manifest.packages;
     if (!tag || !packages || !packages.arm64 || !packages.intel) {
@@ -23,9 +22,6 @@
     if (tagBadge) {
       tagBadge.textContent = (english ? 'Latest version: ' : '最新版本：') + tag;
       tagBadge.hidden = false;
-    }
-    if (githubLink && manifest.releasesUrl) {
-      githubLink.href = manifest.releasesUrl;
     }
 
     var specs = [
@@ -67,6 +63,7 @@
       card.className = 'download-card';
 
       var sizeText = formatBytes(pkg.size);
+      var websiteHref = (websiteBaseUrl || '') + encodeURIComponent(pkg.name);
 
       card.innerHTML =
         '<h2>' + spec.title + '</h2>' +
@@ -77,12 +74,12 @@
           '<span>' + spec.archLabel + '</span>' +
         '</div>' +
         '<div class="download-actions">' +
-          '<a class="button primary" href="' + encodeURIComponent(pkg.name) + '" download>' +
-            (english ? 'Download from Website ↓' : '从官网直接下载 ↓') +
+          '<a class="button secondary" href="' + websiteHref + '" download>' +
+            (english ? 'Download from Website ↓' : '从官网下载 ↓') +
           '</a>' +
           '<a class="button secondary" href="https://github.com/zfdang/remote-buddy/releases/download/' +
             encodeURIComponent(tag) + '/' + encodeURIComponent(pkg.name) + '">' +
-            (english ? 'GitHub Mirror ↗' : 'GitHub Releases 备选 ↗') +
+            (english ? 'Download from GitHub ↗' : '从 GitHub 下载 ↗') +
           '</a>' +
         '</div>';
 
@@ -91,24 +88,29 @@
 
     if (fallbackPanel) fallbackPanel.hidden = true;
     if (statusNote) {
-      statusNote.textContent = english
-        ? 'If direct download from remote.zfdang.com is slow or unavailable, use the GitHub Releases mirror button.'
-        : '若从官网（remote.zfdang.com）直接下载较慢或不可用，可使用右侧 GitHub Releases 备选按钮。';
+      statusNote.hidden = true;
     }
   }
 
-  fetch('latest.json', { cache: 'no-store' })
-    .then(function (response) {
+  function loadManifest(url) {
+    return fetch(url, { cache: 'no-store' }).then(function (response) {
       if (!response.ok) throw new Error('HTTP ' + response.status);
       return response.json();
+    });
+  }
+
+  loadManifest('latest.json')
+    .then(function (manifest) {
+      renderPackages(manifest, '');
     })
-    .then(renderPackages)
+    .catch(function () {
+      return loadManifest('https://remote.zfdang.com/downloads/latest.json')
+        .then(function (manifest) {
+          renderPackages(manifest, 'https://remote.zfdang.com/downloads/');
+        });
+    })
     .catch(function () {
       if (fallbackPanel) fallbackPanel.hidden = false;
-      if (statusNote) {
-        statusNote.textContent = english
-          ? 'Direct website mirror index is unavailable in this environment; please use GitHub Releases below.'
-          : '当前预览环境尚未同步官网安装包清单，请直接通过下方 GitHub Releases 下载最新安装包。';
-      }
+      if (statusNote) statusNote.hidden = true;
     });
 })();
