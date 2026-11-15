@@ -29,13 +29,25 @@
 ### 自用版本的设置
 
 - **关闭了自动更新。** 避免被上游官方版本覆盖。想换回官方版本，请到 [上游 Releases](https://github.com/zfdang/remote-buddy/releases) 下载安装。
-- **安装包没有经过 Apple 公证**，签名也和官方版本不同（见下方安装说明）。
+- **安装包没有经过 Apple 公证**，用本仓库自己的固定证书签名，和官方版本不同（见下方「签名证书」）。
 
 ## 下载与安装
 
 1. 到本仓库的 [Releases](https://github.com/CRENH/remote-buddy/releases) 下载最新的 `.pkg` 安装包。目前只提供 Apple Silicon（arm64）版本；系统要求与上游相同，为 macOS 14 及以上。
 2. 双击安装。如果系统提示无法验证开发者：打开「系统设置 → 隐私与安全性」，在页面下方点「仍要打开」，再重新双击安装包。
-3. 安装后重新授予权限：辅助功能、输入监控、蓝牙。签名与官方版本不同，系统会把它当成一个新 App，即使之前给官方版本授过权，也要重新授权。
+3. 第一次安装固定证书签名的版本后，授予权限：辅助功能、输入监控、蓝牙。签名与官方版本、本仓库早期的临时签名版本都不同，系统会把它当成一个新 App，之前授过权也要重新授权。之后升级到同一张证书签名的新版本，授权会保留。
+
+## 签名证书
+
+本仓库的安装包用一张固定的自签名证书签名（不是 Apple 开发者证书）。公开证书在 `scripts/signing/release-certificate.pem`：
+
+- SHA-1 指纹：`ACA2B855C9F8F9A6C6711428F920BCB863BD53C4`
+- 有效期至 2036-11-12
+- 上游 `docs/releases.md` 里写的是上游官方证书的指纹，不适用于本仓库。
+
+核对已安装的 App：运行 `codesign --display -r- "/Applications/Remote Buddy.app"`，输出里应有 `certificate leaf = H"aca2b855c9f8f9a6c6711428f920bcb863bd53c4"`。
+
+维护者打包：签名身份放在 `~/Library/Application Support/RemoteBuddySigning/`（生成方法见上游 [docs/build-and-signing.md](docs/build-and-signing.md)），在仓库根目录运行 `bash .github/scripts/build-signed-package.sh`，安装包输出到 `dist/release/`。
 
 ## 与上游的关系
 

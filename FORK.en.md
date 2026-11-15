@@ -29,13 +29,25 @@ For the Chromecast Voice Remote (G9N9N). Upstream assigns common phrases to 5 bu
 ### Self-use build settings
 
 - **Automatic updates are disabled**, so the build is not replaced by an official upstream release. To switch back, install from the [upstream Releases](https://github.com/zfdang/remote-buddy/releases).
-- **The installer is not notarized by Apple**, and its signature differs from the official build (see installation below).
+- **The installer is not notarized by Apple.** It is signed with this repository's own fixed certificate, which differs from the official build (see [Signing certificate](#signing-certificate) below).
 
 ## Download and install
 
 1. Download the latest `.pkg` from this repository's [Releases](https://github.com/CRENH/remote-buddy/releases). Only Apple Silicon (arm64) builds are provided for now; like upstream, it requires macOS 14 or later.
 2. Double-click to install. If macOS says it cannot verify the developer, open **System Settings → Privacy & Security**, click **Open Anyway** near the bottom, then double-click the installer again.
-3. After installing, grant Accessibility, Input Monitoring and Bluetooth again. Because the signature differs from the official build, macOS treats it as a new app, even if you authorized the official build before.
+3. After first installing a build signed with the fixed certificate, grant Accessibility, Input Monitoring and Bluetooth. Its signature differs from both the official build and this fork's earlier ad-hoc builds, so macOS treats it as a new app, even if you authorized one of those before. Later upgrades signed with the same certificate keep these permissions.
+
+## Signing certificate
+
+This fork's installers are signed with a fixed self-signed certificate (not an Apple Developer certificate). The public certificate is `scripts/signing/release-certificate.pem`:
+
+- SHA-1 fingerprint: `ACA2B855C9F8F9A6C6711428F920BCB863BD53C4`
+- Valid until 2036-11-12
+- The fingerprint in upstream's `docs/releases.md` belongs to the official upstream certificate and does not apply to this fork.
+
+To check an installed app, run `codesign --display -r- "/Applications/Remote Buddy.app"`; the output should contain `certificate leaf = H"aca2b855c9f8f9a6c6711428f920bcb863bd53c4"`.
+
+Maintainers: keep the signing identity in `~/Library/Application Support/RemoteBuddySigning/` (see upstream [docs/build-and-signing.md](docs/build-and-signing.md) for how to generate one), then run `bash .github/scripts/build-signed-package.sh` from the repository root. The installer is written to `dist/release/`.
 
 ## Relationship with upstream
 
