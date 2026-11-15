@@ -1260,7 +1260,7 @@
 "onboarding.controls.g9n9n.second" = "同时按返回＋上，然后松开";
 "onboarding.voice_tool.choose_required" = "请选择输入工具。";
 "onboarding.voice_tool.install_required" = "请先安装并在系统中启用所选输入工具，再回到此页。";
-"onboarding.voice_tool.tap_required" = "此工具需要开启点按模式，请确认后继续。";
+"onboarding.voice_tool.tap_required" = "此工具需要点按模式：将当前按住模式改为自动点按语音热键开始和结束，通过语音测试后才生效。";
 "onboarding.voice_tool.enable_tap" = "开启点按模式";
 "onboarding.voice_tool.choose_another" = "改选其他工具";
 "onboarding.guide.viewed" = "已查看";
