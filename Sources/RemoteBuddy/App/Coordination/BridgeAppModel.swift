@@ -15,7 +15,7 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
 
     let connections = BluetoothConnectionRegistry()
     let voiceSession = VoiceSessionRuntime()
-    let audio = AudioRuntime()
+    let audio: AudioRuntime
 
     let settings: AppSettings
     let commonPhraseStore: CommonPhraseStore
@@ -39,8 +39,6 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
     @Published var isConnected = false
     @Published var isVoiceTriggerEnabled = false
     @Published var activeRemoteButtons = Set<RemoteButton>()
-    /// Chromecast 画布的活动按键（控制 ID）。与苹果遥控器链路完全隔离，互不清除。
-    @Published private(set) var activeChromecastControlIDs = Set<String>()
     @Published var lastRemoteButtonPress: RemoteButton?
     @Published var connectedRemoteProfileIDs = Set<UUID>()
     @Published var remoteBatteryLevels: [UUID: Int] = [:]
@@ -118,49 +116,8 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
             self?.handleVoiceInputDestinationState(state)
         }
     )
-    lazy var voiceFnTapSession = VoiceFnTapSessionController(
-        startTapCount: { [weak self] in
-            self?.settings.onboardingVoiceTool.functionKeyStartTapCount ?? 1
-        },
-        destinationReadiness: { [weak self] completion in
-            self?.prepareIntegratedVoiceInputDestination(completion: completion) ?? .immediate
-        },
-        setFunctionKeyPressed: { [weak self] pressed in
-            let submitted = KeyboardInjector.setFunctionKeyPressed(pressed)
-            if pressed { self?.completeApplicationIntegrationVoiceTrigger(started: submitted) }
-            return submitted
-        },
-        enqueueAudio: { [weak self] samples in
-            self?.enqueueVoiceFnTapAudio(samples)
-        },
-        drainAudio: { [weak self] operationID, completion in
-            guard let self else {
-                completion()
-                return
-            }
-            self.audio.output.endSessionAfterDraining(
-                source: "voice_fn_tap",
-                operationID: operationID,
-                maximumDelay: self.audio.output.pendingPlaybackDuration + 0.75
-            ) { outcome in
-                AppLogger.shared.write(
-                    "VOICE FN TAP playback_stop operation_id=\(operationID) " +
-                        "phase=completed result=\(outcome.rawValue)"
-                )
-                completion()
-            }
-        },
-        onFailure: { [weak self] failure in
-            self?.handleVoiceFnTapFailure(failure)
-        },
-        enqueuePreRollAudio: { [weak self] in self?.enqueueVoiceFnTapAudio($0, isPreRoll: true) },
-        pendingPlaybackDuration: { [weak self] in self?.audio.output.pendingPlaybackDuration ?? 0 },
-        logger: { AppLogger.shared.write($0) },
-        onIdle: { [weak self] in
-            self?.flushPendingVoiceToolMappingRefresh()
-            self?.releaseVirtualAudioOutputIfUnused(reason: "voice_fn_tap_idle")
-        }
-    )
+    lazy var voiceTapTrigger = VoiceTapTrigger(selectedMode: { [settings] in settings.effectiveVoiceKeyMode })
+    lazy var voiceFnTapSession = makeVoiceFnTapSession()
     private var voiceToolCancellable: AnyCancellable?
     private var applicationIntegrationCancellable: AnyCancellable?
     var testToneGeneration = 0
@@ -227,8 +184,11 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
     var appliedHIDMonitoringConfiguration: HIDMonitoringConfiguration?
     var pendingHIDServiceMappingRefresh = false
     var hidServiceMappingRefreshGeneration: UInt64 = 0
+    var scheduleHIDServiceMappingRefresh: OperationScheduler = ScheduledOperation.mainQueue
     private var terminationObserver: NSObjectProtocol?
     var completedUpdateHIDRecoveryWorkItem: DispatchWorkItem?
+    var hidFilterRetryWorkItem: DispatchWorkItem?
+    var hidFilterRetryToken: UUID?
     var hidMappingRecoveryWorkItem: DispatchWorkItem?
     var hidMappingRecoveryAttempt = 0
     var hidMappingRecoveryGeneration: UInt64 = 0
@@ -249,8 +209,9 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
 
     init(
         settings: AppSettings? = nil,
-        commonPhraseStore: CommonPhraseStore = CommonPhraseStore(),
+        commonPhraseStore: CommonPhraseStore? = nil,
         initialAudioDevices: [AudioDeviceInfo] = [],
+        audioRuntime: AudioRuntime? = nil,
         loginItemService: LoginItemService = LoginItemService(),
         voiceFunctionMapper: RemoteHIDKeyMapper? = nil,
         hidEventSuppressor: KeyboardEventSuppressor? = nil,
@@ -262,7 +223,8 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
     ) {
         let settings = settings ?? AppSettings()
         self.settings = settings
-        self.commonPhraseStore = commonPhraseStore
+        self.commonPhraseStore = commonPhraseStore ?? CommonPhraseStore()
+        self.audio = audioRuntime ?? AudioRuntime()
         self.voiceFunctionMapper = voiceFunctionMapper ?? RemoteHIDKeyMapper()
         self.hidEventSuppressor = hidEventSuppressor ?? KeyboardEventSuppressor()
         self.permissionSnapshotProvider = permissionSnapshotProvider
@@ -286,6 +248,7 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
                         HIDStatusKeys.interrupted)
             )
             self.refreshRuntimePermissionDiagnosis(trigger: "hid_filter_disabled")
+            self.scheduleHIDFilterRetry()
         }
         voiceToolCancellable = settings.$onboardingVoiceTool
             .removeDuplicates()
@@ -356,6 +319,7 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
         cancelHIDMappingRecovery(reason: "app_stop")
         completedUpdateHIDRecoveryWorkItem?.cancel()
         completedUpdateHIDRecoveryWorkItem = nil
+        cancelHIDFilterRetry()
         audio.invalidatePendingWork()
         stopObservingAudioHardware()
         cancelTestToneIfNeeded(

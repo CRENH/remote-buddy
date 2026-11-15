@@ -54,9 +54,6 @@ enum SettingsScreenshotRenderer {
         let editingTrigger = ProcessInfo.processInfo.environment[
             "REMOTE_BUDDY_SETTINGS_SCREENSHOT_EDITING_TRIGGER"
         ].flatMap(ButtonTrigger.init(rawValue:)) ?? .singleClick
-        let showsStandardKeyboard = ProcessInfo.processInfo.environment[
-            "REMOTE_BUDDY_SETTINGS_SCREENSHOT_SHORTCUT_MODE"
-        ] == "keyboard"
         let usesSiriRemote = ProcessInfo.processInfo.environment[
             "REMOTE_BUDDY_SETTINGS_SCREENSHOT_SIRI_REMOTE"
         ] == "1"
@@ -175,7 +172,7 @@ enum SettingsScreenshotRenderer {
             settings.customMappingEnabled = true
             settings.setAction(.customShortcut, for: .ok, trigger: .singleClick)
             settings.setShortcut(
-                KeyboardShortcutPreset.spotlight.shortcut,
+                CustomKeyboardShortcut(keyCode: 49, modifierFlags: .command, keyLabel: "Space"),
                 for: .ok,
                 trigger: .singleClick
             )
@@ -221,7 +218,6 @@ enum SettingsScreenshotRenderer {
                 initialSection: section,
                 initialMappingEditingButton: section == .mapping && opensMappingEditor ? editingButton : nil,
                 initialMappingEditingTrigger: editingTrigger,
-                initialShortcutPickerShowsKeyboard: showsStandardKeyboard,
                 permissionOverrides: permissionsOverride
             ).environmentObject(localization))
             let window = NSWindow(contentRect: NSRect(origin: .zero, size: size),
@@ -255,7 +251,6 @@ enum SettingsScreenshotRenderer {
                     ? editingButton
                     : nil,
                 initialMappingEditingTrigger: editingTrigger,
-                initialShortcutPickerShowsKeyboard: showsStandardKeyboard,
                 minimumContentSize: SettingsWindowLayout.minimumCanvasSize,
                 permissionOverrides: permissionsOverride
             )

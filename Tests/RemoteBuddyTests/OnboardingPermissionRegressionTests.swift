@@ -3,7 +3,7 @@ import Testing
 
 @Suite("Onboarding permission regression")
 struct OnboardingPermissionRegressionTests {
-    @Test(arguments: [OnboardingStep.remote, .controls, .audio, .voiceTest])
+    @Test(arguments: [OnboardingStep.remote, .controls, .voiceTrigger, .voiceTest])
     func revokedPermissionOverridesLaterStepDiagnostics(step: OnboardingStep) {
         let capabilities = OnboardingCapabilities(bluetoothGranted: true,
             inputMonitoringGranted: true, accessibilityGranted: false,

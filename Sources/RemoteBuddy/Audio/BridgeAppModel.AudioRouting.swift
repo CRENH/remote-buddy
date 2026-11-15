@@ -52,12 +52,27 @@ extension BridgeAppModel {
             return
         }
         let configure = configureOutput ?? { self.audio.output.configureAsync(deviceUID: $0, completion: $1) }
-        configureAudioOutputWithRetry(deviceUID: settings.selectedAudioDeviceUID,
+        let deviceUID = settings.selectedAudioDeviceUID
+        audio.beginConfiguration(
+            generation: configurationGeneration,
+            deviceUID: deviceUID,
+            adoptExistingWaiters: !audio.suspensionState.isSuspended && started && !isTerminating
+        )
+        configureAudioOutputWithRetry(deviceUID: deviceUID,
             generation: configurationGeneration, configure: configure) { [weak self] configured in
             DispatchQueue.main.async { [weak self] in
-                self?.finishAudioStartup(generation: generation,
+                guard let self else { return }
+                let resolvedReady = self.started &&
+                    !self.isTerminating &&
+                    self.audio.configurationGeneration == configurationGeneration &&
+                    configured
+                self.finishAudioStartup(generation: generation,
                     configurationGeneration: configurationGeneration, configured: configured,
                     devices: devices)
+                self.audio.resolveConfigurationWaiters(
+                    generation: configurationGeneration,
+                    configured: resolvedReady
+                )
             }
         }
     }
@@ -233,10 +248,17 @@ extension BridgeAppModel {
     }
 
     private func suspendActiveAudio(reason: String) {
-        for bridge in connections.bridges.values { _ = bridge.requestMicrophoneClose() }
-        _ = connections.discoveryBridge?.requestMicrophoneClose()
+        for bridge in connections.bridges.values {
+            _ = bridge.requestMicrophoneClose()
+            bridge.suspendVoiceTransferState()
+        }
+        if let discoveryBridge = connections.discoveryBridge {
+            _ = discoveryBridge.requestMicrophoneClose()
+            discoveryBridge.suspendVoiceTransferState()
+        }
         // Hardware sleep cannot be deferred for an active voice source.
         audio.configurationGeneration &+= 1
+        audio.cancelAllConfigurationWaiters()
         cancelVirtualAudioReleaseIfPending(trigger: "system_sleep")
         stopLongRecording(reason: "system_sleep")
         finishRC003VoiceExtensionTest(reason: "system_sleep")
@@ -260,11 +282,30 @@ extension BridgeAppModel {
         reason: String,
         completion: @escaping (Bool) -> Void = { _ in }
     ) {
+        configureVirtualAudioOutput(
+            reason: reason,
+            configureOutput: { self.audio.output.configureAsync(deviceUID: $0, completion: $1) },
+            completion: completion
+        )
+    }
+
+    func configureVirtualAudioOutput(
+        reason: String,
+        configureOutput: @escaping (String, @escaping (Bool) -> Void) -> Void,
+        completion: @escaping (Bool) -> Void = { _ in }
+    ) {
         cancelVirtualAudioReleaseIfPending(trigger: "rebind_\(reason)")
         audio.virtualAudioReleaseGeneration &+= 1
         audio.configurationGeneration &+= 1
         let generation = audio.configurationGeneration
         let deviceUID = settings.selectedAudioDeviceUID
+        let shouldAdoptWaiters = started && !isTerminating && !audio.suspensionState.isSuspended
+        audio.beginConfiguration(
+            generation: generation,
+            deviceUID: deviceUID,
+            adoptExistingWaiters: shouldAdoptWaiters
+        )
+        audio.addConfigurationWaiter(generation: generation, completion)
         audio.output.invalidateAudibilityCache()
         AppLogger.shared.write("AUDIO REBIND begin reason=\(reason) state={\(audio.output.diagnosticState())}")
         if reason != "test_tone" {
@@ -273,13 +314,19 @@ extension BridgeAppModel {
                 logReason: "device_reconfigure"
             )
         }
-        configureAudioOutputWithRetry(deviceUID: deviceUID, generation: generation) { [weak self] configured in
+        configureAudioOutputWithRetry(
+            deviceUID: deviceUID,
+            generation: generation,
+            configure: configureOutput
+        ) { [weak self] configured in
             DispatchQueue.main.async {
-                guard let self,
-                      self.started,
+                guard let self else { return }
+                guard self.started,
+                      !self.isTerminating,
+                      !self.audio.suspensionState.isSuspended,
                       self.audio.configurationGeneration == generation
                 else {
-                    completion(false)
+                    self.audio.resolveConfigurationWaiters(generation: generation, configured: false)
                     return
                 }
                 self.audioStatus = self.audio.output.status
@@ -294,7 +341,7 @@ extension BridgeAppModel {
                         "state={\(self.audio.output.diagnosticState())}"
                 )
                 self.updateVirtualAudioDeviceObservation()
-                completion(configured)
+                self.audio.resolveConfigurationWaiters(generation: generation, configured: configured)
                 // Demand may have ended while HAL configuration was in flight.
                 self.releaseVirtualAudioOutputIfUnused(reason: "rebind_complete_\(reason)")
             }
@@ -362,6 +409,14 @@ extension BridgeAppModel {
             }
         }
         isAudioOutputReady = false
+        if let activeGeneration = activeInFlightConfigurationGeneration(for: settings.selectedAudioDeviceUID) {
+            cancelVirtualAudioReleaseIfPending(trigger: "coalesced_\(reason)")
+            AppLogger.shared.write(
+                "AUDIO HEALTH coalesced reason=\(reason) generation=\(activeGeneration) " +
+                    "state={\(audio.output.diagnosticState())}"
+            )
+            return false
+        }
         AppLogger.shared.write(
             "AUDIO HEALTH stale reason=\(reason) state={\(audio.output.diagnosticState())}"
         )
@@ -388,10 +443,30 @@ extension BridgeAppModel {
             }
         }
         isAudioOutputReady = false
+        if let activeGeneration = activeInFlightConfigurationGeneration(for: settings.selectedAudioDeviceUID) {
+            cancelVirtualAudioReleaseIfPending(trigger: "coalesced_\(reason)")
+            audio.addConfigurationWaiter(generation: activeGeneration, completion)
+            AppLogger.shared.write(
+                "AUDIO HEALTH coalesced reason=\(reason) generation=\(activeGeneration) " +
+                    "state={\(audio.output.diagnosticState())}"
+            )
+            return
+        }
         AppLogger.shared.write(
             "AUDIO HEALTH stale reason=\(reason) state={\(audio.output.diagnosticState())}"
         )
         configureVirtualAudioOutput(reason: reason, completion: completion)
+    }
+
+    private func activeInFlightConfigurationGeneration(for deviceUID: String) -> UInt64? {
+        guard started,
+              !isTerminating,
+              !audio.suspensionState.isSuspended,
+              let activeGeneration = audio.activeConfigurationGeneration,
+              activeGeneration == audio.configurationGeneration,
+              audio.activeConfigurationDeviceUID == deviceUID
+        else { return nil }
+        return activeGeneration
     }
 
     func updateVirtualAudioDeviceObservation() {
@@ -530,6 +605,7 @@ extension BridgeAppModel {
                       self.started,
                       self.audio.recoveryGeneration == generation
                 else { return }
+                self.audio.recoveryWorkItem = nil
                 self.audio.preparationQueue.async { [weak self] in
                     let devices = CoreAudioDeviceCatalog.outputDevices()
                     DispatchQueue.main.async { [weak self] in
@@ -550,7 +626,6 @@ extension BridgeAppModel {
     ) {
         guard started, audio.recoveryGeneration == generation else { return }
         self.publishAudioDevices(devices)
-        let selectedDeviceAvailable = self.selectedAudioDeviceIsAvailable
         let startedAtUptime = ProcessInfo.processInfo.systemUptime
         let coalesced = self.audio.recoveryCoalescingState.consumePendingEvents()
         let effectiveReason = coalesced.includesHardwareChange
@@ -562,6 +637,82 @@ extension BridgeAppModel {
                 "detail=\(details) coalesced_events=\(coalesced.count) " +
                 "includes_hardware_change=\(coalesced.includesHardwareChange)"
         )
+        if let inFlightGeneration = activeInFlightConfigurationGeneration(for: settings.selectedAudioDeviceUID) {
+            AppLogger.shared.write(
+                "AUDIO RECOVERY operation_id=\(generation) phase=waiting result=pending " +
+                    "reason=\(effectiveReason) in_flight_generation=\(inFlightGeneration) " +
+                    "detail=\(details) coalesced_events=\(coalesced.count) " +
+                    "includes_hardware_change=\(coalesced.includesHardwareChange) " +
+                    "state={\(self.audio.output.diagnosticState())}"
+            )
+            self.audio.addConfigurationWaiter(generation: inFlightGeneration) { [weak self] _ in
+                guard let self,
+                      self.started,
+                      !self.isTerminating,
+                      !self.audio.suspensionState.isSuspended,
+                      self.audio.recoveryGeneration == generation
+                else { return }
+                if coalesced.includesHardwareChange {
+                    self.audio.preparationQueue.async { [weak self] in
+                        let refreshedDevices = CoreAudioDeviceCatalog.outputDevices()
+                        DispatchQueue.main.async { [weak self] in
+                            guard let self,
+                                  self.started,
+                                  !self.isTerminating,
+                                  !self.audio.suspensionState.isSuspended,
+                                  self.audio.recoveryGeneration == generation
+                            else { return }
+                            self.publishAudioDevices(refreshedDevices)
+                            self.evaluateAndApplyAudioRecovery(
+                                generation: generation,
+                                reason: reason,
+                                effectiveReason: effectiveReason,
+                                details: details,
+                                coalesced: coalesced,
+                                startedAtUptime: startedAtUptime,
+                                outputSnapshot: outputSnapshot,
+                                configureOutput: configureOutput
+                            )
+                        }
+                    }
+                    return
+                }
+                self.evaluateAndApplyAudioRecovery(
+                    generation: generation,
+                    reason: reason,
+                    effectiveReason: effectiveReason,
+                    details: details,
+                    coalesced: coalesced,
+                    startedAtUptime: startedAtUptime,
+                    outputSnapshot: outputSnapshot,
+                    configureOutput: configureOutput
+                )
+            }
+            return
+        }
+        evaluateAndApplyAudioRecovery(
+            generation: generation,
+            reason: reason,
+            effectiveReason: effectiveReason,
+            details: details,
+            coalesced: coalesced,
+            startedAtUptime: startedAtUptime,
+            outputSnapshot: outputSnapshot,
+            configureOutput: configureOutput
+        )
+    }
+
+    private func evaluateAndApplyAudioRecovery(
+        generation: UInt64,
+        reason: String,
+        effectiveReason: String,
+        details: String,
+        coalesced: (count: Int, includesHardwareChange: Bool),
+        startedAtUptime: TimeInterval,
+        outputSnapshot: VirtualAudioOutputDiagnosticSnapshot? = nil,
+        configureOutput: ((@escaping (Bool) -> Void) -> Void)? = nil
+    ) {
+        let selectedDeviceAvailable = self.selectedAudioDeviceIsAvailable
         self.audio.output.invalidateAudibilityCache()
         if selectedDeviceAvailable {
             let snapshot = outputSnapshot ?? self.audio.output.diagnosticSnapshot()

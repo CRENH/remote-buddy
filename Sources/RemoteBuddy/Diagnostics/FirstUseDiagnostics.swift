@@ -33,7 +33,7 @@ enum FirstUseFailureReason: String, Codable, Equatable {
         case .remoteNotFound, .remoteButtonNotReady:
             return .remote
         case .audioNoOutputDevice, .audioSelectedDeviceMissing, .audioOutputNotReady:
-            return .audio
+            return .permissions
         case .voiceSessionNotStarted,
              .voiceNoSamples,
              .voiceSessionNotEnded,
@@ -242,11 +242,11 @@ struct FirstUseDiagnosticContext: Equatable {
     }
 
     var failureReason: FirstUseFailureReason? {
-        if [.remote, .controls, .audio, .voiceTest].contains(step),
+        if [.remote, .controls, .voiceTrigger, .voiceTest].contains(step),
            runtimePermissionIssue?.isPermissionDesynced == true {
             return .permissionDesynced
         }
-        if [.remote, .controls, .audio, .voiceTest].contains(step),
+        if [.remote, .controls, .voiceTrigger, .voiceTest].contains(step),
            let permission = OnboardingFlowPolicy.missingRuntimePermission(
                controlMethod: controlMethod, capabilities: capabilities) {
             return permission
@@ -265,15 +265,16 @@ struct FirstUseDiagnosticContext: Equatable {
             if runtimePermissionIssue?.isPermissionDesynced == true {
                 return .permissionDesynced
             }
-        case .remote:
-            if !capabilities.remoteConnected { return .remoteNotFound }
-            if !capabilities.remoteButtonObserved { return .remoteButtonNotReady }
-        case .audio:
             if !hasSelectedAudioUID { return .audioNoOutputDevice }
             if !capabilities.audioOutputSelected { return .audioSelectedDeviceMissing }
             if !capabilities.audioReady {
                 return .audioOutputNotReady
             }
+        case .voiceTrigger:
+            break
+        case .remote:
+            if !capabilities.remoteConnected { return .remoteNotFound }
+            if !capabilities.remoteButtonObserved { return .remoteButtonNotReady }
         case .voiceTest:
             if let voiceAttempt {
                 return voiceAttempt.failureReason

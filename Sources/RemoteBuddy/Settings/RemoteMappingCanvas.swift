@@ -362,11 +362,8 @@ struct RemoteMappingCanvas: View {
                             in: Capsule()
                         )
                 }
-                Text(localization.text(
-                    isT1 ? "button_mapping.voice_button.t1_detail" : "button_mapping.voice_button.detail"
-                ))
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
+                Text(localization.text("button_mapping.voice_button.configure"))
+                    .font(.system(size: 12)).foregroundStyle(.secondary)
                     .lineLimit(2)
             }
             .padding(.horizontal, 9)

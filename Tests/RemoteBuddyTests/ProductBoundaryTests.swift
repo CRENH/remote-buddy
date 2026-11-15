@@ -73,6 +73,10 @@ struct ProductBoundaryTests {
             "onboarding.side.web",
             "macro.integration.",
         ]
+        let placeholderRegex = try NSRegularExpression(
+            pattern: #"%(?:\d+\$)?[+#0\- ]*(?:\d+)?(?:\.\d+)?(?:ll|l|hh|h|z|t|j)?[@dDuUxXoOfeEgGcCsSp]"#
+        )
+        var tablesByLanguage: [String: [String: String]] = [:]
         for lang in ["zh-Hans.lproj", "en.lproj"] {
             let stringsURL = resources.appendingPathComponent(lang).appendingPathComponent("Localizable.strings")
             let content = try String(contentsOf: stringsURL, encoding: .utf8)
@@ -89,6 +93,27 @@ struct ProductBoundaryTests {
                 retiredPrefixes.contains { key.hasPrefix($0) }
             }
             #expect(retiredFound.isEmpty, "Found retired keys in \(lang): \(retiredFound)")
+            let table = try #require(NSDictionary(contentsOf: stringsURL) as? [String: String])
+            #expect(Set(table.keys) == definedKeys, "Parsed keys differ from regex keys in \(lang)")
+            tablesByLanguage[lang] = table
+        }
+        let zhTable = try #require(tablesByLanguage["zh-Hans.lproj"])
+        let enTable = try #require(tablesByLanguage["en.lproj"])
+        #expect(Set(zhTable.keys) == Set(enTable.keys))
+        for key in zhTable.keys.sorted() {
+            guard let zhValue = zhTable[key], let enValue = enTable[key] else { continue }
+            let extractPlaceholders: (String) -> [String] = { text in
+                let cleaned = text.replacingOccurrences(of: "%%", with: "")
+                let nsCleaned = cleaned as NSString
+                return placeholderRegex.matches(
+                    in: cleaned,
+                    range: NSRange(location: 0, length: nsCleaned.length)
+                ).map { nsCleaned.substring(with: $0.range) }.sorted()
+            }
+            #expect(
+                extractPlaceholders(zhValue) == extractPlaceholders(enValue),
+                "Format placeholders mismatch for localization key \(key)"
+            )
         }
     }
 
@@ -157,7 +182,7 @@ struct ProductBoundaryTests {
 
     @Test func generalOverviewIsFirstInNavigation() {
         let sections = SettingsPageBehavior.sidebarSections()
-        #expect(sections == [.general, .permissions, .connection, .mapping, .integration, .applicationIntegration, .about])
+        #expect(sections == [.general, .permissions, .connection, .integration, .mapping, .applicationIntegration, .about])
         #expect(SettingsPageBehavior.visibleSection(for: .permissions) == .permissions)
         #expect(SettingsPageBehavior.visibleSection(for: .general) == .general)
         #expect(SettingsPageBehavior.visibleSection(for: .about) == .about)
@@ -194,7 +219,7 @@ struct ProductBoundaryTests {
         #expect(settings.onboardingVoiceTool == .voiceBuddy)
         #expect(settings.onboardingControlSource == .chromecastRemote)
         #expect(settings.onboardingPurpose == .integration)
-        #expect(settings.onboardingStep == .voiceTool)
+        #expect(settings.onboardingStep == .voiceTrigger)
         #expect(!settings.isOnboardingComplete)
         let restored = AppSettings(defaults: defaults)
         #expect(restored.onboardingVoiceTool == .voiceBuddy)
@@ -369,7 +394,8 @@ struct ProductBoundaryTests {
         let ready = OnboardingCapabilities(
             bluetoothGranted: true,
             inputMonitoringGranted: true,
-            accessibilityGranted: true
+            accessibilityGranted: true, microphoneDriverInstalled: true,
+            audioReady: true, audioOutputSelected: true
         )
         #expect(OnboardingFlowPolicy.canContinue(
             from: .permissions, voiceTool: .unselected, remoteAvailability: .unselected,
@@ -388,21 +414,17 @@ struct ProductBoundaryTests {
         }
     }
 
-    @Test func driverIsRequiredAtAudioSetupRatherThanPermissions() {
+    @Test func permissionsStepRequiresDriverAndPreparedAudio() {
         var ready = OnboardingCapabilities(
             bluetoothGranted: true, inputMonitoringGranted: true,
             accessibilityGranted: true, audioReady: true, audioOutputSelected: true
         )
-        #expect(OnboardingFlowPolicy.canContinue(
-            from: .permissions, voiceTool: .unselected, remoteAvailability: .unselected,
-            controlMethod: .unselected, capabilities: ready
-        ))
         #expect(!OnboardingFlowPolicy.canContinue(
-            from: .audio, voiceTool: .unselected, capabilities: ready
+            from: .permissions, voiceTool: .unselected, capabilities: ready
         ))
         ready.microphoneDriverInstalled = true
         #expect(OnboardingFlowPolicy.canContinue(
-            from: .audio, voiceTool: .unselected, capabilities: ready
+            from: .permissions, voiceTool: .unselected, capabilities: ready
         ))
     }
 
@@ -421,7 +443,7 @@ struct ProductBoundaryTests {
             ))
             #expect(OnboardingFlowPolicy.canContinue(
                 from: .voiceTool, voiceTool: tool,
-                voiceToolGuideStepsCompleted: true, capabilities: OnboardingCapabilities()
+                voiceToolSetupReady: true, capabilities: OnboardingCapabilities()
             ))
         }
         // Step 7 verifies the input result and has no configuration confirmations.
@@ -455,8 +477,8 @@ struct ProductBoundaryTests {
         #expect(OnboardingStep.permissions.next == .remoteAvailability)
         #expect(OnboardingStep.remoteAvailability.next == .remote)
         #expect(OnboardingStep.remote.next == .controls)
-        #expect(OnboardingStep.controls.next == .audio)
-        #expect(OnboardingStep.audio.next == .voiceTool)
+        #expect(OnboardingStep.controls.next == .voiceTrigger)
+        #expect(OnboardingStep.voiceTrigger.next == .voiceTool)
         #expect(OnboardingStep(rawValue: "welcome") == nil)
         #expect(OnboardingStep(rawValue: "controlMethod") == nil)
         settings.completeOnboarding()
