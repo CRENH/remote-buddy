@@ -221,7 +221,9 @@ extension OnboardingView {
                 .foregroundStyle(canContinue ? Color.green : Color.orange)
             onboardingTitle(canContinue ? completionTitleKey : "onboarding.complete.runtime_changed")
             Text(localization.text(canContinue ? "onboarding.summary.detail" : "onboarding.complete.runtime_changed_detail"))
-                .font(.system(size: 14)).foregroundStyle(.secondary)
+                .font(.system(size: 14))
+                .foregroundStyle(canContinue ? Color.secondary : Color.orange)
+                .fixedSize(horizontal: false, vertical: true)
             VStack(alignment: .leading, spacing: 12) {
                 if let name = summary.remoteName {
                     completionSummaryLine("appletvremote.gen4", "onboarding.summary.remote", value: name)
@@ -253,10 +255,6 @@ extension OnboardingView {
                         .font(.caption).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-            }
-            if !canContinue {
-                Text(localization.text("onboarding.complete.runtime_changed_detail"))
-                    .foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
             }
         }
     }
