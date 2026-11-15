@@ -381,6 +381,15 @@ final class VirtualAudioOutput {
             logStage("verify_output")
             refreshOutputStateOnEngineQueue()
             guard isReadyForTestTone else {
+                // Capture before teardown clears the engine and selected/actual route.
+                let snapshot = diagnosticSnapshot()
+                logger(
+                    "AUDIO CONFIGURE failed reason=verify_output queue=audio_output " +
+                        "elapsed_ms=\(elapsedMilliseconds()) " +
+                        "engine_running=\(snapshot.engineRunning) player_playing=\(snapshot.playerPlaying) " +
+                        "bound_to_selected=\(snapshot.boundToSelectedDevice.map(String.init) ?? "unknown") " +
+                        "audibility_healthy=\(snapshot.audibilityHealthy) state={\(diagnosticState())}"
+                )
                 stopOnEngineQueue()
                 status = LocalizedMessage("audio.output.selected_unavailable")
                 return false
