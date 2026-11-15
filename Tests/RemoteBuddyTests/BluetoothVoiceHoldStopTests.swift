@@ -49,13 +49,17 @@ struct BluetoothVoiceHoldStopTests {
         let model = makeModel(defaults, mode: mode)
         var completion: ((VirtualAudioDrainOutcome) -> Void)?
         var releases = 0
+        var releasedModes: [VoiceKeyMode] = []
         model.finishBluetoothVoicePlayback(deviceIdentifier: UUID(), handledByFnTapMode: false,
             drainAudio: { delay, done in
                 #expect(delay >= 0.75)
                 completion = done
             }, releaseKey: {
                 releases += 1
-                #expect(model.releaseVoiceKeyIfNeeded(releaseKey: { _ in true }))
+                #expect(model.releaseVoiceKeyIfNeeded(releaseKey: { releasedMode in
+                    releasedModes.append(releasedMode)
+                    return true
+                }))
             })
         #expect(releases == 0)
         #expect(model.voiceKeyLatch.isHeld)
@@ -67,12 +71,14 @@ struct BluetoothVoiceHoldStopTests {
         let finish = try #require(completion)
         finish(outcome)
         #expect(releases == 1)
+        #expect(releasedModes == [mode])
         #expect(!model.voiceKeyLatch.isHeld)
         #expect(!model.isStreaming)
         #expect(model.voiceSession.pendingKeyRelease == nil)
         #expect(model.canAcceptNewVoiceSession(from: .bluetooth))
         completion?(.normal)
         #expect(releases == 1)
+        #expect(releasedModes == [mode])
     }
 
     @Test func emptyPlaybackQueueDoesNotAddAStopDelay() throws {

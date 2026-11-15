@@ -312,12 +312,14 @@ enum KeyboardInjector {
         keyStatePoster: @escaping KeyStatePoster = postVoiceKeyState,
         secureInputEnabled: () -> Bool = SecureInputMonitor.isEnabled,
         shortcutSession: HeldVoiceShortcut = .shared,
-        shortcutKeyStatePoster: @escaping KeyStatePoster = postVoiceShortcutState
+        shortcutKeyStatePoster: @escaping KeyStatePoster = postVoiceShortcutState,
+        shortcutHardwareFlags: @escaping () -> CGEventFlags = KeyboardHardwareModifierPolicy.currentForMappedAction
     ) -> Bool {
         guard !isPressed || !secureInputEnabled() else { return false }
         guard accessibilityTrusted() else { return false }
         if case let .shortcut(shortcut) = mode {
-            return shortcutSession.setPressed(isPressed, shortcut: shortcut, post: shortcutKeyStatePoster)
+            return shortcutSession.setPressed(isPressed, shortcut: shortcut, post: shortcutKeyStatePoster,
+                hardwareFlags: shortcutHardwareFlags)
         }
         let flags = isPressed ? mode.eventFlags : []
         return keyStatePoster(

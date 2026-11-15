@@ -334,6 +334,64 @@ struct HeldVoiceShortcutTests {
         CustomKeyboardShortcut(keyCode: 9, modifierFlags: [.control, .shift, .option], keyLabel: "V")
     }
 
+    @Test func publicVoiceKeyEntryDispatchesChordsToTheHeldShortcutSession() {
+        let session = HeldVoiceShortcut()
+        let mode = VoiceKeyMode.shortcut(CustomKeyboardShortcut(keyCode: 9,
+            modifierFlags: [.control, .option], keyLabel: "V"))
+        var edges: [(UInt16, Bool)] = []
+        let post: KeyboardInjector.KeyStatePoster = { code, down, _ in edges.append((code, down)); return true }
+        for down in [true, false] {
+            #expect(KeyboardInjector.setVoiceKeyPressed(mode, isPressed: down,
+                accessibilityTrusted: { true }, keyStatePoster: { _, _, _ in
+                    Issue.record("A chord must use the held-shortcut path"); return false
+                }, secureInputEnabled: { false }, shortcutSession: session,
+                shortcutKeyStatePoster: post, shortcutHardwareFlags: { [] }))
+        }
+        #expect(edges.map(\.0) == [59, 58, 9, 9, 58, 59])
+        #expect(edges.map(\.1) == [true, true, true, false, false, false])
+    }
+
+    @Test func failedStartRecoveryUsesBoundedBackoffAndReleasesOnlyItsOwnedKeys() {
+        let clock = ControlledTestScheduler()
+        let session = HeldVoiceShortcut()
+        var canRelease = false
+        var physical: CGEventFlags = []
+        var releases: [(UInt16, CGEventFlags)] = []
+        let post: KeyboardInjector.KeyStatePoster = { code, down, flags in
+            if down { return code != 9 }
+            releases.append((code, flags))
+            return canRelease
+        }
+        #expect(!session.setPressed(true, shortcut: shortcut, post: post,
+            hardwareFlags: { physical }, schedule: clock.voiceSchedule))
+        #expect(clock.tasks.map(\.delay) == [50])
+        physical = ShortcutEventSequence.modifierFlags(for: 54)
+        canRelease = true
+        releases.removeAll()
+        clock.runAll()
+        #expect(releases.map(\.0) == [9, 56, 58, 59])
+        #expect(releases.allSatisfy { $0.1.contains(.maskCommand) })
+        #expect(!releases.contains { $0.0 == 54 })
+        #expect(clock.activeCount == 0)
+        var oldSessionPosts = 0
+        #expect(session.setPressed(false, shortcut: shortcut, post: { _, _, _ in oldSessionPosts += 1; return true }))
+        #expect(oldSessionPosts == 0)
+    }
+
+    @Test func failedStartRecoveryStopsAfterEightScheduledAttempts() {
+        let clock = ControlledTestScheduler()
+        let session = HeldVoiceShortcut()
+        var canRelease = false
+        let post: KeyboardInjector.KeyStatePoster = { code, down, _ in down ? code != 9 : canRelease }
+        #expect(!session.setPressed(true, shortcut: shortcut, post: post,
+            hardwareFlags: { [] }, schedule: clock.voiceSchedule))
+        clock.runAll()
+        #expect(clock.tasks.map(\.delay) == [50, 100, 200, 400, 800, 1000, 1000, 1000])
+        #expect(clock.activeCount == 0)
+        canRelease = true
+        #expect(session.setPressed(false, shortcut: shortcut, post: post))
+    }
+
     @Test func voiceChordsReachHIDListenersAndKeepTheComposedFlagsThroughRelease() throws {
         var events: [CGEvent] = []
         var locations: [CGEventTapLocation] = []
