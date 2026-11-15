@@ -59,6 +59,14 @@ button.addEventListener('blur', stop);
         desc: '查看已添加遥控器的连接状态、电量和设备信息，为每台设备单独调整麦克风增益（0–24 dB）。'
       },
       {
+        title: '输入法集成',
+        badge: '语音工具',
+        windowTitle: '输入法与语音工具集成 · Remote Buddy',
+        src: 'assets/screenshots/integration-zh.png',
+        alt: 'Remote Buddy 输入法与语音工具集成界面：当前语音触发方式、微信输入法、豆包输入法、Voice Buddy（语音搭子）、网易叭哥说、Typeless、macOS 听写等配置入口',
+        desc: '查看当前语音触发方式（热键与点按模式）和已选择的输入工具，通过向导调整热键、配置输入工具并完成语音测试生效。'
+      },
+      {
         title: '按键映射',
         badge: '核心按键映射',
         windowTitle: '按键映射 · Remote Buddy',
@@ -73,14 +81,6 @@ button.addEventListener('blur', stop);
         src: 'assets/screenshots/phrases-zh.png',
         alt: 'Remote Buddy 常用语调整界面：遥控器五键分配、常用语库与短语编辑管理',
         desc: '编辑常用语列表，为方向键和确定键分配短语。在常用语面板中用遥控器选择要输入的内容。'
-      },
-      {
-        title: '输入法集成',
-        badge: '语音工具',
-        windowTitle: '输入法与语音工具集成 · Remote Buddy',
-        src: 'assets/screenshots/integration-zh.png',
-        alt: 'Remote Buddy 输入法与语音工具集成界面：当前语音触发方式、微信输入法、豆包输入法、Voice Buddy（语音搭子）、网易叭哥说、Typeless、macOS 听写等配置入口',
-        desc: '查看当前语音触发方式（热键与点按模式）和已选择的输入工具，通过向导调整热键、配置输入工具并完成语音测试生效。'
       },
       {
         title: '应用集成',
@@ -186,6 +186,14 @@ button.addEventListener('blur', stop);
         desc: 'Check connection status, battery level, and device details for added remotes. Adjust microphone gain for each device (0–24 dB).'
       },
       {
+        title: 'Voice Tools',
+        badge: 'Integrations',
+        windowTitle: 'Voice Tools Integration · Remote Buddy',
+        src: 'assets/screenshots/integration-en.png',
+        alt: 'Remote Buddy Voice Tools interface: current voice trigger and setup guides for WeType, Doubao, Voice Buddy, NetEase Bageshuo, Typeless, macOS Dictation, and other tools',
+        desc: 'Review the active voice trigger shortcut, tap mode, and selected input tool, then launch the integration wizard to customize hotkeys, configure your tool, and verify with a voice test.'
+      },
+      {
         title: 'Button Mapping',
         badge: 'Core Mapping',
         windowTitle: 'Button Mapping · Remote Buddy',
@@ -200,14 +208,6 @@ button.addEventListener('blur', stop);
         src: 'assets/screenshots/phrases-en.png',
         alt: 'Remote Buddy Common Phrases interface: 5-way directional pad assignment and custom phrase library editor',
         desc: 'Edit phrase lists and assign phrases to the arrows and OK button. Use the remote to choose text from the phrase panel.'
-      },
-      {
-        title: 'Voice Tools',
-        badge: 'Integrations',
-        windowTitle: 'Voice Tools Integration · Remote Buddy',
-        src: 'assets/screenshots/integration-en.png',
-        alt: 'Remote Buddy Voice Tools interface: current voice trigger and setup guides for WeType, Doubao, Voice Buddy, NetEase Bageshuo, Typeless, macOS Dictation, and other tools',
-        desc: 'Review the active voice trigger shortcut, tap mode, and selected input tool, then launch the integration wizard to customize hotkeys, configure your tool, and verify with a voice test.'
       },
       {
         title: 'App Integrations',
