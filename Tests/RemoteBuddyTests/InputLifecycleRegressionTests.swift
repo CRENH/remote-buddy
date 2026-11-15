@@ -378,7 +378,7 @@ struct InputLifecycleRegressionTests {
     }
 
     @Test func mediaReleasePassesAfterFreshMediaDown() throws {
-        let filter = KeyboardEventSuppressor()
+        let filter = KeyboardEventSuppressor(uptime: { 0 })
         func event(_ state: Int) throws -> CGEvent {
             let ns = try #require(NSEvent.otherEvent(with: .systemDefined, location: .zero,
                 modifierFlags: [], timestamp: 0, windowNumber: 0, context: nil,
