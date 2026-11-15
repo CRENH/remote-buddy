@@ -1209,6 +1209,9 @@ private final class RemoteBuddyAppDelegate: NSObject, NSApplicationDelegate, NSM
             }
             return
         }
+        if error != nil {
+            updateUserDriver.clearFallbackState()
+        }
         if error != nil, updateInformation.state == .checking {
             updateInformation.setUnavailable()
         }

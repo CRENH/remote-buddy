@@ -309,8 +309,7 @@ extension SettingsView {
                     .labelsHidden()
                     .accessibilityLabel(localization.text("about.version.check_prerelease"))
                     .toggleStyle(.switch)
-                .toggleStyle(.switch)
-                .font(.system(size: 12))
+                    .font(.system(size: 12))
 
                 Button(action: checkForUpdates) {
                     Label(

@@ -447,9 +447,28 @@ struct UpdateDialogTests {
 
         var readyChoices: [SPUUserUpdateChoice] = []
         driver.showReady(toInstallAndRelaunch: { readyChoices.append($0) })
-        // Fallback only auto-confirms if showUpdateFound matches version; direct clear resets cleanly.
-        driver.clearFallbackState()
+        #expect(driver.title == loc.text("update.dialog.ready"))
+
+        // Cycle 2 matching found update auto-confirms .install and arms installAndRelaunchWhenReady.
+        var foundChoices: [SPUUserUpdateChoice] = []
+        driver.showUpdateFound(UpdateDialogVersion(version: "v26-11-15.867", commitCount: "867")) {
+            foundChoices.append($0)
+        }
+        #expect(foundChoices == [.install])
+        #expect(driver.title == loc.text("update.dialog.downloading"))
+
+        driver.showReady(toInstallAndRelaunch: { readyChoices.append($0) })
+        #expect(readyChoices == [.install])
+
+        // If a retry aborts during appcast fetch before showUpdateFound, the error is shown instead of suppressed.
+        driver.prepareForFallbackDownload(autoConfirmVersion: "868")
+        driver.showUpdaterError(NSError(domain: NSURLErrorDomain, code: NSURLErrorTimedOut)) { acks += 1 }
         driver.dismissUpdateInstallation()
-        #expect(readyChoices.isEmpty)
+        var retryCancelCalls = 0
+        driver.showUserInitiatedUpdateCheck { retryCancelCalls += 1 }
+        #expect(retryCancelCalls == 0)
+        driver.showUpdaterError(NSError(domain: NSURLErrorDomain, code: NSURLErrorCannotConnectToHost)) { acks += 1 }
+        #expect(driver.title == loc.text("update.dialog.error"))
+        driver.dismissUpdateInstallation()
     }
 }

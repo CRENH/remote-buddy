@@ -1,4 +1,5 @@
 import Foundation
+import Sparkle
 import Testing
 @testable import RemoteBuddy
 
@@ -78,5 +79,50 @@ struct UpdatePackageFallbackTests {
         #expect(!coordinator.hasPendingFallback)
         let retried = coordinator.consumePendingRetry()
         #expect(!retried)
+    }
+
+    @Test func retriesSparkleWrappedNetworkAndHttpErrorsButNotDiskOrSignatureErrors() {
+        let primary = URL(string: "https://remote.zfdang.com/downloads/Remote_Buddy_v26-11-15.867_macOS_arm64.pkg")!
+        let fallback = URL(string: "https://github.com/zfdang/remote-buddy/releases/download/v26-11-15.867/Remote_Buddy_v26-11-15.867_macOS_arm64.pkg")!
+
+        // Sparkle wraps NSURLErrorDomain failures and HTTP >= 400 download status errors as SUDownloadError.
+        var wrappedCoordinator = UpdatePackageDownloadCoordinator()
+        let wrappedTimeout = NSError(
+            domain: SUSparkleErrorDomain,
+            code: Int(SUError.downloadError.rawValue),
+            userInfo: [NSUnderlyingErrorKey: NSError(domain: NSURLErrorDomain, code: NSURLErrorTimedOut)]
+        )
+        #expect(
+            wrappedCoordinator.recordDownloadFailure(forVersion: "867", fileURL: primary, error: wrappedTimeout)
+                == .retryWithFallback(fallback)
+        )
+
+        var httpCoordinator = UpdatePackageDownloadCoordinator()
+        let httpError = NSError(domain: SUSparkleErrorDomain, code: Int(SUError.downloadError.rawValue))
+        #expect(
+            httpCoordinator.recordDownloadFailure(forVersion: "867", fileURL: primary, error: httpError)
+                == .retryWithFallback(fallback)
+        )
+
+        // Signature failures, temp directory errors, and local disk-full errors must not retry.
+        for nonRetryable in [
+            NSError(domain: SUSparkleErrorDomain, code: Int(SUError.signatureError.rawValue)),
+            NSError(domain: SUSparkleErrorDomain, code: Int(SUError.temporaryDirectoryError.rawValue)),
+            NSError(
+                domain: SUSparkleErrorDomain,
+                code: Int(SUError.downloadError.rawValue),
+                userInfo: [NSUnderlyingErrorKey: NSError(domain: NSCocoaErrorDomain, code: NSFileWriteOutOfSpaceError)]
+            ),
+            NSError(domain: NSPOSIXErrorDomain, code: Int(ENOSPC)),
+        ] {
+            var coordinator = UpdatePackageDownloadCoordinator()
+            #expect(
+                coordinator.recordDownloadFailure(forVersion: "867", fileURL: primary, error: nonRetryable)
+                    == .noFallback
+            )
+            #expect(!coordinator.hasPendingFallback)
+            let retried = coordinator.consumePendingRetry()
+            #expect(!retried)
+        }
     }
 }

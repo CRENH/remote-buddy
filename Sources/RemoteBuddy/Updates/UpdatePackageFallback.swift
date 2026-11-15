@@ -1,4 +1,5 @@
 import Foundation
+import Sparkle
 
 /// Derives verified GitHub Release fallback URLs for packages primarily hosted on remote.zfdang.com.
 enum UpdatePackageURLResolver {
@@ -88,10 +89,17 @@ struct UpdatePackageDownloadCoordinator {
         fileURL: URL?,
         error: Error
     ) -> FailureAction {
-        let nsError = error as NSError
-        if nsError.domain == NSURLErrorDomain, nsError.code == NSURLErrorCancelled {
+        switch Self.classifyDownloadError(error) {
+        case .cancelled:
             cancelFallback()
             return .noFallback
+        case .nonRetryable:
+            activeFallbackVersion = nil
+            activeFallbackURL = nil
+            pendingRetryVersion = nil
+            return .noFallback
+        case .retryableNetworkOrHTTP:
+            break
         }
 
         guard !attemptedFallbackVersions.contains(version),
@@ -107,6 +115,51 @@ struct UpdatePackageDownloadCoordinator {
         activeFallbackURL = fallbackURL
         pendingRetryVersion = version
         return .retryWithFallback(fallbackURL)
+    }
+
+    private enum ErrorDisposition {
+        case cancelled
+        case nonRetryable
+        case retryableNetworkOrHTTP
+    }
+
+    private static func classifyDownloadError(_ error: Error) -> ErrorDisposition {
+        let downloadErrorCode = Int(SUError.downloadError.rawValue)
+        var queue: [NSError] = [error as NSError]
+        var seen = Set<ObjectIdentifier>()
+        var hasNetworkOrSparkleDownloadError = false
+
+        while !queue.isEmpty {
+            let current = queue.removeFirst()
+            let identifier = ObjectIdentifier(current)
+            guard seen.insert(identifier).inserted else { continue }
+
+            if (current.domain == NSURLErrorDomain && current.code == NSURLErrorCancelled)
+                || (current.domain == NSCocoaErrorDomain && current.code == NSUserCancelledError) {
+                return .cancelled
+            }
+            if current.domain == SUSparkleErrorDomain && current.code != downloadErrorCode {
+                return .nonRetryable
+            }
+            if current.domain == NSCocoaErrorDomain
+                || current.domain == NSPOSIXErrorDomain
+                || current.domain == NSMachErrorDomain {
+                return .nonRetryable
+            }
+            if current.domain == NSURLErrorDomain
+                || (current.domain == SUSparkleErrorDomain && current.code == downloadErrorCode) {
+                hasNetworkOrSparkleDownloadError = true
+            }
+
+            if let underlying = current.userInfo[NSUnderlyingErrorKey] as? NSError {
+                queue.append(underlying)
+            }
+            if let multiple = current.userInfo[NSMultipleUnderlyingErrorsKey] as? [NSError] {
+                queue.append(contentsOf: multiple)
+            }
+        }
+
+        return hasNetworkOrSparkleDownloadError ? .retryableNetworkOrHTTP : .nonRetryable
     }
 
     mutating func recordDownloadSucceeded(forVersion version: String) {
