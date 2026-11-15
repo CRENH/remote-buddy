@@ -719,7 +719,7 @@ extension BridgeAppModel {
     ) {
         self.audio.output.invalidateAudibilityCache()
         let snapshot = outputSnapshot ?? audio.output.diagnosticSnapshot()
-        if finishInactiveAudioRecoveryIfNeeded(generation: generation, reason: effectiveReason,
+        if finishUnneededAudioRecoveryIfNeeded(generation: generation, reason: effectiveReason,
             snapshot: snapshot, startedAtUptime: startedAtUptime, diagnosticLog: diagnosticLog) { return }
         let selectedDeviceAvailable = self.selectedAudioDeviceIsAvailable
         if selectedDeviceAvailable {
@@ -775,7 +775,7 @@ extension BridgeAppModel {
                   self.audio.recoveryGeneration == generation
             else { return }
             let completedSnapshot = self.audio.output.diagnosticSnapshot()
-            if self.finishInactiveAudioRecoveryIfNeeded(generation: generation, reason: effectiveReason,
+            if self.finishUnneededAudioRecoveryIfNeeded(generation: generation, reason: effectiveReason,
                 snapshot: completedSnapshot, startedAtUptime: startedAtUptime, diagnosticLog: diagnosticLog) { return }
             let completedAudibility = CoreAudioDeviceCatalog.virtualAudioAudibilitySnapshot(
                 for: self.audio.output.actualDevice ?? self.audio.output.selectedDevice
@@ -801,15 +801,19 @@ extension BridgeAppModel {
         }
     }
 
-    private func finishInactiveAudioRecoveryIfNeeded(
+    private func finishUnneededAudioRecoveryIfNeeded(
         generation: UInt64, reason: String,
         snapshot: VirtualAudioOutputDiagnosticSnapshot, startedAtUptime: TimeInterval,
         diagnosticLog: (String) -> Void
     ) -> Bool {
-        guard !shouldKeepVirtualAudioActive, snapshot.pendingBuffers == 0 else { return false }
+        guard !shouldKeepVirtualAudioActive else { return false }
+        // Match applyAudioSettings: once source demand ends, retain the existing
+        // bounded drain instead of rebuilding an engine or reporting a failure.
+        let draining = snapshot.pendingBuffers > 0
+        if draining { releaseVirtualAudioOutputIfUnused(reason: "recovery_\(reason)") }
         diagnosticLog(
             "AUDIO RECOVERY operation_id=\(generation) phase=completed result=ignored " +
-                "reason=\(reason) decision=virtual_audio_inactive " +
+                "reason=\(reason) decision=\(draining ? "virtual_audio_draining" : "virtual_audio_inactive") " +
                 "pending_buffers=\(snapshot.pendingBuffers) pending_samples=\(snapshot.pendingSamples) " +
                 "elapsed_ms=\(elapsedMilliseconds(since: startedAtUptime))"
         )
