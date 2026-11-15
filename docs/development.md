@@ -558,3 +558,5 @@ Validation after the latency and trigger-observation changes (runtime `1cb1d94`)
 - Integration/frame/privacy filter reported 70 tests / 4 suites passed (both live probes skipped by default). Voice activation/session/review filter reported 33 tests / 3 suites passed, including scoped modifier delivery and synthetic-owner isolation.
 - Full serial run reported 730 tests / 107 suites, both live probes skipped, with one issue at the same `HIDHotPathIdempotencyTests.swift:1307` service-provider-count assertion (6 versus 5). All other executed tests passed; the full suite remains non-green.
 - Debug app build passed and produced local build 745. Installed build 737 remains running until explicitly replaced; first-press physical-remote acceptance on 745 is pending.
+
+点按模式与按住模式都在发送热键前等待目标输入法激活；点按的应用聚焦、输入法切换和目标输入框检查共享准备时限。取消准备会撤销输入法会话并使迟到回调失效；成功发送触发键后结束会话时保留目标输入法。音频排空和结束点按仍由原状态机处理。

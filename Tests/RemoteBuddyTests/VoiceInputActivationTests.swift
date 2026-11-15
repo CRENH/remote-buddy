@@ -21,6 +21,74 @@ struct VoiceInputActivationTests {
         return result
     }
 
+    private func useReadyDestination(_ model: BridgeAppModel) {
+        model.voiceInputDestinationCoordinator = VoiceInputDestinationCoordinator(snapshot: {
+            VoiceInputDestinationSnapshot(bundleIdentifier: "test.editor", role: "AXTextArea", subrole: "",
+                enabled: true, editable: true, protectedContent: false, semanticText: "input")
+        })
+    }
+
+    @Test func tapPreparationWaitsForWeixinAndDoubaoAndCancelsLateActivation() throws {
+        for tool in [OnboardingVoiceTool.weixin, .doubao] {
+            let (model, defaults, suite) = try makeModel()
+            defer { defaults.removePersistentDomain(forName: suite) }
+            useReadyDestination(model)
+            model.settings.setOnboardingVoiceTool(tool)
+            let target = try #require(tool.preferredInputSourceID)
+            var source = "ABC"
+            var activate: ((Bool) -> Void)?
+            var continuing: (() -> Bool)?
+            var results: [VoiceInputDestinationWaitResult] = []
+            model.preferredInputSourceMonitor = PreferredInputSourceMonitor(
+                voiceTool: { tool }, prepareInputSource: { _ in source = target; return .selected },
+                currentInputSourceID: { source }, restoreInputSource: { source = $0; return .selected },
+                waitForInputSourceActivation: { _, _, active, done in continuing = active; activate = done },
+                installMonitor: { _ in nil }, logger: { _ in })
+            let clock = ControlledTestScheduler()
+            let wait = model.prepareIntegratedVoiceInputDestination(completion: { results.append($0) },
+                schedule: clock.voiceSchedule)
+            guard case let .waiting(operation) = wait else { Issue.record("Expected source activation wait"); continue }
+            #expect(results.isEmpty)
+            operation.cancel()
+            #expect(continuing?() == false)
+            activate?(true)
+            #expect(results.isEmpty)
+            #expect(source == "ABC")
+            let nextWait = model.prepareIntegratedVoiceInputDestination(completion: { results.append($0) }, schedule: clock.voiceSchedule)
+            withExtendedLifetime(nextWait) { activate?(true) }
+            #expect(results == [.ready])
+            model.preferredInputSourceMonitor.markVoiceTriggerSubmitted()
+            model.preferredInputSourceMonitor.endVoiceSession()
+            #expect(source == target)
+        }
+    }
+
+    @Test func productionTapSessionMarksSuccessfulTriggerAndRetainsInputSource() async throws {
+        let (model, defaults, suite) = try makeModel()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let target = try #require(OnboardingVoiceTool.weixin.preferredInputSourceID)
+        var source = "ABC"
+        var edges: [Bool] = []
+        useReadyDestination(model)
+        model.settings.voiceKeyMode = .rightOption
+        model.preferredInputSourceMonitor = PreferredInputSourceMonitor(
+            voiceTool: { .weixin }, prepareInputSource: { _ in source = target; return .selected },
+            currentInputSourceID: { source }, restoreInputSource: { source = $0; return .selected },
+            waitForInputSourceActivation: { _, _, _, done in done(true) },
+            installMonitor: { _ in nil }, logger: { _ in })
+        model.voiceTapTrigger = VoiceTapTrigger(selectedMode: { .rightOption }, setKey: { _, down in
+            #expect(source == target)
+            edges.append(down)
+            return true
+        })
+        model.voiceFnTapSession.setEnabled(true)
+        #expect(model.voiceFnTapSession.startVoice())
+        try await Task.sleep(for: .milliseconds(400))
+        #expect(edges == [true, false])
+        model.voiceFnTapSession.setEnabled(false)
+        #expect(source == target)
+    }
+
     @Test func firstFnWaitsForActivationAndLeavesSourceSelectedAfterStop() throws {
         let (model, defaults, suite) = try makeModel()
         defer { defaults.removePersistentDomain(forName: suite) }

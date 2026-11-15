@@ -6,16 +6,13 @@ import CoreBluetooth
 import Foundation
 
 extension BridgeAppModel {
-    /// Fn-tap pre-roll covers one shared four-second focus/destination budget.
+    /// Tap pre-roll covers one shared four-second focus/input-source/destination budget.
     /// Cancelling the returned wait is silent because the Fn session owns stop.
     func prepareIntegratedVoiceInputDestination(
         completion: @escaping (VoiceInputDestinationWaitResult) -> Void,
         schedule: @escaping OperationScheduler = ScheduledOperation.mainQueue
     ) -> VoiceInputDestinationWait {
         clearApplicationIntegrationStatus()
-        guard !settings.enabledApplicationIntegrations.isEmpty else {
-            return voiceInputDestinationCoordinator.waitUntilReady(completion: completion)
-        }
         let report: (VoiceInputDestinationWaitResult) -> Void = { [weak self] result in
             if case let .cancelled(reason) = result {
                 self?.recordApplicationIntegrationStatus(.cancelled(reason))
@@ -25,12 +22,34 @@ extension BridgeAppModel {
         let sequence = VoiceInputPreparationSequence(schedule: schedule)
         let wait = sequence.start(stages: [
             { [weak self] done in self?.applicationIntegrationController.prepareForVoiceInput(completion: done) ?? .cancelled(.superseded) },
+            { [weak self] done in self?.prepareTapInputSource(completion: done) ?? .cancelled(.superseded) },
             { [weak self] done in self?.voiceInputDestinationCoordinator.waitUntilReady(completion: done) ?? .cancelled(.superseded) },
         ], completion: report)
         if case let .cancelled(reason) = wait {
             recordApplicationIntegrationStatus(.cancelled(reason))
         }
         return wait
+    }
+
+    /// Adapt the source monitor's callback to a cancellable preparation stage.
+    /// Cancelling invalidates activation before any delayed completion can submit a key.
+    func prepareTapInputSource(
+        completion: @escaping (VoiceInputDestinationWaitResult) -> Void
+    ) -> VoiceInputDestinationWait {
+        var starting = true
+        var immediateResult: Bool?
+        preferredInputSourceMonitor.beginVoiceSession { ready in
+            if starting { immediateResult = ready }
+            else { completion(ready ? .ready : .cancelled(.actionFailed)) }
+        }
+        starting = false
+        if let immediateResult {
+            if !immediateResult { preferredInputSourceMonitor.endVoiceSession() }
+            return immediateResult ? .immediate : .cancelled(.actionFailed)
+        }
+        return .waiting(.mainQueueCancellation { [weak self] in
+            self?.preferredInputSourceMonitor.endVoiceSession()
+        })
     }
 
     // Main-queue lifecycle, like HID settings and the remote voice callbacks.

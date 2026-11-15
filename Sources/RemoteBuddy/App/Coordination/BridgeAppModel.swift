@@ -126,7 +126,10 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
         },
         setTriggerPressed: { [weak self, trigger = voiceTapTrigger] pressed in
             let submitted = trigger.setPressed(pressed)
-            if pressed { self?.completeApplicationIntegrationVoiceTrigger(started: submitted) }
+            if pressed {
+                self?.completeApplicationIntegrationVoiceTrigger(started: submitted)
+                if submitted { self?.preferredInputSourceMonitor.markVoiceTriggerSubmitted() }
+            }
             return submitted
         },
         enqueueAudio: { [weak self] samples in
@@ -157,6 +160,7 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
         logger: { AppLogger.shared.write($0) },
         onIdle: { [weak self, trigger = voiceTapTrigger] in
             trigger.reset()
+            self?.preferredInputSourceMonitor.endVoiceSession()
             self?.flushPendingVoiceToolMappingRefresh()
             self?.releaseVirtualAudioOutputIfUnused(reason: "voice_fn_tap_idle")
         }
