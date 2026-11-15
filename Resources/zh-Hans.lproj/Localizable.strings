@@ -1229,7 +1229,7 @@
 "application_integration.status.preserved" = "继续使用你选中的输入框，正在准备语音输入…";
 "application_integration.status.triggered_preserved" = "已沿用当前输入框，并请求开始语音输入。";
 
-"application_integration.voice_key_note" = "开启任一应用后，在所有应用里按住 Fn 说话，都会由遥控搭子处理。";
+"application_integration.voice_key_note" = "开启任一应用后，遥控搭子会统一处理遥控器语音键；热键和点按模式沿用输入法集成设置。";
 "connection.voice_key.mode.custom" = "自定义组合键";
 "connection.voice_key.customize" = "自定义热键…";
 "connection.voice_key.custom_unsupported" = "请选择带 Control、Shift、Option 或 Command 的普通按键组合；单独修饰键请使用 Fn、左右 Command 或左右 Option。组合键暂不支持 Fn。";
