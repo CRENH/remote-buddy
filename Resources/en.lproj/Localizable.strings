@@ -670,7 +670,6 @@
 "onboarding.control_source.chromecast_remote.detail" = "Choose hold-to-talk or tap once to start and again to stop.";
 "onboarding.gesture.hold" = "Hold to Talk";
 "onboarding.gesture.toggle" = "Press to Start/Stop";
-"onboarding.pairing_plan.title" = "Remote Buddy will try this configuration";
 "onboarding.pairing_plan.summary" = "%1$@ · %2$@ · %3$@";
 "onboarding.pairing_plan.fn_tap_on" = "Tap conversion enabled";
 "onboarding.pairing_plan.fn_tap_off" = "Tap conversion not needed";

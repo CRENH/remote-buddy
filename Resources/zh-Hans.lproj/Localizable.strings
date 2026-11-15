@@ -669,7 +669,6 @@
 "onboarding.control_source.chromecast_remote.detail" = "支持按住说话或按一次说话。";
 "onboarding.gesture.hold" = "按住说话";
 "onboarding.gesture.toggle" = "按一次说话";
-"onboarding.pairing_plan.title" = "遥控搭子将按这个方案试用";
 "onboarding.pairing_plan.summary" = "%1$@ · %2$@ · %3$@";
 "onboarding.pairing_plan.fn_tap_on" = "已启用点按转换";
 "onboarding.pairing_plan.fn_tap_off" = "无需点按转换";

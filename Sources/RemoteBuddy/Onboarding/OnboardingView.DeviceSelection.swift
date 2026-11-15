@@ -64,27 +64,4 @@ extension OnboardingView {
         .accessibilityIdentifier("control-device.\(device.rawValue)")
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
-
-    private func pairingPlanSummary(_ plan: OnboardingVoicePairingPlan) -> some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Label {
-                Text(verbatim: localization.text("onboarding.pairing_plan.title"))
-            } icon: {
-                Image(systemName: "arrow.triangle.2.circlepath")
-            }
-                .font(.system(size: 13, weight: .semibold))
-            Text(OnboardingVoiceGesturePrompt.text(
-                for: plan.binding.gestureMode,
-                fnTapModeEnabled: plan.fnTapModeEnabled,
-                controlSource: settings.onboardingControlSource,
-                locale: localization.locale
-            ))
-            .font(.system(size: 12))
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(8)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.accentColor.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
-    }
 }
