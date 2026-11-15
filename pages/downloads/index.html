@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>下载 Remote Buddy 遥控搭子 · macOS 安装包</title>
+  <meta name="description" content="从官网镜像（remote.zfdang.com）或 GitHub Releases 下载 Remote Buddy 遥控搭子 macOS 安装包与通用卸载包。">
+  <link rel="icon" href="../assets/app-icon.png">
+  <link rel="stylesheet" href="../style.css?v=261115">
+</head>
+<body>
+<header class="nav wrap">
+  <a class="brand" href="../"><img src="../assets/app-icon.png" alt="" width="38" height="38"><span>Remote Buddy<small>遥控搭子</small></span></a>
+  <nav>
+    <a href="../#interface">界面预览</a>
+    <a href="../#start">使用步骤</a>
+    <a href="../#compatibility">兼容列表</a>
+    <span class="language-switch"><b>中文</b><span>|</span><a href="index.en.html">English</a></span>
+  </nav>
+</header>
+
+<main class="wrap downloads-wrap">
+  <div class="downloads-head">
+    <p class="eyebrow">安装与更新下载</p>
+    <h1 class="section-title">下载 Remote Buddy 安装包</h1>
+    <span class="downloads-tag" id="release-tag" hidden></span>
+    <p class="lead-sub" id="mirror-status">正在加载官网最新安装包信息…</p>
+  </div>
+
+  <div class="downloads-grid" id="mirror-cards"></div>
+
+  <section class="download-card" id="mirror-fallback" hidden>
+    <h2>前往 GitHub Releases 下载最新安装包</h2>
+    <p>选择适合您 Mac 芯片的 PKG 安装包（Apple Silicon 请下载 <code>*_macOS_arm64.pkg</code>，Intel 请下载 <code>*_macOS_intel.pkg</code>）。</p>
+    <div class="download-actions">
+      <a class="button primary" href="https://github.com/zfdang/remote-buddy/releases/latest">打开 GitHub Releases ↓</a>
+    </div>
+  </section>
+
+  <section class="download-card" style="margin-top:20px">
+    <h2>两个官方下载通道</h2>
+    <p>为兼顾不同网络环境下的下载速度与稳定性，我们同时提供官网直连镜像与 GitHub Releases 两种下载方式（包体内容及签名完全一致）。</p>
+    <div class="download-actions">
+      <a class="button secondary" id="github-release-link" href="https://github.com/zfdang/remote-buddy/releases/latest">访问 GitHub Releases 全部发布 ↗</a>
+      <a class="button secondary" href="../appcast-arm64.xml">arm64 Appcast XML</a>
+      <a class="button secondary" href="../appcast-intel.xml">intel Appcast XML</a>
+    </div>
+  </section>
+
+  <div class="download-note" style="margin-top:20px">
+    <strong>安装提示：</strong>不知道自己的 Mac 是哪种芯片？点击屏幕左上角  →“关于本机”：芯片显示 M1 / M2 / M3 / M4 等请选择 <strong>Apple Silicon (arm64)</strong>，处理器显示 Intel Core 请选择 <strong>Intel</strong>。当前安装包未经过 Apple 公证，如遇系统拦截可在“系统设置 → 隐私与安全性”中允许打开。
+  </div>
+</main>
+
+<footer class="wrap">
+  <div><strong>Remote Buddy</strong><p>用遥控器，随手说。</p></div>
+  <div class="footer-links">
+    <a href="../">返回首页</a>
+    <a href="https://github.com/zfdang/remote-buddy/releases">GitHub Releases</a>
+    <a href="https://github.com/zfdang/remote-buddy/blob/main/README.md">项目文档</a>
+    <a href="https://github.com/zfdang/remote-buddy/issues">反馈</a>
+    <a href="https://github.com/zfdang/remote-buddy/blob/main/LICENSE">GPL-3.0-only</a>
+  </div>
+</footer>
+<script src="downloads.js?v=261115"></script>
+</body>
+</html>

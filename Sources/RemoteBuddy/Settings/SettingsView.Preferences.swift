@@ -300,20 +300,16 @@ extension SettingsView {
                     .foregroundStyle(Color.accentColor)
                     .frame(width: 34)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(localization.text("about.version.check_prerelease_help_short"))
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
-                }
+                Text(localization.text("about.version.check_prerelease"))
+                    .font(.subheadline.weight(.semibold))
 
                 Spacer(minLength: 16)
 
-                Toggle(
-                    localization.text("about.version.check_prerelease"),
-                    isOn: $settings.checksForPreReleaseUpdates
-                )
-                .toggleStyle(.switch)
-                .font(.system(size: 12))
+                Toggle("", isOn: $settings.checksForPreReleaseUpdates)
+                    .labelsHidden()
+                    .accessibilityLabel(localization.text("about.version.check_prerelease"))
+                    .toggleStyle(.switch)
+                    .font(.system(size: 12))
 
                 Button(action: checkForUpdates) {
                     Label(
@@ -347,6 +343,8 @@ extension SettingsView {
     private var settingsSupportSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             aboutLinkRow(titleKey: "about.support.website", symbol: "globe", label: "remote.zfdang.com", destination: localization.localizedWebsiteURL)
+            Divider()
+            aboutLinkRow(titleKey: "about.info.website_downloads", symbol: "arrow.down.circle", label: localization.text("about.info.open_website_downloads"), destination: localization.localizedDownloadsURL)
             Divider()
             aboutLinkRow(titleKey: "about.info.releases", symbol: "shippingbox", label: localization.text("about.info.open_releases"), destination: AppLinks.githubReleases)
             Divider()

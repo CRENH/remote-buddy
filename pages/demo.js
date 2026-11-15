@@ -39,8 +39,8 @@ button.addEventListener('blur', stop);
         badge: '偏好设置',
         windowTitle: '通用设置 · Remote Buddy',
         src: 'assets/screenshots/general-zh.png',
-        alt: 'Remote Buddy 通用设置界面：四项状态概览、向导入口与分组偏好',
-        desc: '查看权限与麦克风、遥控器、按键映射和输入工具状态，点击卡片进入设置。下方可重新运行向导，或调整应用显示、启动行为和语言。'
+        alt: 'Remote Buddy 通用设置界面：三项状态概览、向导入口与分组偏好',
+        desc: '查看权限与麦克风、遥控器连接和输入法集成三项状态，点击卡片直达对应设置。下方可重新运行向导，或调整应用显示、启动行为和语言。'
       },
       {
         title: '权限与麦克风',
@@ -79,8 +79,8 @@ button.addEventListener('blur', stop);
         badge: '语音工具',
         windowTitle: '输入法与语音工具集成 · Remote Buddy',
         src: 'assets/screenshots/integration-zh.png',
-        alt: 'Remote Buddy 输入法与语音工具集成界面：微信输入法、豆包输入法、Voice Buddy（语音搭子）、网易叭哥说、Typeless、macOS 听写等配置入口',
-        desc: '查看当前输入工具和麦克风状态，打开对应的设置向导。也可调整语音触发键及 Fn 点按设置。'
+        alt: 'Remote Buddy 输入法与语音工具集成界面：当前语音触发方式、微信输入法、豆包输入法、Voice Buddy（语音搭子）、网易叭哥说、Typeless、macOS 听写等配置入口',
+        desc: '查看当前语音触发方式（热键与点按模式）和已选择的输入工具，通过向导调整热键、配置输入工具并完成语音测试生效。'
       },
       {
         title: '应用集成',
@@ -95,18 +95,18 @@ button.addEventListener('blur', stop);
         badge: '版本与更新',
         windowTitle: '关于搭子 · Remote Buddy',
         src: 'assets/screenshots/about-zh.png',
-        alt: 'Remote Buddy 关于界面：应用版本、软件更新检查、诊断与本地日志、项目链接',
-        desc: '集中查看当前版本、检查软件更新、复制排障诊断信息、打开本地日志，并访问官网、发布下载、代码仓库与反馈链接。'
+        alt: 'Remote Buddy 关于界面：应用版本、测试版与软件更新检查、诊断与本地日志、官网与 GitHub 下载链接',
+        desc: '集中查看当前版本、切换测试版（Preview）接收开关、检查软件更新、复制诊断信息或打开本地日志，并提供官网与 GitHub Releases 双下载入口。'
       }
     ],
     wizard: [
       {
-        title: '第 1 步 · 系统权限',
+        title: '第 1 步 · 权限与麦克风',
         badge: '向导 · 权限与驱动',
-        windowTitle: '系统权限 · 首次使用向导',
+        windowTitle: '权限与麦克风 · 首次使用向导',
         src: 'assets/screenshots/wizard-permissions-zh.png',
-        alt: '首次使用向导：蓝牙、输入监控与辅助功能权限检查',
-        desc: '按提示授予蓝牙、输入监控和辅助功能权限。左下角可切换中文或英文。'
+        alt: '首次使用向导：蓝牙、输入监控、辅助功能权限及虚拟麦克风驱动检查',
+        desc: '按提示授予蓝牙、输入监控和辅助功能权限，并检查 Remote Buddy Mic 虚拟麦克风驱动与音频输出。左下角可切换中文或英文。'
       },
       {
         title: '第 2 步 · 设备类型',
@@ -133,20 +133,20 @@ button.addEventListener('blur', stop);
         desc: '按三个不同的普通按键，确认向导收到输入。G9N9N 请按向导提示使用双键组合。'
       },
       {
-        title: '第 5 步 · 驱动检测',
-        badge: '向导 · 驱动检查',
-        windowTitle: '驱动检查 · 首次使用向导',
+        title: '第 5 步 · 语音热键',
+        badge: '向导 · 热键与模式',
+        windowTitle: '选择语音热键 · 首次使用向导',
         src: 'assets/screenshots/wizard-driver-zh.png',
-        alt: '首次使用向导：虚拟麦克风驱动检测，自动配置 Remote Buddy Mic',
-        desc: '检查虚拟麦克风驱动和音频输出。两项均就绪后，点击“继续”。'
+        alt: '首次使用向导：选择发送给输入工具的语音热键（Fn/地球键或自定义快捷键）及点按模式',
+        desc: '选择发送给输入工具的语音热键（默认 Fn/地球键，也支持预设或自定义快捷键），并设置按住说话或点按模式，通过后续语音测试后生效。'
       },
       {
         title: '第 6 步 · 输入工具',
         badge: '向导 · 工具设置',
         windowTitle: '输入工具 · 首次使用向导',
         src: 'assets/screenshots/wizard-tool-zh.png',
-        alt: '首次使用向导：输入工具选择与设置指引，包含微信输入法、豆包等操作步骤',
-        desc: '选择输入法或听写工具，按右侧步骤设置麦克风和语音快捷键。'
+        alt: '首次使用向导：输入工具选择与图文分步设置指引，包含微信输入法、豆包等操作步骤',
+        desc: '选择输入法或听写工具，按右侧步骤完成麦克风与对应语音热键及录音模式设置；也可点击一键切换当前系统输入法。'
       },
       {
         title: '第 7 步 · 语音测试',
@@ -166,8 +166,8 @@ button.addEventListener('blur', stop);
         badge: 'Preferences',
         windowTitle: 'General Settings · Remote Buddy',
         src: 'assets/screenshots/general-en.png',
-        alt: 'Remote Buddy General Settings interface: four status cards, setup wizard entry, and grouped preferences',
-        desc: 'Review permissions and microphone, connected remotes, optional mapping, and input integration. Open settings from each status card, restart setup, or adjust grouped display, launch, and language preferences.'
+        alt: 'Remote Buddy General Settings interface: three status cards, setup wizard entry, and grouped preferences',
+        desc: 'Review permissions & microphone, connected remotes, and input integration in three status cards. Open settings from each card, restart setup, or adjust display, launch, and language preferences.'
       },
       {
         title: 'Permissions & Microphone',
@@ -206,8 +206,8 @@ button.addEventListener('blur', stop);
         badge: 'Integrations',
         windowTitle: 'Voice Tools Integration · Remote Buddy',
         src: 'assets/screenshots/integration-en.png',
-        alt: 'Remote Buddy Voice Tools interface: setup guides for WeType, Doubao, Voice Buddy, NetEase Bageshuo, Typeless, macOS Dictation, and other tools',
-        desc: 'Check the selected input tool and microphone status, then open its setup guide. Adjust the voice trigger key and Fn tap settings here too.'
+        alt: 'Remote Buddy Voice Tools interface: current voice trigger and setup guides for WeType, Doubao, Voice Buddy, NetEase Bageshuo, Typeless, macOS Dictation, and other tools',
+        desc: 'Review the active voice trigger shortcut, tap mode, and selected input tool, then launch the integration wizard to customize hotkeys, configure your tool, and verify with a voice test.'
       },
       {
         title: 'App Integrations',
@@ -222,18 +222,18 @@ button.addEventListener('blur', stop);
         badge: 'Version & Updates',
         windowTitle: 'About Remote Buddy · Remote Buddy',
         src: 'assets/screenshots/about-en.png',
-        alt: 'Remote Buddy About interface: version, software update check, diagnostics and local logs, project and repository links',
-        desc: 'Check the current version, check for updates, copy diagnostic information, view local logs, and access the website, releases, repository, and support links.'
+        alt: 'Remote Buddy About interface: version, preview updates switch, software update check, diagnostics and logs, website and GitHub download links',
+        desc: 'Check the current version, toggle preview updates, check for software updates, copy diagnostics or open local logs, and access both direct website downloads and GitHub Releases.'
       }
     ],
     wizard: [
       {
-        title: 'Step 1 · Permissions',
-        badge: 'Wizard · System Check',
-        windowTitle: 'System Permissions · Setup Wizard',
+        title: 'Step 1 · Permissions & Mic',
+        badge: 'Wizard · System & Driver',
+        windowTitle: 'Permissions & Microphone · Setup Wizard',
         src: 'assets/screenshots/wizard-permissions-en.png',
-        alt: 'Setup Wizard: System permissions check for Bluetooth, Input Monitoring, and Accessibility',
-        desc: 'Follow the prompts to grant Bluetooth, Input Monitoring, and Accessibility permissions. Switch between English and Chinese at the bottom left.'
+        alt: 'Setup Wizard: System permissions check for Bluetooth, Input Monitoring, Accessibility, and virtual microphone driver',
+        desc: 'Follow the prompts to grant Bluetooth, Input Monitoring, and Accessibility permissions, and verify the Remote Buddy Mic driver and audio output. Switch between English and Chinese at the bottom left.'
       },
       {
         title: 'Step 2 · Device Type',
@@ -260,20 +260,20 @@ button.addEventListener('blur', stop);
         desc: 'Press three different ordinary buttons to check that input arrives. For G9N9N, use the two-button combinations shown in the guide.'
       },
       {
-        title: 'Step 5 · Driver Check',
-        badge: 'Wizard · Audio Ready',
-        windowTitle: 'Driver Check · Setup Wizard',
+        title: 'Step 5 · Voice Trigger',
+        badge: 'Wizard · Hotkey & Mode',
+        windowTitle: 'Voice Trigger · Setup Wizard',
         src: 'assets/screenshots/wizard-driver-en.png',
-        alt: 'Setup Wizard: Virtual microphone driver detection for Remote Buddy Mic',
-        desc: 'Check the virtual microphone driver and audio output. Click Continue once both are ready.'
+        alt: 'Setup Wizard: choose voice shortcut (Fn/Globe or custom shortcut) and tap/hold mode',
+        desc: 'Pick the voice shortcut sent to your input tool (Fn/Globe by default, presets, or custom hotkey) and choose Hold or Tap Mode. New settings take effect once the voice test passes.'
       },
       {
-        title: 'Step 6 · Voice Tool',
+        title: 'Step 6 · Input Tool',
         badge: 'Wizard · Tool Setup',
         windowTitle: 'Input Tool · Setup Wizard',
         src: 'assets/screenshots/wizard-tool-en.png',
-        alt: 'Setup Wizard: Voice input tool selection with visual setup guides',
-        desc: 'Choose your input method or dictation tool, then follow the steps on the right to set its microphone and voice shortcut.'
+        alt: 'Setup Wizard: Voice input tool selection with visual step-by-step setup guides',
+        desc: 'Choose your input method or dictation tool and follow the guided steps on the right to configure Remote Buddy Mic and your voice shortcut.'
       },
       {
         title: 'Step 7 · Voice Test',
