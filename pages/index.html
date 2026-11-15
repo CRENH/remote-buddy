@@ -115,7 +115,29 @@
     </div>
   </details>
 </section>
-<section class="section wrap privacy"><img src="assets/app-icon.png" alt="遥控搭子图标" width="90" height="90"><div><p class="eyebrow">隐私与安装</p><h2>不保存录音或文字历史。</h2><p>遥控搭子不采集使用统计，也不上传日志。输入工具是否联网识别，请查看该工具的设置。</p><p class="small">安装需要管理员授权；首次安装或驱动变化时会短暂重启音频服务。当前 PKG 未签名、未经 Apple 公证，系统可能阻止安装。</p></div></section>
+<section class="section wrap privacy">
+  <img src="assets/app-icon.png" alt="遥控搭子图标" width="90" height="90">
+  <div class="privacy-body">
+    <p class="eyebrow">隐私、安全与安装</p>
+    <h2>遥控搭子完全开源、纯本地运行，绝不留存你的任何声音或文字。</h2>
+    <div class="privacy-cards">
+      <div class="privacy-card is-buddy">
+        <h3>关于遥控搭子（Remote Buddy）本身</h3>
+        <ul>
+          <li><strong>不保存录音与文字：</strong>所有蓝牙语音仅在本地内存实时解码并送入虚拟麦克风，软件本身不做语音识别，也不记录录音文件或转录文本历史。</li>
+          <li><strong>零遥测、零自动上传：</strong>不采集使用统计、不植入第三方分析 SDK，也不会在后台上传任何诊断日志或设备数据（日志仅存本地，需你主动复制/查看）。</li>
+          <li><strong>代码与驱动完全开源：</strong>主程序与内嵌的 <code>Remote Buddy Mic</code> 虚拟麦克风驱动源码均以 GPL-3.0-only 开源公开，可随时审计或自行编译。</li>
+          <li><strong>权限边界清晰：</strong>仅通过 macOS 公开系统接口与辅助功能工作，不读取其他应用的私有数据。</li>
+        </ul>
+      </div>
+      <div class="privacy-card">
+        <h3>关于你选择的输入法与语音工具（独立边界）</h3>
+        <p>语音经 <code>Remote Buddy Mic</code> 交给输入工具后，识别与文本上屏由该工具独立完成。不同工具是否完全离线运行或需要联网处理，取决于你所选工具自身的隐私政策与设置——遥控搭子不参与、也无法读取其识别过程。若希望整条链路始终保持在本地设备内，可搭配 100% 本地离线运行的 <a class="text-link" href="https://myvoicebuddy.com/">Voice Buddy（语音搭子）</a>。</p>
+      </div>
+    </div>
+    <p class="small"><strong>安装与签名说明：</strong>安装包内含 <code>Remote Buddy Mic</code> 虚拟驱动，首次安装或驱动更新需管理员授权并会短暂重启音频服务。当前 PKG 安装包尚未经过 Apple Developer ID 公证，首次安装若被系统拦阻，可在“系统设置 → 隐私与安全性”中允许安装（源码及签名细节见 <a class="text-link" href="https://github.com/zfdang/remote-buddy/blob/main/docs/build-and-signing.md">构建与签名说明 ↗</a>）。</p>
+  </div>
+</section>
 </main>
 <footer class="wrap"><div><strong>Remote Buddy</strong><p>用遥控器，随手说。</p></div><div class="footer-links"><a href="downloads/">官网下载</a><a href="https://github.com/zfdang/remote-buddy/releases">GitHub Releases</a><a href="https://github.com/zfdang/remote-buddy/blob/main/README.md">项目文档</a><a href="https://github.com/zfdang/remote-buddy/issues">反馈</a><a href="https://github.com/zfdang/remote-buddy/blob/main/LICENSE">GPL-3.0-only</a></div></footer>
 <script src="demo.js"></script>
