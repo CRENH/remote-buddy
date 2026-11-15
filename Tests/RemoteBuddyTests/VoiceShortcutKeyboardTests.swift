@@ -20,6 +20,16 @@ struct VoiceShortcutKeyboardTests {
         #expect(draft.validationHintKey(for: .voice) == nil)
     }
 
+    @Test func mappingExplainsIncompleteModifierCombinationsUntilAMainKeyIsSelected() {
+        var draft = ShortcutKeyboardSelection(shortcut: StandaloneKeyboardModifier.leftCommand.shortcut)
+        draft.toggle(.leftOption, purpose: .mapping)
+        #expect(!draft.canUse(for: .mapping))
+        #expect(draft.validationHintKey(for: .mapping) == "shortcut.keyboard.main_key_required")
+        draft.select(v, purpose: .mapping)
+        #expect(draft.canUse(for: .mapping))
+        #expect(draft.validationHintKey(for: .mapping) == nil)
+    }
+
     @Test func mappingAcceptsPlainKeysAndStandaloneModifiersWithoutWeakeningVoiceValidation() throws {
         var draft = ShortcutKeyboardSelection(shortcut: nil)
         #expect(!draft.canUse(for: .mapping))

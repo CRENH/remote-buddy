@@ -60,8 +60,8 @@ struct ShortcutKeyboardSelection {
     }
 
     func validationHintKey(for purpose: ShortcutKeyboardPurpose) -> String? {
-        guard purpose == .voice, key != nil || !modifiers.isEmpty, !canUse(for: purpose) else { return nil }
-        return "connection.voice_key.custom_unsupported"
+        guard key != nil || !modifiers.isEmpty, !canUse(for: purpose) else { return nil }
+        return purpose == .voice ? "connection.voice_key.custom_unsupported" : "shortcut.keyboard.main_key_required"
     }
 
     @MainActor func displayName(using localization: LocalizationStore) -> String {
