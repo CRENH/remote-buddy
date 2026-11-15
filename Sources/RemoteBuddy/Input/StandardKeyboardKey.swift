@@ -261,4 +261,13 @@ struct StandardKeyboardKey: Identifiable, Equatable {
     static var allKeys: [StandardKeyboardKey] {
         (mainRows + navigationRows + extendedFunctionRows + numberPadRows).flatMap { $0 }
     }
+
+    private static let keyLabelsByCode: [UInt16: String] = Dictionary(
+        allKeys.map { ($0.keyCode, $0.keyLabel) },
+        uniquingKeysWith: { first, _ in first }
+    )
+
+    static func keyLabel(forKeyCode keyCode: UInt16) -> String {
+        keyLabelsByCode[keyCode] ?? "Key Code \(keyCode)"
+    }
 }

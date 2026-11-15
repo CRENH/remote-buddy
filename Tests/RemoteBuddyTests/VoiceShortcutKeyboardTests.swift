@@ -112,4 +112,23 @@ struct VoiceShortcutKeyboardTests {
         #expect(selection.shortcut == StandaloneKeyboardModifier.function.shortcut)
         #expect(selection.key == nil)
     }
+
+    @Test func rawValueShortcutParsingResolvesLabelsOffMainThreadWithoutEventLookup() async {
+        let restored = await Task.detached {
+            (
+                v: VoiceKeyMode(rawValue: "shortcut:9:\(NSEvent.ModifierFlags([.control, .shift]).rawValue)"),
+                fallback: VoiceKeyMode(rawValue: "shortcut:10:\(NSEvent.ModifierFlags([.control]).rawValue)")
+            )
+        }.value
+        if case let .shortcut(vShortcut) = restored.v {
+            #expect(vShortcut.keyLabel == "V")
+        } else {
+            Issue.record("Expected shortcut for V")
+        }
+        if case let .shortcut(isoShortcut) = restored.fallback {
+            #expect(isoShortcut.keyLabel == "Key Code 10")
+        } else {
+            Issue.record("Expected shortcut for fallback key code")
+        }
+    }
 }
