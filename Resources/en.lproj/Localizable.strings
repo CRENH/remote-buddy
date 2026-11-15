@@ -1290,3 +1290,9 @@
 "shortcut.keyboard.main_key_required" = "Choose a main key, or keep just one standalone modifier.";
 
 "connection.voice_key.chord_help" = "Set the same chord and recording mode in your input tool, and avoid shortcuts already used by other apps.";
+
+"shortcut.keyboard.help" = "Combine modifier and main keys, or record a shortcut directly. Left and right modifiers are distinct.";
+"shortcut.keyboard.use_shortcut" = "Use This Shortcut";
+"voice.keyboard.caps_unsupported" = "Caps Lock cannot be used as a voice shortcut. Choose another key.";
+"shortcut.standalone_modifier.left_control_short" = "Left Ctrl";
+"shortcut.standalone_modifier.right_control_short" = "Right Ctrl";

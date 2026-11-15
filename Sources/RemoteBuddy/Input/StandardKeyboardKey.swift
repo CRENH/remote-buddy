@@ -71,8 +71,11 @@ enum StandaloneKeyboardModifier: String, CaseIterable, Identifiable {
     }
 
     @MainActor
-    func displayName(using localization: LocalizationStore) -> String {
-        localization.text("shortcut.standalone_modifier.\(rawValue)")
+    func displayName(using localization: LocalizationStore, abbreviated: Bool = false) -> String {
+        if abbreviated && (self == .leftControl || self == .rightControl) {
+            return localization.text("shortcut.standalone_modifier.\(rawValue)_short")
+        }
+        return localization.text("shortcut.standalone_modifier.\(rawValue)")
     }
 
     static func matching(_ shortcut: CustomKeyboardShortcut) -> Self? {

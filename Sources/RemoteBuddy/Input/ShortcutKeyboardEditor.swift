@@ -71,7 +71,7 @@ struct ShortcutKeyboardSelection {
         let order: [StandaloneKeyboardModifier] = [.leftControl, .rightControl, .leftOption, .rightOption,
             .leftShift, .rightShift, .leftCommand, .rightCommand, .function]
         return order.filter { modifiers.contains($0) }.map { modifier in
-            let name = modifier.displayName(using: localization).replacingOccurrences(of: "Control", with: "Ctrl")
+            let name = modifier.displayName(using: localization, abbreviated: true)
             return "\(name) (\(modifier == .function ? "🌐" : modifier.symbol))"
         }.joined(separator: " + ")
     }
@@ -134,7 +134,7 @@ struct KeyboardShortcutEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(localization.text(purpose == .voice ? "voice.keyboard.title" : "shortcut.keyboard.title")).font(.title3.bold())
-            Text(localization.text("voice.keyboard.help"))
+            Text(localization.text(purpose == .voice ? "voice.keyboard.help" : "shortcut.keyboard.help"))
                 .font(.callout).foregroundStyle(.secondary)
             HStack(spacing: 14) {
                 let name = selection.displayName(using: localization)
@@ -179,7 +179,7 @@ struct KeyboardShortcutEditor: View {
                 Spacer()
                 Button(localization.text("common.action.cancel")) { recording = false; onCancel() }
                     .buttonStyle(.bordered)
-                Button(localization.text("voice.keyboard.use_shortcut")) {
+                Button(localization.text(purpose == .voice ? "voice.keyboard.use_shortcut" : "shortcut.keyboard.use_shortcut")) {
                     guard selection.canUse(for: purpose), let shortcut = selection.shortcut else { return }
                     recording = false
                     onSelect(shortcut)
@@ -239,6 +239,8 @@ struct KeyboardShortcutEditor: View {
             Text(key.keyCode == 49 ? localization.text("voice.keyboard.space") : (key.keyCode == 53 ? "esc" : key.visualLabel))
                 .font(.system(size: 12, weight: .medium))
         }
+        .help(key.keyCode == 57 && purpose == .voice
+            ? localization.text("voice.keyboard.caps_unsupported") : key.keyLabel)
         .disabled(key.keyCode == 57 && purpose == .voice) // Voice triggers exclude Caps Lock.
         .opacity(key.keyCode == 57 && purpose == .voice ? 0.45 : 1)
     }
