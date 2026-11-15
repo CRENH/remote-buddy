@@ -148,6 +148,9 @@ struct KeyboardShortcutEditor: View {
             }
             .frame(minHeight: 36)
             if recording {
+                Text(localization.text("shortcut.editor.recording_prompt"))
+                    .font(.callout).foregroundStyle(Color.accentColor)
+                    .fixedSize(horizontal: false, vertical: true)
                 ShortcutCaptureView(onCapture: { shortcut in
                     recording = false
                     selection = ShortcutKeyboardSelection(shortcut: shortcut)
