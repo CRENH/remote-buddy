@@ -374,17 +374,6 @@
 "shortcut.editor.success" = "Shortcut recorded successfully";
 "shortcut.editor.permission_required" = "Recording system shortcuts requires Accessibility permission. Grant access, then click Record Shortcut again.";
 "shortcut.editor.capture_unavailable" = "Shortcut recording could not start. Check Accessibility and Input Monitoring permissions, or reopen Remote Buddy and try again.";
-"shortcut.picker.selection_method" = "Shortcut Selection Method";
-"shortcut.picker.mode.presets" = "Common Shortcuts";
-"shortcut.picker.mode.keyboard" = "Standard Keyboard";
-"shortcut.picker.presets.help" = "Choose a common shortcut to save it. Selecting it does not run the shortcut.";
-"shortcut.picker.modifiers.title" = "Modifiers";
-"shortcut.picker.modifiers.help" = "Select any combination of Command, Option, Control, Shift, or Fn, then choose one main key below.";
-"shortcut.picker.keyboard.main" = "Main Keyboard";
-"shortcut.picker.keyboard.navigation" = "Arrow and Navigation Keys";
-"shortcut.picker.keyboard.extended_functions" = "Extended Function Keys";
-"shortcut.picker.keyboard.number_pad" = "Numeric Keypad";
-"shortcut.picker.keyboard.key_accessibility" = "Choose shortcut %1$@";
 "shortcut.modifier.control" = "Control";
 "shortcut.modifier.option" = "Option";
 "shortcut.modifier.shift" = "Shift";
@@ -692,7 +681,6 @@
 "onboarding.voice_test.microphone_confirmation.checkbox" = "I confirmed %@ uses “%@” as its microphone";
 "onboarding.voice_test.placeholder" = "Try saying: Remote Buddy is connected";
 "onboarding.voice_test.waiting_voice" = "Waiting to start recording…";
-"onboarding.voice_test.fn_tap_explanation" = "Hold the voice button to talk and release to finish. The app taps “%@” to start recognition, then taps it again after release and buffered audio delivery.";
 "onboarding.voice_test.t1_fn_tap_explanation" = "Press the T1 voice button to start and again to finish. The app taps “%@” at the start and again after buffered audio drains.";
 "onboarding.voice_test.receiving" = "Receiving voice audio…";
 "onboarding.voice_test.waiting_text" = "Recording ended. Waiting for text…";
@@ -706,23 +694,17 @@
 "onboarding.controls.chromecast.detail" = "Press three different control buttons on Chromecast Voice Remote, such as an arrow, OK, Back, Home, Mute, or volume.";
 "onboarding.controls.t1.detail" = "Press three different customizable buttons on the front of T1-Remote, such as Back, Home, Menu, Mute, Volume, or Power.";
 "onboarding.controls.g9n9n.detail" = "Test these two combinations in order. Release each before trying the next.";
-"onboarding.controls.g9n9n.ready" = "Button checks passed; continue setup";
 "onboarding.side.g9n9n_test_enabled" = "Button test enabled";
 "onboarding.complete.g9n9n.voice_only" = "G9N9N supports voice input and OK + direction for Enter (single-button mapping unsupported)";
 "onboarding.controls.mobile_slot" = "Control %@";
-"onboarding.controls.waiting" = "Try another button";
 "onboarding.controls.ready" = "Button detection passed";
 "onboarding.secure_input.title" = "System security may be blocking remote buttons";
 "onboarding.secure_input.detail" = "Quit apps that are asking for a password or using a secure keyboard, then check again.";
 "onboarding.secure_input.recheck" = "Check again";
 "onboarding.secure_input.help" = "If it still does not work, lock your Mac, unlock it with your password, and check again.";
 "onboarding.complete.title" = "Remote Buddy is ready";
-"onboarding.complete.detail" = "You can now dictate with the selected control method and adjust connection, voice, and button settings from the main panel.";
 "onboarding.complete.runtime_changed" = "Your current setup has changed";
 "onboarding.complete.runtime_changed_detail" = "Go back and check permissions, your connection, or the audio output device. Continue after resolving the issue.";
-"onboarding.complete.voice" = "Voice typing works: audio was received and text appeared";
-"onboarding.complete.controls" = "Your connection and button controls are working";
-"onboarding.complete.settings" = "You can change these options in Settings";
 "onboarding.illustration.tagline" = "Speak wirelessly. Control instantly.";
 "onboarding.complete.illustration" = "Start using Remote Buddy";
 
@@ -735,8 +717,6 @@
 "onboarding.side.remote_connected" = "Remote connected";
 "onboarding.side.control_selected" = "Control method selected";
 "onboarding.side.button_received" = "Button Press Detected";
-"onboarding.side.device_found" = "Supported virtual audio device detected";
-"onboarding.side.device_selected" = "Remote Buddy Mic assigned automatically";
 "onboarding.side.audio_ready" = "Audio output ready";
 "onboarding.side.audio_on_demand" = "Audio connects when voice starts";
 "onboarding.side.voice_key" = "Recording started and ended";
@@ -1070,8 +1050,6 @@
 
 "settings.driver.fixed_output_help" = "All remotes share this virtual microphone. Audio output is configured automatically.";
 
-"onboarding.audio.automatic_ready" = "Ready. Click Continue to proceed.";
-
 "onboarding.voice_prompt.t1.fn_tap" = "Press and release the T1 voice button to start speaking, then press it once more to stop (tap conversion enabled).";
 "onboarding.voice_prompt.t1.hold" = "Press and release the T1 voice button to start speaking, then press it once more to stop (Remote Buddy holds the voice key for you while speaking).";
 "onboarding.voice_prompt.generic.fn_tap" = "Hold the voice button while speaking, then release it (tap conversion enabled).";
@@ -1080,9 +1058,7 @@
 
 "onboarding.action.dismiss" = "Exit setup";
 "onboarding.add_device.complete.title" = "Device setup complete";
-"onboarding.add_device.complete.detail" = "Your device is connected, its buttons have been tested, and the microphone is ready. Your existing voice input integration is preserved.";
 "onboarding.integration.complete.title" = "Voice input integration complete";
-"onboarding.integration.complete.detail" = "Your voice input tool has been configured and tested with your existing device.";
 
 "common_phrases.inserted" = "Phrase inserted.";
 

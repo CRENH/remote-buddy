@@ -374,17 +374,6 @@
 "shortcut.editor.success" = "快捷键录入成功";
 "shortcut.editor.permission_required" = "录入系统快捷键需要辅助功能权限。请完成系统授权后再次点击录入。";
 "shortcut.editor.capture_unavailable" = "无法启动快捷键录入，请检查辅助功能和输入监控权限，或重新打开遥控搭子后再试。";
-"shortcut.picker.selection_method" = "快捷键选择方式";
-"shortcut.picker.mode.presets" = "常用组合";
-"shortcut.picker.mode.keyboard" = "标准键盘";
-"shortcut.picker.presets.help" = "点击一个常用组合即可保存，不会在选择时执行该快捷键。";
-"shortcut.picker.modifiers.title" = "组合键";
-"shortcut.picker.modifiers.help" = "可多选 Command、Option、Control、Shift 或 Fn，再从下方选择一个主按键。";
-"shortcut.picker.keyboard.main" = "主键区";
-"shortcut.picker.keyboard.navigation" = "方向与导航键";
-"shortcut.picker.keyboard.extended_functions" = "扩展功能键";
-"shortcut.picker.keyboard.number_pad" = "数字键盘";
-"shortcut.picker.keyboard.key_accessibility" = "选择快捷键 %1$@";
 "shortcut.modifier.control" = "Control";
 "shortcut.modifier.option" = "Option";
 "shortcut.modifier.shift" = "Shift";
@@ -689,7 +678,6 @@
 "onboarding.voice_test.microphone_confirmation.checkbox" = "我已确认%@的麦克风是“%@”";
 "onboarding.voice_test.placeholder" = "试着说：遥控搭子已经连接成功";
 "onboarding.voice_test.waiting_voice" = "等待开始收音…";
-"onboarding.voice_test.fn_tap_explanation" = "按住语音键说话，松开结束。开始时会点按一次“%@”启动识别，松开并送完尾部音频后再点按一次结束识别。";
 "onboarding.voice_test.t1_fn_tap_explanation" = "按一下 T1 语音键开始说话，再按一下结束。应用会在开始和送完尾部音频后，分别点按一次“%@”。";
 "onboarding.voice_test.receiving" = "正在接收声音…";
 "onboarding.voice_test.waiting_text" = "收音结束，正在等待文字…";
@@ -703,23 +691,17 @@
 "onboarding.controls.chromecast.detail" = "在 Chromecast 遥控器上连续按下三个不同的普通按键，例如方向、确定、返回、主页、静音或音量。";
 "onboarding.controls.t1.detail" = "在 T1 遥控器正面连续按下三个不同的可映射按键，例如返回、主页、菜单、静音、音量或电源键。";
 "onboarding.controls.g9n9n.detail" = "依次测试下面两组组合键，每组松开后再进行下一组。";
-"onboarding.controls.g9n9n.ready" = "已完成按键检测，可继续设置";
 "onboarding.side.g9n9n_test_enabled" = "按键测试已开启";
 "onboarding.complete.g9n9n.voice_only" = "G9N9N 支持语音输入与 OK＋方向键发送 Enter（普通单键映射不受支持）";
 "onboarding.controls.mobile_slot" = "第 %@ 个不同控制";
-"onboarding.controls.waiting" = "继续按下不同的按键";
 "onboarding.controls.ready" = "按键检测通过";
 "onboarding.secure_input.title" = "系统安全输入可能影响遥控器按键";
 "onboarding.secure_input.detail" = "请退出正在输入密码或使用安全键盘输入的应用，然后重新检测。";
 "onboarding.secure_input.recheck" = "重新检测";
 "onboarding.secure_input.help" = "如果仍未恢复，请锁定 Mac 后使用密码重新解锁，再重新检测。";
 "onboarding.complete.title" = "遥控搭子已经准备好了";
-"onboarding.complete.detail" = "现在可以用所选控制方式说话输入，也可以在主面板中调整连接、语音和按键设置。";
 "onboarding.complete.runtime_changed" = "当前环境状态发生了变化";
 "onboarding.complete.runtime_changed_detail" = "请返回检查权限、遥控器连接或语音输出设备；恢复后即可继续。";
-"onboarding.complete.voice" = "语音传输与文字输入测试已通过";
-"onboarding.complete.controls" = "控制设备连接和普通按键已经确认";
-"onboarding.complete.settings" = "所有选项仍可在主面板中随时调整";
 "onboarding.illustration.tagline" = "无线说话，也能随手控制";
 "onboarding.complete.illustration" = "开始使用遥控搭子";
 
@@ -732,8 +714,6 @@
 "onboarding.side.remote_connected" = "遥控器已连接";
 "onboarding.side.control_selected" = "控制方式已选择";
 "onboarding.side.button_received" = "控制按键已收到";
-"onboarding.side.device_found" = "支持的虚拟音频设备已检测";
-"onboarding.side.device_selected" = "已自动指定 Remote Buddy Mic";
 "onboarding.side.audio_ready" = "音频输出正常";
 "onboarding.side.audio_on_demand" = "语音开始时连接音频";
 "onboarding.side.voice_key" = "收音已开始并结束";
@@ -1071,7 +1051,6 @@
 
 "settings.driver.fixed_output_help" = "所有设备共用此虚拟麦克风，程序会自动配置语音输出。";
 
-"onboarding.audio.automatic_ready" = "已就绪，点击“继续”进入下一步。";
 "onboarding.voice_prompt.t1.fn_tap" = "按一下 T1 语音键并松开开始说话，说完后再按一下结束（已自动开启点按转换）。";
 "onboarding.voice_prompt.t1.hold" = "按一下 T1 语音键并松开开始说话，说完后再按一下结束（期间遥控搭子会全程替你按住语音键）。";
 "onboarding.voice_prompt.generic.fn_tap" = "按住语音键说话，说完松开（已自动开启点按转换）。";
@@ -1081,9 +1060,7 @@
 
 "onboarding.action.dismiss" = "退出向导";
 "onboarding.add_device.complete.title" = "设备添加完成";
-"onboarding.add_device.complete.detail" = "设备已连接，按键已测试，麦克风已就绪。已有的输入法集成配置保持不变。";
 "onboarding.integration.complete.title" = "输入法集成完成";
-"onboarding.integration.complete.detail" = "输入法已完成配置，并已通过现有设备的语音输入验证。";
 
 "common_phrases.inserted" = "常用语已插入。";
 
