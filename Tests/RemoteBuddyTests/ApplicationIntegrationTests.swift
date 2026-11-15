@@ -729,6 +729,22 @@ struct ApplicationIntegrationTests {
             controlLabels: { _ in ["Send", "More actions", "Voice input"] }))
     }
 
+    @Test func workBuddyComposerRemainsRecognizableWhileGeneratingAReply() {
+        let roles = [0: "AXGroup", 1: "AXTextArea", 2: "AXPopUpButton", 3: "AXGroup", 4: "AXButton", 5: "AXButton"]
+        let tree = [0: [1, 2, 3], 3: [4, 5]]
+        for action in ["发送", "停止", "停止生成", "Send", "Stop", "Stop generating"] {
+            let recognized = KeyboardInjector.workBuddyComposerGroupMatches(0,
+                role: { roles[$0] ?? "" }, children: { tree[$0] ?? [] },
+                controlLabels: { [2: ["更多操作"], 4: ["语音输入 ⌘D 或长按 ⌥"], 5: [action]][$0] ?? [] })
+            #expect(recognized)
+            #expect(KeyboardInjector.integratedComposerScore(candidate(workBuddyControls: recognized),
+                integration: .workBuddy, windowFrame: window) != nil)
+        }
+        #expect(!KeyboardInjector.workBuddyComposerControlsMatch(["停止", "更多操作"]))
+        #expect(!KeyboardInjector.workBuddyComposerControlsMatch(["停止", "语音输入"]))
+        #expect(!KeyboardInjector.workBuddyComposerControlsMatch(["取消", "更多操作", "语音输入"]))
+    }
+
     @Test func workBuddyUnlabeledComposerUsesOnlyItsSurroundingControls() {
         let roles = [0: "AXGroup", 1: "AXTextArea", 2: "AXPopUpButton", 3: "AXGroup", 4: "AXButton", 5: "AXButton", 6: "AXStaticText"]
         let tree = [0: [1, 2, 3, 6], 1: [99], 3: [4, 5]]

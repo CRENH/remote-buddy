@@ -560,3 +560,5 @@ Validation after the latency and trigger-observation changes (runtime `1cb1d94`)
 - Debug app build passed and produced local build 745. Installed build 737 remains running until explicitly replaced; first-press physical-remote acceptance on 745 is pending.
 
 点按模式与按住模式都在发送热键前等待目标输入法激活；点按的应用聚焦、输入法切换和目标输入框检查共享准备时限。取消准备会撤销输入法会话并使迟到回调失效；成功发送触发键后结束会话时保留目标输入法。音频排空和结束点按仍由原状态机处理。
+
+WorkBuddy 输入框通过同一局部布局内的唯一编辑框、“更多操作”和“语音输入”控件联合识别。生成回复期间“发送”会替换为“停止”，两种状态都可识别；不读取输入框内容或对话文本，不自动发送消息或停止生成。
