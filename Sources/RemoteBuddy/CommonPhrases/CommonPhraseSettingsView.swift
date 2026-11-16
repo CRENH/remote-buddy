@@ -5,7 +5,10 @@ import UniformTypeIdentifiers
 struct CommonPhraseSettingsView: View {
     @ObservedObject private var clipboardPaste = CommonPhraseClipboardPaste.shared
     @ObservedObject var store: CommonPhraseStore
+    var remoteModel: RemoteModel? = nil
     var onReturn: () -> Void = {}
+    private var phraseButtons: [RemoteButton] { CommonPhraseStore.buttons(for: remoteModel) }
+    private var extraRows: [[RemoteButton?]] { CommonPhraseStore.extraButtonRows(for: remoteModel) }
     @EnvironmentObject private var localization: LocalizationStore
     @State private var selectedButton: RemoteButton?
     @State private var selectedID: String?
@@ -43,13 +46,23 @@ struct CommonPhraseSettingsView: View {
                 Text(localization.text("common_phrases.adjust"))
                     .font(.system(size: 25, weight: .semibold))
                 Spacer(minLength: 0)
-                Button(localization.text("common_phrases.restore_clipboard")) {
-                    messageKey = clipboardPaste.restorePreviousClipboard()
-                        ? "common_phrases.clipboard_restored" : "common_phrases.error.clipboard_restore_failed"
+                // Stacked at the trailing edge: the header stays one row and the columns keep their height.
+                VStack(alignment: .trailing, spacing: 8) {
+                    Button(localization.text("common_phrases.restore_clipboard")) {
+                        messageKey = clipboardPaste.restorePreviousClipboard()
+                            ? "common_phrases.clipboard_restored" : "common_phrases.error.clipboard_restore_failed"
+                    }
+                    .disabled(!clipboardPaste.canRestoreClipboard)
+                    .help(localization.text("common_phrases.restore_clipboard_hint"))
+                    HStack(spacing: 8) {
+                        Text(localization.text("common_phrases.import_hint"))
+                            .foregroundStyle(.secondary).multilineTextAlignment(.trailing)
+                            .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                        backupButtons
+                    }
+                    .font(.system(size: 12))
                 }
-                .disabled(!clipboardPaste.canRestoreClipboard)
-                .help(localization.text("common_phrases.restore_clipboard_hint"))
-            }.padding(22)
+            }.padding(.horizontal, 22).padding(.vertical, 14)
             GeometryReader { geometry in
                 let available = geometry.size.width - 44 - 28
                 let padWidth = min(300, max(230, available * 0.34))
@@ -73,22 +86,31 @@ struct CommonPhraseSettingsView: View {
             importing = false
             AppLogger.shared.write("COMMON_PHRASES EDITOR phase=closed result=hidden")
         }
+        .onChange(of: remoteModel) { _, newModel in
+            selectedButton = Self.reconciledSelection(selectedButton, for: newModel)
+        }
     }
 
     private func assignmentColumn(diameter: CGFloat) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text(localization.text("common_phrases.assign_hint")).font(.system(size: 16, weight: .semibold))
-            Text(localization.text("common_phrases.position_first"))
-                .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            CommonPhrasePad(store: store, diameter: diameter, selectedButton: selectedButton, onSelect: selectPosition)
-                .padding(.vertical, 10)
-            Text(localization.text(selectedButton == nil ? "common_phrases.choose_position" : "common_phrases.choose_phrase"))
-                .foregroundStyle(selectedButton == nil ? Color.secondary : Color.accentColor)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(localization.text("common_phrases.assign_only"))
-                .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
-        }.padding(14).frame(maxHeight: .infinity, alignment: .topLeading)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                Text(localization.text("common_phrases.assign_hint")).font(.system(size: 16, weight: .semibold))
+                Text(localization.text("common_phrases.position_first"))
+                    .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                CommonPhrasePad(store: store, diameter: diameter, selectedButton: selectedButton, onSelect: selectPosition)
+                    .padding(.vertical, 10)
+                if !extraRows.isEmpty {
+                    CommonPhraseKeyGrid(store: store, rows: extraRows, keyDiameter: 44,
+                                        selectedButton: selectedButton, onSelect: selectPosition)
+                        .frame(width: diameter)
+                }
+                Text(localization.text(selectedButton == nil ? "common_phrases.choose_position" : "common_phrases.choose_phrase"))
+                    .foregroundStyle(selectedButton == nil ? Color.secondary : Color.accentColor)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(localization.text("common_phrases.assign_only"))
+                    .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }.padding(14).frame(maxWidth: .infinity, alignment: .leading)
+        }.scrollIndicators(.hidden).frame(maxHeight: .infinity)
             .background(Color.primary.opacity(0.025), in: RoundedRectangle(cornerRadius: 12))
     }
 
@@ -130,12 +152,6 @@ struct CommonPhraseSettingsView: View {
                         .help(localization.text("common_phrases.move_down")).accessibilityLabel(localization.text("common_phrases.move_down"))
                 }
             }
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 8) { backupButtons }
-                VStack(alignment: .leading, spacing: 8) { backupButtons }
-            }.font(.system(size: 12))
-            Text(localization.text("common_phrases.import_hint"))
-                .font(.system(size: 12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }.padding(14).frame(maxHeight: .infinity)
             .background(Color.primary.opacity(0.025), in: RoundedRectangle(cornerRadius: 12))
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.09)))
@@ -159,12 +175,8 @@ struct CommonPhraseSettingsView: View {
                     .fontWeight(selectedID == phrase.id ? .semibold : .regular)
                     .lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
                 HStack(spacing: 4) {
-                    ForEach(CommonPhraseStore.buttons.filter { store.phrase(for: $0)?.id == phrase.id }) { button in
-                        if button == .ok {
-                            Text(RemoteButton.ok.shortLabel(using: localization)).font(.system(size: 12, weight: .medium))
-                        } else {
-                            Image(systemName: symbol(for: button)).font(.system(size: 12, weight: .medium))
-                        }
+                    ForEach(phraseButtons.filter { store.phrase(for: $0)?.id == phrase.id }) { button in
+                        CommonPhraseKeyGlyphView(button: button, symbolSize: 12, textSize: 12)
                     }
                 }
                 .padding(.horizontal, 7)
@@ -172,7 +184,7 @@ struct CommonPhraseSettingsView: View {
                 .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
                 .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.primary.opacity(0.10)))
                 .foregroundStyle(.primary)
-                .opacity(CommonPhraseStore.buttons.contains { store.phrase(for: $0)?.id == phrase.id } ? 1 : 0)
+                .opacity(phraseButtons.contains { store.phrase(for: $0)?.id == phrase.id } ? 1 : 0)
             }
             .padding(.horizontal, 9).padding(.vertical, 7)
             .frame(maxWidth: .infinity, minHeight: 38, alignment: .leading)
@@ -292,27 +304,32 @@ struct CommonPhraseSettingsView: View {
             .controlSize(.large).fixedSize().disabled(!store.isAvailable)
     }
 
-    private func symbol(for button: RemoteButton) -> String {
-        switch button {
-        case .up: "chevron.up"
-        case .down: "chevron.down"
-        case .left: "chevron.left"
-        default: "chevron.right"
+    static func reconciledSelection(_ selectedButton: RemoteButton?, for model: RemoteModel?) -> RemoteButton? {
+        guard let selectedButton, CommonPhraseStore.buttons(for: model).contains(selectedButton) else {
+            return nil
         }
+        return selectedButton
     }
 
     private func selectPosition(_ button: RemoteButton) {
+        guard let validButton = Self.reconciledSelection(button, for: remoteModel) else {
+            selectedButton = nil
+            return
+        }
         selectionOperation &+= 1
-        AppLogger.shared.write("COMMON_PHRASES POSITION operation_id=\(selectionOperation) phase=requested button=\(button.rawValue)")
-        selectedButton = button
-        select(store.phrase(for: button))
-        AppLogger.shared.write("COMMON_PHRASES POSITION operation_id=\(selectionOperation) phase=completed result=selected button=\(button.rawValue)")
+        AppLogger.shared.write("COMMON_PHRASES POSITION operation_id=\(selectionOperation) phase=requested button=\(validButton.rawValue)")
+        selectedButton = validButton
+        select(store.phrase(for: validButton))
+        AppLogger.shared.write("COMMON_PHRASES POSITION operation_id=\(selectionOperation) phase=completed result=selected button=\(validButton.rawValue)")
     }
 
     private func choosePhrase(_ phrase: CommonPhrase) {
         select(phrase)
-        guard let selectedButton else { return }
-        perform { try store.assign(selectedButton, to: phrase.id) }
+        guard let validButton = Self.reconciledSelection(selectedButton, for: remoteModel) else {
+            selectedButton = nil
+            return
+        }
+        perform { try store.assign(validButton, to: phrase.id) }
     }
 
     private func select(_ phrase: CommonPhrase?) {

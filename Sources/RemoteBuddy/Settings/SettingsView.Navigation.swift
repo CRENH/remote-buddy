@@ -113,7 +113,10 @@ extension SettingsView {
                 mappingPage
             }
         case .commonPhrases:
-            CommonPhraseSettingsView(store: model.commonPhraseStore) {
+            CommonPhraseSettingsView(
+                store: model.commonPhraseStore,
+                remoteModel: settings.selectedRemoteProfile?.model
+            ) {
                 selectSection(.mapping)
             }
         case .permissions:

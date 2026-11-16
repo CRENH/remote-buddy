@@ -11,6 +11,7 @@ final class CommonPhraseController: ObservableObject {
     let store: CommonPhraseStore
     @Published private(set) var messageKey = "common_phrases.panel_hint"
     @Published private(set) var isVisible = false
+    @Published private(set) var extraRows: [[RemoteButton?]] = []
     var onWillOpen: (() -> Void)?
     private var routing = CommonPhraseRouting()
     private var panel: NSPanel?
@@ -56,7 +57,7 @@ final class CommonPhraseController: ObservableObject {
     deinit { for (center, observer) in observers { center.removeObserver(observer) } }
 
     @discardableResult
-    @MainActor func open(source: String, localization: LocalizationStore) -> Bool {
+    @MainActor func open(source: String, model: RemoteModel? = nil, localization: LocalizationStore) -> Bool {
         guard store.isAvailable else {
             AppLogger.shared.write("COMMON_PHRASES PANEL phase=failed reason=resource_unavailable")
             return false
@@ -70,10 +71,14 @@ final class CommonPhraseController: ObservableObject {
         self.localization = localization.snapshot
         generation &+= 1
         targetPID = frontmostProcessID()
-        routing.open(source: source)
+        let buttons = CommonPhraseStore.buttons(for: model)
+        let rows = CommonPhraseStore.extraButtonRows(for: model)
+        routing.open(source: source, buttons: buttons)
+        extraRows = rows
         messageKey = "common_phrases.panel_hint"
         isVisible = true
-        let window = CommonPhrasePanel(contentRect: NSRect(origin: .zero, size: CommonPhrasePanelView.size),
+        let size = CommonPhrasePanelView.size(forRows: rows)
+        let window = CommonPhrasePanel(contentRect: NSRect(origin: .zero, size: size),
             styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         window.level = .floating
         window.isOpaque = false
@@ -84,7 +89,7 @@ final class CommonPhraseController: ObservableObject {
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.contentView = NSHostingView(rootView: CommonPhrasePanelView(controller: self).environmentObject(localization))
         if let frame = NSScreen.main?.frame {
-            window.setFrameOrigin(NSPoint(x: frame.midX - CommonPhrasePanelView.size.width / 2, y: frame.midY - CommonPhrasePanelView.size.height / 2))
+            window.setFrameOrigin(NSPoint(x: frame.midX - size.width / 2, y: frame.midY - size.height / 2))
         }
         panel = window
         window.orderFrontRegardless()
@@ -117,13 +122,20 @@ final class CommonPhraseController: ObservableObject {
         switch routing.handle(button, phase: phase, source: source) {
         case .unhandled: return false
         case .consumed: return true
-        case .close: close(reason: "back")
+        case .close: close(reason: button.rawValue)
         case let .insert(button): insert(button)
         }
         return true
     }
 
     func claims(_ button: RemoteButton, source: String) -> Bool { routing.claims(button, source: source) }
+
+    /// The owner's voice key closes a visible panel like Back; it does not start voice input.
+    func closeForVoiceKey(source: String) -> Bool {
+        guard isVisible, routing.owner == source else { return false }
+        close(reason: "voice_key")
+        return true
+    }
 
     @MainActor
     func insert(_ button: RemoteButton) {
@@ -182,7 +194,15 @@ final class CommonPhraseController: ObservableObject {
 }
 
 struct CommonPhrasePanelView: View {
-    static let size = CGSize(width: 300, height: 360)
+    static func size(forRows rows: [[RemoteButton?]]) -> CGSize {
+        guard !rows.isEmpty else { return CGSize(width: 300, height: 360) }
+        let height: CGFloat = switch rows.count {
+        case 1: 460
+        case 2: 550
+        default: 640
+        }
+        return CGSize(width: 300, height: height)
+    }
     @ObservedObject var controller: CommonPhraseController
     @EnvironmentObject private var localization: LocalizationStore
 
@@ -195,9 +215,15 @@ struct CommonPhrasePanelView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, minHeight: 48, alignment: .top)
             CommonPhrasePad(store: controller.store, diameter: 272, onSelect: controller.insert)
+            if !controller.extraRows.isEmpty {
+                CommonPhraseKeyGrid(store: controller.store, rows: controller.extraRows, keyDiameter: 44,
+                                    onSelect: controller.insert)
+            }
+            Spacer(minLength: 0)
         }
         .padding(14)
-        .frame(width: Self.size.width, height: Self.size.height)
+        .frame(width: Self.size(forRows: controller.extraRows).width,
+               height: Self.size(forRows: controller.extraRows).height)
         .overlay(alignment: .topTrailing) {
             Button { controller.close(reason: "close_button") } label: {
                 Image(systemName: "xmark").font(.system(size: 16, weight: .semibold))
@@ -209,8 +235,14 @@ struct CommonPhrasePanelView: View {
             .accessibilityLabel(localization.text("common_phrases.close"))
         }
         .foregroundStyle(.white)
-        .background(Color(white: 0.075), in: RoundedRectangle(cornerRadius: 22))
-        .opacity(0.8)
+        .background(
+            RoundedRectangle(cornerRadius: 22)
+                .fill(Color(white: 0.11).opacity(0.93))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 22)
+                .stroke(Color.white.opacity(0.18), lineWidth: 1)
+        )
         .environment(\.colorScheme, .dark)
     }
 }

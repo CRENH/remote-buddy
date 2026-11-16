@@ -27,6 +27,7 @@ struct CommonPhraseArchive: Codable, Equatable {
     var entries: [CommonPhrase]
     var bindings: [String: String]
     var builtInIDs: [String]?
+    var builtInBindingKeys: [String]?
 
     init(
         schemaVersion: Int = 2,
@@ -34,7 +35,8 @@ struct CommonPhraseArchive: Codable, Equatable {
         github: String? = nil,
         entries: [CommonPhrase],
         bindings: [String: String],
-        builtInIDs: [String]? = nil
+        builtInIDs: [String]? = nil,
+        builtInBindingKeys: [String]? = nil
     ) {
         self.schemaVersion = schemaVersion
         self.website = website
@@ -42,6 +44,7 @@ struct CommonPhraseArchive: Codable, Equatable {
         self.entries = entries
         self.bindings = bindings
         self.builtInIDs = builtInIDs
+        self.builtInBindingKeys = builtInBindingKeys
     }
 
     func validate() throws {
@@ -57,7 +60,41 @@ struct CommonPhraseArchive: Codable, Equatable {
 final class CommonPhraseStore: ObservableObject {
     enum StoreError: Error { case invalidData, unavailable }
     nonisolated static let maximumImportBytes = 4_000_000
-    nonisolated static let buttons: [RemoteButton] = [.ok, .left, .up, .right, .down]
+    nonisolated static let baseButtons: [RemoteButton] = [.ok, .left, .up, .right, .down]
+    /// Physical 2-column grid rows below the directional pad for each remote.
+    /// `nil` reserves an empty slot so visible buttons keep their physical left/right position.
+    nonisolated static let chromecastExtraRows: [[RemoteButton?]] = [
+        [.home, .mute],
+        [.youtube, .netflix],
+        [nil, .input],
+    ]
+    nonisolated static let xiaomiExtraRows: [[RemoteButton?]] = [
+        [nil, .volumeUp],
+        [.home, .volumeDown],
+        [.menu, .tv],
+    ]
+    nonisolated static let t1ExtraRows: [[RemoteButton?]] = [
+        [.mute, .home],
+        [nil, .menu],
+    ]
+    nonisolated static let allExtraButtons: [RemoteButton] = [
+        .home, .mute, .menu, .tv, .volumeUp, .volumeDown, .youtube, .netflix, .input,
+    ]
+    nonisolated static let buttons = baseButtons + allExtraButtons
+    nonisolated static func extraButtonRows(for model: RemoteModel?) -> [[RemoteButton?]] {
+        switch model {
+        case .chromecastVoiceRemote: chromecastExtraRows
+        case .rc001, .rc003, .unknown: xiaomiExtraRows
+        case .t1Remote: t1ExtraRows
+        case .appleSiriRemoteA2854, .appleSiriRemoteA2540, nil: []
+        }
+    }
+    nonisolated static func extraButtons(for model: RemoteModel?) -> [RemoteButton] {
+        extraButtonRows(for: model).flatMap { $0.compactMap { $0 } }
+    }
+    nonisolated static func buttons(for model: RemoteModel?) -> [RemoteButton] {
+        baseButtons + extraButtons(for: model)
+    }
     nonisolated static let exportWebsite = AppLinks.chineseWebsite.absoluteString
     nonisolated static let exportGitHub = AppLinks.githubRepository.absoluteString
     private static let defaultsKey = "commonPhrases.archive.v2"
@@ -66,6 +103,7 @@ final class CommonPhraseStore: ObservableObject {
     @Published private(set) var loadFailed = false
     private let defaults: UserDefaults
     private var builtInIDs: [String] = []
+    private var builtInBindingKeys: [String] = []
     private var builtInEntries: [CommonPhrase] = []
     private var operation: UInt64 = 0
 
@@ -81,19 +119,34 @@ final class CommonPhraseStore: ObservableObject {
             }
             var candidate = try JSONDecoder().decode(CommonPhraseArchive.self, from: data)
             try candidate.validate()
+            let builtInBindings = candidate.bindings
             let builtIns = candidate.entries
             builtInEntries = builtIns
             builtInIDs = builtIns.map(\.id)
+            builtInBindingKeys = Array(builtInBindings.keys).sorted()
             if let saved = defaults.data(forKey: Self.defaultsKey) {
                 do {
                     var savedCandidate = try JSONDecoder().decode(CommonPhraseArchive.self, from: saved)
                     try savedCandidate.validate()
                     let known = Set(savedCandidate.builtInIDs ?? savedCandidate.entries.filter { $0.id.hasPrefix("builtin-") }.map(\.id))
+                    // Archives saved before `builtInBindingKeys` existed only offered `baseButtons`;
+                    // treating them as known prevents re-filling a base key the user intentionally cleared.
+                    let knownBindingKeys = Set(
+                        savedCandidate.builtInBindingKeys ?? Self.baseButtons.map(\.rawValue)
+                    )
                     savedCandidate.entries = savedCandidate.entries.compactMap { phrase in
                         phrase.id.hasPrefix("builtin-") ? builtIns.first { $0.id == phrase.id } : phrase
                     }
                     savedCandidate.entries += builtIns.filter { !known.contains($0.id) }
                     savedCandidate.bindings = savedCandidate.bindings.filter { _, id in savedCandidate.entries.contains { $0.id == id } }
+                    // Backfill default bindings only for keys newly added to the bundle
+                    // that were neither previously offered nor targeting a deleted phrase.
+                    for (key, defaultID) in builtInBindings
+                    where !knownBindingKeys.contains(key) && savedCandidate.bindings[key] == nil {
+                        if savedCandidate.entries.contains(where: { $0.id == defaultID }) {
+                            savedCandidate.bindings[key] = defaultID
+                        }
+                    }
                     try savedCandidate.validate()
                     candidate = savedCandidate
                 } catch {
@@ -103,6 +156,7 @@ final class CommonPhraseStore: ObservableObject {
                 }
             }
             candidate.builtInIDs = builtInIDs
+            candidate.builtInBindingKeys = builtInBindingKeys
             try candidate.validate()
             archive = candidate
             isAvailable = true
@@ -209,6 +263,7 @@ final class CommonPhraseStore: ObservableObject {
         do {
             var candidate = try candidate()
             candidate.builtInIDs = builtInIDs
+            candidate.builtInBindingKeys = builtInBindingKeys
             try candidate.validate()
             let data = try JSONEncoder().encode(candidate)
             defaults.set(data, forKey: Self.defaultsKey)
@@ -222,13 +277,18 @@ final class CommonPhraseStore: ObservableObject {
 }
 
 /// Claims only panel controls from its owning input source. Held releases remain
-/// consumed after closing, so Back never leaks into the foreground application.
+/// consumed after closing, so exit keys never leak into the foreground application.
 struct CommonPhraseRouting {
+    private static let exitButtons: Set<RemoteButton> = [.back, .power]
     struct Input: Hashable { let source: String; let button: RemoteButton }
     enum Decision: Equatable { case unhandled, consumed, insert(RemoteButton), close }
     private(set) var owner: String?
     private var held = Set<Input>()
-    mutating func open(source: String) { owner = source }
+    private var phraseButtons = Set<RemoteButton>()
+    mutating func open(source: String, buttons: [RemoteButton] = CommonPhraseStore.baseButtons) {
+        owner = source
+        phraseButtons = Set(buttons)
+    }
     mutating func close() { owner = nil }
     mutating func reset(source: String) {
         if owner == source { owner = nil }
@@ -236,16 +296,16 @@ struct CommonPhraseRouting {
     }
     func claims(_ button: RemoteButton, source: String) -> Bool {
         held.contains(Input(source: source, button: button)) ||
-            (owner == source && (CommonPhraseStore.buttons.contains(button) || button == .back))
+            (owner == source && (phraseButtons.contains(button) || Self.exitButtons.contains(button)))
     }
     mutating func handle(_ button: RemoteButton, phase: RemoteButtonPhase, source: String) -> Decision {
         let input = Input(source: source, button: button)
         if phase == .release { return held.remove(input) != nil ? .consumed : .unhandled }
         if held.contains(input) { return .consumed }
-        guard owner == source, CommonPhraseStore.buttons.contains(button) || button == .back
+        guard owner == source, phraseButtons.contains(button) || Self.exitButtons.contains(button)
         else { return .unhandled }
         held.insert(input)
         owner = nil
-        return button == .back ? .close : .insert(button)
+        return Self.exitButtons.contains(button) ? .close : .insert(button)
     }
 }
