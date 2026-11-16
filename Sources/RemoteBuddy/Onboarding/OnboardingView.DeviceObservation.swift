@@ -76,6 +76,131 @@ extension OnboardingView {
         )
     }
 
+    func resetRemoteInputProofIfSelectedProfileChanged() {
+        let currentID = settings.selectedRemoteProfileID
+        guard currentID != observedRemoteProfileID else { return }
+        observedRemoteProfileID = currentID
+        observedRemoteButtons.removeAll()
+        testedControlButtons.removeAll()
+        chromecastSingleKeyObserved = false
+        chromecastTwoKeyDetectedWithoutSingleKey = false
+        pendingChromecastComboButtons.removeAll()
+        compatibleChordConfirmed = false
+        requestedRemoteConnectionRecovery = false
+        remoteInputDiagnostic = remoteInputDiagnosticOverride ?? FirstUseRemoteInputDiagnostic()
+    }
+
+    func handleObservedRemoteReport(_ observation: RemoteButtonObservation) {
+        resetRemoteInputProofIfSelectedProfileChanged()
+        guard settings.onboardingControlMethod == .physicalRemote,
+              observation.profileID == settings.selectedRemoteProfileID,
+              selectedPhysicalRemoteProfileMatchesSource,
+              !observation.buttons.isEmpty else { return }
+        if settings.onboardingControlSource == .chromecastRemote {
+            handleChromecastObservedButtons(observation.buttons)
+            return
+        }
+        if settings.onboardingStep == .remote {
+            recordRemoteControlButtons(observation.buttons, source: "physical_remote")
+            recoverRemoteConnectionIfNeeded()
+        } else if settings.onboardingStep == .controls {
+            testedControlButtons.formUnion(observation.buttons)
+        }
+    }
+
+    func handleObservedRemoteButtons(_ buttons: Set<RemoteButton>) {
+        resetRemoteInputProofIfSelectedProfileChanged()
+        guard settings.onboardingControlMethod == .physicalRemote,
+              selectedPhysicalRemoteProfileMatchesSource,
+              !buttons.isEmpty else { return }
+        if settings.onboardingControlSource == .chromecastRemote {
+            handleChromecastObservedButtons(buttons)
+            return
+        }
+        if settings.onboardingStep == .remote {
+            recordRemoteControlButtons(buttons, source: "physical_remote")
+            recoverRemoteConnectionIfNeeded()
+        } else if settings.onboardingStep == .controls {
+            testedControlButtons.formUnion(buttons)
+        }
+    }
+
+    func handleObservedRemoteButtonPress(_ button: RemoteButton) {
+        guard settings.onboardingControlMethod == .physicalRemote,
+              selectedPhysicalRemoteProfileMatchesSource else { return }
+        // Chromecast relies strictly on complete multi-key reports (`$lastObservedRemoteButtonReport` /
+        // `$activeRemoteButtons`) so representative keys from background devices cannot mimic single presses.
+        if settings.onboardingControlSource == .chromecastRemote {
+            return
+        }
+        if settings.onboardingStep == .remote {
+            recordRemoteControlButtons(Set([button]), source: "physical_remote")
+            recoverRemoteConnectionIfNeeded()
+        } else if settings.onboardingStep == .controls {
+            testedControlButtons.insert(button)
+        }
+    }
+
+    private func handleChromecastObservedButtons(_ buttons: Set<RemoteButton>) {
+        let outcome = ChromecastCompatibilityDetection.evaluate(
+            step: settings.onboardingStep,
+            buttons: buttons,
+            singleKeyObserved: chromecastSingleKeyObserved,
+            compatibilityModeEnabled: isChromecastTwoKeyCompatible
+        )
+        switch outcome {
+        case let .recordFullMode(observed):
+            if observed.count == 1 {
+                chromecastSingleKeyObserved = true
+                chromecastTwoKeyDetectedWithoutSingleKey = false
+                pendingChromecastComboButtons.removeAll()
+                if isChromecastTwoKeyCompatible {
+                    model.setG9N9NInputMode(.full, for: settings.selectedRemoteProfileID)
+                }
+            }
+            recordRemoteControlButtons(observed, source: "physical_remote")
+            recoverRemoteConnectionIfNeeded()
+        case let .recordCompatibilityMode(observed):
+            recordRemoteControlButtons(observed, source: "physical_remote")
+            recoverRemoteConnectionIfNeeded()
+        case let .awaitCompatibilityOptIn(observed):
+            chromecastTwoKeyDetectedWithoutSingleKey = true
+            pendingChromecastComboButtons = observed
+            AppLogger.shared.write(
+                "ONBOARDING REMOTE_INPUT observed=chromecast_combo_awaiting_opt_in count=\(observed.count)"
+            )
+        case let .controlsChordConfirmed(observed):
+            testedControlButtons.formUnion(observed)
+            compatibleChordConfirmed = true
+        case let .controlsNonChordObserved(observed):
+            testedControlButtons.formUnion(observed)
+        }
+    }
+
+    func setChromecastPartialSupportMode(_ enabled: Bool) {
+        let mode: G9N9NInputMode = enabled ? .twoKeyCompatibility : .full
+        model.setG9N9NInputMode(mode, for: settings.selectedRemoteProfileID)
+        if enabled {
+            if !pendingChromecastComboButtons.isEmpty {
+                let promoted = pendingChromecastComboButtons
+                pendingChromecastComboButtons.removeAll()
+                recordRemoteControlButtons(promoted, source: "physical_remote")
+                recoverRemoteConnectionIfNeeded()
+            }
+        } else {
+            chromecastSingleKeyObserved = false
+            chromecastTwoKeyDetectedWithoutSingleKey = false
+            pendingChromecastComboButtons.removeAll()
+            observedRemoteButtons.removeAll()
+            testedControlButtons.removeAll()
+            compatibleChordConfirmed = false
+            remoteInputDiagnostic = remoteInputDiagnosticOverride ?? FirstUseRemoteInputDiagnostic()
+        }
+        DispatchQueue.main.async {
+            recordFailureTransition(failureReason)
+        }
+    }
+
     func prepareSelectedControlConnection() {
         guard allowsHardwareMonitoring else { return }
         switch settings.onboardingControlSource {
