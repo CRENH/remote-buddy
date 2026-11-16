@@ -568,3 +568,5 @@ Validation after the latency and trigger-observation changes (runtime `1cb1d94`)
 点按模式与按住模式都在发送热键前等待目标输入法激活；点按的应用聚焦、输入法切换和目标输入框检查共享准备时限。取消准备会撤销输入法会话并使迟到回调失效；成功发送触发键后结束会话时保留目标输入法。音频排空和结束点按仍由原状态机处理。
 
 WorkBuddy 输入框通过同一局部布局内的唯一编辑框、“更多操作”和“语音输入”控件联合识别。生成回复期间“发送”会替换为“停止”，两种状态都可识别；不读取输入框内容或对话文本，不自动发送消息或停止生成。
+
+蓝牙语音停止在清理状态前记录 `ATVV STREAM STOP session=... reason=... close_requested=... partial_frame_bytes=...`，并在 `ATVV STREAM summary` 附带 `stop_reason`。`remote_notification` 仅表示收到了 ATVV 结束通知，不等于证明用户松开按键；`close_requested` 表示本进程此前是否请求过关闭，可区分主动关闭后的设备确认和设备自行报告结束。其他原因包括 `remote_microphone_refused`、`close_unacknowledged`、`close_retry_exhausted`、`write_response_failure`、`flow_control_timeout`、`decode_backlog`、`session_replaced`、`disconnected`、`system_suspended` 和 `bridge_stopped` 等。每次流只记录一次停止，后续清理不会覆盖最初的来源。`fn_pressed_at_stop` 仍仅表示系统 Fn 状态，不能当作遥控器物理语音键状态；日志不推断第三方输入工具是否仍在收音。
