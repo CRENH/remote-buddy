@@ -287,7 +287,7 @@ struct ProductBoundaryTests {
         #expect(RemoteSetupDevice.chromecastG9N9N.googleHardwareModelNumber == "G9N9N")
         #expect(RemoteSetupDevice.googleStreamerGY3LE.googleHardwareModelNumber == "GY3LE")
         #expect(RemoteSetupDevice.allCases.filter(\.canStartSetup) == [
-            .xiaomi, .t1Remote, .chromecastG9N9N, .googleStreamerGY3LE,
+            .xiaomi, .t1Remote, .chromecastG9N9N,
         ])
         // Listing non-Xiaomi devices must not admit them through the Xiaomi hardware bridge.
         #expect(XiaomiRemoteCatalog.entry(matchingDISModelNumber: "G9N9N") == nil)
@@ -324,7 +324,7 @@ struct ProductBoundaryTests {
         #expect(AppSettings(defaults: defaults).onboardingControlSource == .chromecastRemote)
         #expect(!model.isOnboardingControlSourceConnected(.chromecastRemote))
         #expect(OnboardingRemotePhotoKind.resolve(source: .chromecastRemote, selectedModel: .rc003)
-            == .bundled(resourceName: "ChromecastG9N9NIllustration"))
+            == .bundled(resourceName: "ChromecastG9N9NPhoto"))
         #expect(RemoteSetupDevice.chromecastG9N9N.canStartSetup)
     }
 
@@ -358,7 +358,7 @@ struct ProductBoundaryTests {
     }
 
     @Test @MainActor func googleSelectionKeepsItsOwnIllustrationAndConnectionValidation() throws {
-        for device in [RemoteSetupDevice.chromecastG9N9N, .googleStreamerGY3LE] {
+        for device in [RemoteSetupDevice.chromecastG9N9N] {
             let suite = "google-selection-" + UUID().uuidString
             let defaults = try #require(UserDefaults(suiteName: suite))
             defer { defaults.removePersistentDomain(forName: suite) }
@@ -377,16 +377,18 @@ struct ProductBoundaryTests {
             #expect(!OnboardingFlowPolicy.canContinue(from: .remote, voiceTool: .doubao,
                 selectedDevice: device, capabilities: .init(bluetoothGranted: true,
                     inputMonitoringGranted: true, accessibilityGranted: true)))
-            #expect(view.usesG9N9NButtonTestWorkaround == (device == .chromecastG9N9N))
-            #expect(view.physicalRemotePairingKeys.thirdStep == (device == .chromecastG9N9N
-                ? "onboarding.remote.g9n9n_pairing.third" : "onboarding.remote.chromecast_pairing.third"))
-            #expect(view.controlsDetailKey == (device == .chromecastG9N9N
-                ? "onboarding.controls.g9n9n.detail" : "onboarding.controls.chromecast.detail"))
+            #expect(view.physicalRemotePairingKeys.thirdStep == "onboarding.remote.chromecast_pairing.third")
+            #expect(view.controlsDetailKey == "onboarding.controls.chromecast.detail")
         }
-        #expect(RemoteSetupDevice.googleStreamerGY3LE.canStartSetup)
+        #expect(!RemoteSetupDevice.googleStreamerGY3LE.canStartSetup)
+        #expect(RemoteSetupDevice.googleStreamerGY3LE.onboardingSource == nil)
         #expect(OnboardingRemotePhotoKind.resolve(source: .chromecastRemote,
             selectedModel: .rc003, selectedDevice: .xiaomi)
             == .bundled(resourceName: RemoteSetupDevice.chromecastG9N9N.illustrationResource))
+        #expect(AppLinks.devices(for: Locale(identifier: "zh_CN")).absoluteString
+            == "https://remote.zfdang.com/device.html")
+        #expect(AppLinks.devices(for: Locale(identifier: "en_US")).absoluteString
+            == "https://remote.zfdang.com/device_en.html")
     }
 
     @Test func wizardRequiresEachPermissionAndKeepsRemoteControl() {

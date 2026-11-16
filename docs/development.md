@@ -146,10 +146,10 @@ The product device list is limited to Xiaomi Bluetooth Remote 2 / 2 Pro, T1-Remo
 Air-Mouse & Keyboard (and compatible clones), Google Chromecast Voice Remote (G9N9N),
 Google TV Streamer Voice Remote (GY3LE), and Apple Siri Remote. `RemoteSetupDevice` defines
 this scope; it does not grant connection support. All five entries can be selected.
-Continue advances Xiaomi, T1, and both Google choices to connection setup; Siri remains on
-the device page with an unsupported notice.
+Continue advances Xiaomi, T1, and G9N9N to connection setup. GY3LE and Siri remain on
+the device page with an unsupported notice and a disabled Continue button.
 The GY3LE setup entry does not admit it through the G9N9N adapter. G9N9N connection
-validation remains mandatory. G9N9N currently has partial voice support; control-button mapping is unsupported following the A0 / firmware 26.7 hardware investigation. See the [standalone report](g9n9n-compatibility.md). The
+validation remains mandatory. The validated G9N9N supports voice and fourteen configurable ordinary buttons. See the [standalone report](g9n9n-compatibility.md). The
 validated Xiaomi admission catalog remains separate, so a planned Google model
 cannot accidentally connect through the Xiaomi bridge. Third-party replacement
 remotes need individual validation.
@@ -188,10 +188,6 @@ link is secured. Do not classify an inaccessible service as absent, label a
 unit counterfeit, or switch to the computer microphone while claiming remote
 audio works. This integration uses public APIs without driver injection or private app access.
 
-[vibe-mote's hardware notes](https://github.com/Tilkmilk/vibe-mote#九遥控器怎么挑原装--兼容款--山寨)
-report different ATVV behavior across two G9N9N-labelled replacements. These are
-Windows observations and research references, not macOS acceptance evidence or
-confirmation of GY3LE compatibility.
 
 ### Unsupported remote integrations
 
@@ -232,11 +228,7 @@ layouts, protocols or codecs still require additional evidence/adapters.
 Power and input-source keys can use infrared and are excluded from the public
 Bluetooth mapping canvas until supported reports are captured.
 
-These parser paths do not establish usable button mapping. Raw Bluetooth capture of the A0 / firmware 26.7 unit shows one-byte single-key and release values where its descriptor requires two slots; only the full two-byte combination reaches public IOHID callbacks. G9N9N control-button mapping is currently unsupported; its separately transported voice path has been tested working. Onboarding now explains OK + Up for the initial check and OK + Up followed by Back + Up for three distinct controls. These combinations only satisfy setup report checks; they do not establish usable button mapping. Existing permission, audio, and voice validation gates remain required.
-
-Further hardware acceptance remains necessary: test an original unit and each replacement
-separately for pairing, microphone samples, stop/tail, long sessions, HID/GATT
-coexistence, sleep/wake and reconnect. Automated tests cannot establish these.
+The validated HID VersionNumber 0x0110 unit delivers complete single-button and release snapshots through report 1. All fourteen ordinary controls enter the shared configurable gesture engine, while Voice remains an ATVV audio control. Setup uses single OK and three distinct ordinary buttons. Battery readings from the standard BLE service are shown when available. Version details and the physical test record are documented in [the device guide](g9n9n-compatibility.md).
 
 ### Adding compatible remote identities
 
@@ -308,38 +300,6 @@ rendering accepts `REMOTE_BUDDY_SETTINGS_SCREENSHOT_SIZE=720x500` and
 remains reachable. Preview fixtures do not start remote or audio hardware.
 
 Hold-to-repeat is represented by the `repeatSingleClick` action in the long-press binding, using the existing per-device binding persistence. Navigation, volume, and Power buttons default to this value; Back defaults to no long-press action. Power repeats Delete, while Back sends Escape once. The mapping cards display these values explicitly. The HID runtime uses the configured hold value instead of a repeat-capable button allowlist; repeat starts at 350 ms and executes the current single-press action until release. Independent long-press actions retain the 550 ms threshold. Double-click recognition remains available and is cancelled when a held press starts repeating, avoiding a trailing click on release. Timer tokens reject stale repeat callbacks after release or reset.
-
-### G9N9N first hardware inspection (2026-10-19)
-
-Public CoreBluetooth reads on the connected reference unit returned:
-
-- Name: `Chromecast Remote`; manufacturer: `Google Inc.`
-- DIS model: `A3`; hardware revision: `CR PVT/MP`; firmware/software: `26.0`.
-- DIS PnP bytes: `01 D1 18 50 94 10 01` (VID/PID `18D1:9450`).
-- ATVV service: `AB5E0001-5A21-4F05-BC7D-AF01F617B664`.
-- Transmit characteristic `0002`: properties `0x04` (write without response).
-  Audio `0003` and control `0004`: properties `0x10` (notify).
-- Both notifications enabled successfully. Capability request
-  `0A 01 00 00 03 03` returned `0B 01 00 02 03 00 F0 01 00 1A`:
-  ATVV v1.0, codec mask `0x02`, interaction `0x03`, frame size 240, 16 kHz ADPCM.
-- No authentication/encryption error occurred during these reads, subscriptions,
-  or the capability exchange. Link encryption was **not independently measured**;
-  notification properties and successful access do not prove an unencrypted link.
-
-The previous exact `G9N9N` DIS model check rejected this unit's `A3` before
-initialization completed. Admission now uses PnP identity and negotiated audio
-capabilities; missing or differing model strings do not reject a remote.
-The HID descriptor also exposes report ID 1 with two 8-bit array indices
-(logical range 1–17), rather than report ID 2 with 16-bit usages. The adapter
-recognizes this exact descriptor before decoding indexed reports; unknown
-descriptors are not interpreted as this format. Index zero releases a slot.
-The descriptor lists input usage `0x0089`, alongside the previously documented
-variant using `0x0189`.
-
-This inspection does not yet establish correct physical button mappings, intelligible
-microphone audio, end-to-end stop behavior, long sessions, or sleep/wake acceptance.
-See the [hardware debugging record](g9n9n-hardware-debugging.md) for the completed
-test attempts, evidence limits, signing checks, and next acceptance steps.
 
 ## App integration accessibility and preparation boundaries
 
@@ -570,3 +530,11 @@ Validation after the latency and trigger-observation changes (runtime `1cb1d94`)
 WorkBuddy 输入框通过同一局部布局内的唯一编辑框、“更多操作”和“语音输入”控件联合识别。生成回复期间“发送”会替换为“停止”，两种状态都可识别；不读取输入框内容或对话文本，不自动发送消息或停止生成。
 
 蓝牙语音停止在清理状态前记录 `ATVV STREAM STOP session=... reason=... close_requested=... partial_frame_bytes=...`，并在 `ATVV STREAM summary` 附带 `stop_reason`。`remote_notification` 仅表示收到了 ATVV 结束通知，不等于证明用户松开按键；`close_requested` 表示本进程此前是否请求过关闭，可区分主动关闭后的设备确认和设备自行报告结束。其他原因包括 `remote_microphone_refused`、`close_unacknowledged`、`close_retry_exhausted`、`write_response_failure`、`flow_control_timeout`、`decode_backlog`、`session_replaced`、`disconnected`、`system_suspended` 和 `bridge_stopped` 等。每次流只记录一次停止，后续清理不会覆盖最初的来源。`fn_pressed_at_stop` 仍仅表示系统 Fn 状态，不能当作遥控器物理语音键状态；日志不推断第三方输入工具是否仍在收音。
+
+### Website screenshots (2026-11-16)
+
+Run `python3 scripts/generate-website-screenshots.py` to build the current Debug app and capture Chinese/English settings and onboarding views. The website examples select G9N9N and use its photo and model defaults. Device connection and battery states are screenshot fixtures, not hardware measurements. The renderer uses an isolated preferences suite and does not start hardware monitoring. After refreshing these assets, rerender `scripts/demo-video/render.py` so the video uses the same current UI.
+
+向导完成页只展示已完成设置的总结，不重新检查权限、蓝牙或音频，不发起 HID／音频重配置，也不因运行状态变化禁用完成按钮。权限与连接阻塞在对应前置步骤处理；三键测试只有在蓝牙语音连接就绪且收到三个不同按键时才允许进入完成页。
+
+语音热键菜单提供九个预置：Fn、右 Option、右 Command；Ctrl+Shift、Ctrl+Option、Ctrl+Command 分别与 V 或 R 组合。V 和 R 的主键码分别为 9、15。自定义热键入口保留；从菜单移除的左侧修饰键仍可通过自定义编辑器选择。

@@ -402,19 +402,9 @@ enum OnboardingFlowPolicy {
                 capabilities.transcriptionAppeared &&
                 !capabilities.manualTranscriptInputObserved
         case .controls:
-            return capabilities.testedRemoteButtonCount >= 3
+            return capabilities.remoteConnected && capabilities.testedRemoteButtonCount >= 3
         case .complete:
-            return isControlSelectionValid(
-                remoteAvailability: remoteAvailability,
-                controlMethod: controlMethod
-            ) &&
-                (!controlMethod.requiresBluetoothPermission || capabilities.bluetoothGranted) &&
-                (!controlMethod.requiresInputMonitoringPermission ||
-                    capabilities.inputMonitoringGranted) &&
-                capabilities.accessibilityGranted &&
-                capabilities.remoteConnected &&
-                capabilities.audioOutputSelected &&
-                capabilities.audioReady
+            return true
         }
     }
 
@@ -446,22 +436,6 @@ enum OnboardingFlowPolicy {
             hasSelectedAudioUID: hasSelectedAudioUID
         )
         guard let failure = context.failureReason else { return nil }
-        if step == .complete, failure == .completeRuntimeRegressed {
-            if !isControlSelectionValid(
-                remoteAvailability: remoteAvailability,
-                controlMethod: controlMethod
-            ) {
-                return .remoteAvailability
-            }
-            if (controlMethod.requiresBluetoothPermission && !capabilities.bluetoothGranted) ||
-                (controlMethod.requiresInputMonitoringPermission &&
-                    !capabilities.inputMonitoringGranted) ||
-                !capabilities.accessibilityGranted {
-                return .permissions
-            }
-            if !capabilities.remoteConnected { return .remote }
-            return .permissions
-        }
         return failure.recoveryStep
     }
 
