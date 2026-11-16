@@ -306,6 +306,7 @@ extension BridgeAppModel {
             customMappingEnabled: settings.customMappingEnabled,
             backOnlyMode: backOnlyMode,
             powerKeySuppressed: powerKeySuppressed,
+            waitForMatchingServices: !voiceFunctionMapper.hasMatchingServices,
             allowedLocationIDs: allowedLocationIDs,
             targets: targets,
             compatibleHIDIdentities: settings.compatibleHIDIdentities(
@@ -358,7 +359,8 @@ extension BridgeAppModel {
             monitor.start(
                 powerKeySuppressed: powerKeySuppressed,
                 allowedLocationIDs: allowedLocationIDs,
-                allowBackOnly: backOnlyMode
+                allowBackOnly: backOnlyMode,
+                waitForMatchingServices: desiredConfiguration.waitForMatchingServices
             )
         }
         startHIDDiscoveryIfNeeded(allowBackOnly: backOnlyMode)

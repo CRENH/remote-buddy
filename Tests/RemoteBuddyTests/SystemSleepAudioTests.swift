@@ -290,12 +290,14 @@ struct SystemSleepAudioTests {
 
             // On resume when the bridge remained .ready (no .ready transition callback),
             // applyHIDSettings() restores discovery/suppressor/input-source monitors and reschedules HID mapping recovery.
-            // configuredMonitor stays stopped until recovery matches services and suppresses power key.
+            // The configured monitor observes service arrival without opening/routing input
+            // until recovery suppresses the power key.
             model.handleSystemAudioLifecycle(.sessionDidBecomeActive)
             #expect(model.discoveryHIDMonitor?.isMonitoring == true)
             #expect(model.hidEventSuppressor.isRunning)
             #expect(model.preferredInputSourceMonitor.isMonitoring)
-            #expect(model.hidMonitoringInterrupted)
+            #expect(!model.hidMonitoringInterrupted)
+            #expect(model.hidMonitors["test-remote"]?.isWaitingForMatchingServices == true)
             #expect(model.hidMappingRecoveryWorkItem != nil)
             #expect(isReady(bridge.state))
         }
@@ -445,7 +447,7 @@ struct SystemSleepAudioTests {
             model.handleSystemAudioLifecycle(.systemDidWake)
             #expect(!model.audio.suspensionState.pendingSystemWakeRecovery)
             #expect(!model.connections.bridges.isEmpty)
-            #expect(model.connections.discoveryBridge != nil)
+            #expect(model.connections.discoveryBridge == nil)
         }
 
         // finishAudioStartup with empty bridges/discoveryBridge runs completeBluetoothResume and resumes Fn-tap when connected.
@@ -469,7 +471,7 @@ struct SystemSleepAudioTests {
             #expect(model.hidMonitors["test-remote"]?.isMonitoring == true)
             #expect(!model.voiceFnTapSession.isSuspended)
             #expect(!model.connections.bridges.isEmpty)
-            #expect(model.connections.discoveryBridge != nil)
+            #expect(model.connections.discoveryBridge == nil)
         }
     }
 

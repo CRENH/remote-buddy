@@ -381,6 +381,15 @@ final class VirtualAudioOutput {
             logStage("verify_output")
             refreshOutputStateOnEngineQueue()
             guard isReadyForTestTone else {
+                // Capture before teardown clears the engine and selected/actual route.
+                let snapshot = diagnosticSnapshot()
+                logger(
+                    "AUDIO CONFIGURE failed reason=verify_output queue=audio_output " +
+                        "elapsed_ms=\(elapsedMilliseconds()) " +
+                        "engine_running=\(snapshot.engineRunning) player_playing=\(snapshot.playerPlaying) " +
+                        "bound_to_selected=\(snapshot.boundToSelectedDevice.map(String.init) ?? "unknown") " +
+                        "audibility_healthy=\(snapshot.audibilityHealthy) state={\(diagnosticState())}"
+                )
                 stopOnEngineQueue()
                 status = LocalizedMessage("audio.output.selected_unavailable")
                 return false
@@ -584,12 +593,13 @@ final class VirtualAudioOutput {
         playbackLock.lock()
         nextDrainOperationID &+= 1
         let resolvedOperationID = operationID ?? nextDrainOperationID
+        let now = uptime()
         let request = DrainRequest(
             source: source,
             operationID: resolvedOperationID,
-            startedAtUptime: uptime(),
+            startedAtUptime: now,
             requestedOnMainThread: Thread.isMainThread,
-            deadline: maximumDelay.map { uptime() + max(0, $0) },
+            deadline: maximumDelay.map { now + max(0, $0) },
             completion: completion
         )
         let shouldCompleteImmediately = pendingVoiceBufferCount == 0
@@ -636,7 +646,7 @@ final class VirtualAudioOutput {
             return
         }
         if let sharedDeadline, let generation {
-            _ = scheduleDrainDeadline(max(0, sharedDeadline - uptime())) { [weak self] in
+            _ = scheduleDrainDeadline(max(0, sharedDeadline - now)) { [weak self] in
                 self?.finishDrainIfNeeded(generation: generation)
             }
         }

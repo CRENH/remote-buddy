@@ -137,8 +137,9 @@ extension BridgeAppModel {
             return
         }
         let previous = appliedHIDPermissionSnapshot
+        let recoveryReason = previous == current ? "monitoring_interrupted" : "permissions_changed"
         AppLogger.shared.write(
-            "HID PERMISSIONS changed " +
+            "HID PERMISSIONS recovery reason=\(recoveryReason) " +
                 "input=\(previous?.inputMonitoringGranted ?? false)->\(current.inputMonitoringGranted) " +
                 "accessibility=\(previous?.accessibilityGranted ?? false)->\(current.accessibilityGranted) " +
                 "recovery=apply_settings"
@@ -237,6 +238,10 @@ extension BridgeAppModel {
 
     func refreshRemoteDiscovery() {
         guard started else { return }
+        guard shouldDiscoverNewBluetoothRemotes else {
+            synchronizeBluetoothDiscovery()
+            return
+        }
         if settings.allowsForgottenRemoteDuringActiveControlSetup,
            let discovery = connections.discoveryBridge {
             connections.discoveryBridge = nil
