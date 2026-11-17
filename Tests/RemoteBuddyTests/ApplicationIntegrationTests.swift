@@ -16,17 +16,26 @@ struct ApplicationIntegrationTests {
 
     @Test func switchesPersistIndependentlyAndSupportBulkChanges() throws {
         try withSettings { settings, defaults in
-            #expect(settings.enabledApplicationIntegrations.isEmpty)
-            settings.setApplicationIntegration(.chatGPT, enabled: true)
-            #expect(AppSettings(defaults: defaults).isApplicationIntegrationEnabled(.chatGPT))
-            #expect(!settings.isApplicationIntegrationEnabled(.weChat))
-            settings.setAllApplicationIntegrations(enabled: true)
+            let allIdentifiers = Set(ApplicationIntegration.allCases.map(\.rawValue))
+            #expect(settings.enabledApplicationIntegrations == allIdentifiers)
             settings.setApplicationIntegration(.weChat, enabled: false)
-            let restored = AppSettings(defaults: defaults)
-            #expect(restored.enabledApplicationIntegrations.count == ApplicationIntegration.allCases.count - 1)
-            #expect(!restored.isApplicationIntegrationEnabled(.weChat))
+            let afterSingleDisable = AppSettings(defaults: defaults)
+            #expect(afterSingleDisable.enabledApplicationIntegrations.count == ApplicationIntegration.allCases.count - 1)
+            #expect(!afterSingleDisable.isApplicationIntegrationEnabled(.weChat))
+            #expect(afterSingleDisable.isApplicationIntegrationEnabled(.chatGPT))
+            #expect(afterSingleDisable.isApplicationIntegrationEnabled(.deepSeek))
+
             settings.setAllApplicationIntegrations(enabled: false)
             #expect(AppSettings(defaults: defaults).enabledApplicationIntegrations.isEmpty)
+
+            // Newly added integrations not present in the stored disabled list stay enabled by default.
+            let priorIntegrations = allIdentifiers.subtracting([ApplicationIntegration.deepSeek.rawValue])
+            defaults.set(priorIntegrations.sorted(), forKey: AppSettings.Keys.disabledApplicationIntegrations)
+            let upgraded = AppSettings(defaults: defaults)
+            #expect(upgraded.enabledApplicationIntegrations == [ApplicationIntegration.deepSeek.rawValue])
+
+            settings.setAllApplicationIntegrations(enabled: true)
+            #expect(AppSettings(defaults: defaults).enabledApplicationIntegrations == allIdentifiers)
         }
     }
 
@@ -733,6 +742,7 @@ struct ApplicationIntegrationTests {
         let fields: [(ApplicationIntegration, KeyboardInjector.AccessibilityTextCandidate)] = [
             (.chatGPT, candidate("Ask anything")), (.antigravity, candidate("Message input")),
             (.claude, candidate("Write your prompt to Claude")),
+            (.deepSeek, candidate("Message or run a task, / commands, @ files or sessions")),
             (.weChat, candidate(identifier: "chat_input_field")),
         ]
         for (app, field) in fields {
@@ -795,22 +805,29 @@ struct ApplicationIntegrationTests {
         #expect(!KeyboardInjector.workBuddyComposerControlsMatch(["发送", "语音输入"]))
     }
 
-    @Test(arguments: [ApplicationIntegration.claude, .workBuddy])
+    @Test(arguments: [ApplicationIntegration.claude, .deepSeek, .workBuddy])
     func newDesktopIntegrationsSelectOnlyTheirVerifiedComposer(app: ApplicationIntegration) {
-        let label = "Write your prompt to Claude"
+        let label = app == .deepSeek
+            ? "Message or run a task, / commands, @ files or sessions"
+            : "Write your prompt to Claude"
         let field = app == .workBuddy ? candidate(workBuddyControls: true) : candidate(label)
         #expect(ApplicationIntegration.matching(app.bundleIdentifier) == app)
         #expect(KeyboardInjector.integratedComposerScore(field, integration: app, windowFrame: window) == 400)
-        #expect(KeyboardInjector.integratedComposerScore(field,
-            integration: app == .claude ? .workBuddy : .claude, windowFrame: window) == nil)
+        for other in [ApplicationIntegration.claude, .deepSeek, .workBuddy] where other != app {
+            #expect(KeyboardInjector.integratedComposerScore(field, integration: other, windowFrame: window) == nil)
+        }
         for invalid in [candidate(), candidate("composer"), candidate("Search " + label),
+                        candidate(label, role: "AXTextField"),
+                        candidate("Search session names", role: "AXTextField"),
                         candidate(label, protected: true), candidate(label, enabled: false),
                         candidate(label, context: "monaco code editor")] {
+            if invalid.role == "AXTextField", app == .claude, invalid.placeholder == label { continue }
             #expect(KeyboardInjector.integratedComposerScore(invalid, integration: app, windowFrame: window) == nil)
         }
         var focused: [String] = []
         #expect(KeyboardInjector.focusIntegratedCandidates(
-            [(element: "search", snapshot: candidate("Search")), (element: "composer", snapshot: field)],
+            [(element: "search", snapshot: candidate("Search session names", role: "AXTextField")),
+             (element: "composer", snapshot: field)],
             integration: app, windowFrame: window, canContinue: { true },
             focus: { focused.append($0); return true },
             click: { _, _ in Issue.record("Direct focus must not click"); return false }))
@@ -822,9 +839,13 @@ struct ApplicationIntegrationTests {
             click: { _, _ in Issue.record("Ambiguous composers must not click"); return true }))
     }
 
-    @Test(arguments: [ApplicationIntegration.claude, .workBuddy])
+    @Test(arguments: [ApplicationIntegration.claude, .deepSeek, .workBuddy])
     func newDesktopComposerClicksRequireHitTestAndConfirmedFocus(app: ApplicationIntegration) {
-        let field = app == .claude ? candidate("Write your prompt to Claude") : candidate(workBuddyControls: true)
+        let field: KeyboardInjector.AccessibilityTextCandidate = switch app {
+        case .claude: candidate("Write your prompt to Claude")
+        case .deepSeek: candidate("Message or run a task, / commands, @ files or sessions")
+        default: candidate(workBuddyControls: true)
+        }
         for hit in [false, true] {
             for focused in [false, true] {
                 var clicks = 0
@@ -875,6 +896,12 @@ struct ApplicationIntegrationTests {
                     #expect(localization.text(key) != key)
                 }
             }
+            localization.select(.simplifiedChinese)
+            #expect(ApplicationIntegration.sortedForDisplay(using: localization) ==
+                [.weChat, .antigravity, .chatGPT, .claude, .deepSeek, .workBuddy])
+            localization.select(.english)
+            #expect(ApplicationIntegration.sortedForDisplay(using: localization) ==
+                [.antigravity, .chatGPT, .claude, .deepSeek, .weChat, .workBuddy])
         }
     }
     @Test func screenshotHarnessInjectsPreparationAndPreservation() throws {
@@ -1091,6 +1118,66 @@ struct ApplicationIntegrationTests {
         )
         #expect(newlyFocusedOutcome.resolved)
         #expect(newlyFocusedOutcome.newlyFocusedElement == "composer")
+
+        // Asynchronous AX focus side effects between focus() returning false and preserveFocus()/click()
+        // must be treated as newly focused (without redundant clicks when already confirmed) while
+        // switching to a different editable field is still preserved.
+        let deepSeekNodes = [(element: "composer", snapshot: candidate("Message or run a task, / commands, @ files or sessions"))]
+        var focusedControl: String?
+        var syntheticClicks = 0
+        let asyncFocusedOutcome = KeyboardInjector.focusIntegratedComposerCandidates(
+            deepSeekNodes,
+            integration: .deepSeek,
+            windowFrame: window,
+            canContinue: { true },
+            preserveFocus: { excluded in
+                guard let current = focusedControl else { return false }
+                return excluded.map { current != $0 } ?? true
+            },
+            isElementAlreadyFocused: { focusedControl == $0 },
+            focus: { element in focusedControl = element; return false },
+            click: { element, _ in
+                if focusedControl == element { return true }
+                syntheticClicks += 1
+                return true
+            }
+        )
+        #expect(asyncFocusedOutcome.resolved)
+        #expect(asyncFocusedOutcome.newlyFocusedElement == "composer")
+        #expect(syntheticClicks == 0)
+
+        // Same race when the caller's preserveFocus does not exclude the target directly.
+        focusedControl = nil
+        let dynamicPreserveOutcome = KeyboardInjector.focusIntegratedComposerCandidates(
+            deepSeekNodes,
+            integration: .deepSeek,
+            windowFrame: window,
+            canContinue: { true },
+            preserveFocus: { focusedControl != nil },
+            isElementAlreadyFocused: { focusedControl == $0 },
+            focus: { element in focusedControl = element; return false },
+            click: { _, _ in true }
+        )
+        #expect(dynamicPreserveOutcome.resolved)
+        #expect(dynamicPreserveOutcome.newlyFocusedElement == "composer")
+
+        // User switching to another editable field during focus() must preserve that field without clicking.
+        focusedControl = nil
+        let switchedInputOutcome = KeyboardInjector.focusIntegratedComposerCandidates(
+            deepSeekNodes,
+            integration: .deepSeek,
+            windowFrame: window,
+            canContinue: { true },
+            preserveFocus: { excluded in
+                guard let current = focusedControl else { return false }
+                return excluded.map { current != $0 } ?? true
+            },
+            isElementAlreadyFocused: { focusedControl == $0 },
+            focus: { _ in focusedControl = "search_field"; return false },
+            click: { _, _ in Issue.record("Switched user input must not be replaced by a click"); return false }
+        )
+        #expect(switchedInputOutcome.resolved)
+        #expect(switchedInputOutcome.newlyFocusedElement == nil)
 
         // Call site 3: WeChat fallback skips click and caret movement when already focused,
         // rejects wrong controls such as search fields, and moves caret when newly focused.

@@ -280,7 +280,7 @@ extension KeyboardInjector {
             integration: integration,
             windowFrame: frame,
             canContinue: targetIsCurrent,
-            preserveFocus: preserveCurrentFocus,
+            preserveFocus: { preserveInput(excluding: $0) },
             isElementAlreadyFocused: { element in
                 accessibilityElementIsFocused(
                     element,
@@ -289,11 +289,28 @@ extension KeyboardInjector {
                 )
             },
             focus: { element in
-                focusAccessibilityElement(element, applicationElement: app,
+                if focusAccessibilityElement(element, applicationElement: app,
                     requiresApplicationFocusedElement: true, allowPress: integration == .antigravity,
-                    canWriteFocus: { targetIsCurrent() && !preserveInput(excluding: element) })
+                    canWriteFocus: { targetIsCurrent() && !preserveInput(excluding: element) }) {
+                    return true
+                }
+                // Electron and Chromium renderers update AXFocusedUIElement asynchronously a few ms after AXFocused writes.
+                for _ in 0..<4 {
+                    guard targetIsCurrent(), !preserveInput(excluding: element) else { return false }
+                    usleep(5_000)
+                    guard targetIsCurrent(), !preserveInput(excluding: element) else { return false }
+                    if accessibilityElementIsFocused(element, applicationElement: app,
+                                                     requiresApplicationFocusedElement: true) {
+                        return true
+                    }
+                }
+                return false
             },
             click: { element, snapshot in
+                if accessibilityElementIsFocused(element, applicationElement: app,
+                                                 requiresApplicationFocusedElement: true) {
+                    return true
+                }
                 guard !clickAttempted else { return false }
                 clickAttempted = true
                 return clickIntegratedComposer(snapshot, integration: integration, windowFrame: frame,
@@ -345,12 +362,13 @@ extension KeyboardInjector {
         integration: ApplicationIntegration,
         windowFrame: CGRect?,
         canContinue: () -> Bool,
-        preserveFocus: () -> Bool,
+        preserveFocus: (Element?) -> Bool,
         isElementAlreadyFocused: (Element) -> Bool,
         focus: (Element) -> Bool,
         click: (Element, AccessibilityTextCandidate) -> Bool
     ) -> (resolved: Bool, newlyFocusedElement: Element?) {
         var newlyFocusedElement: Element?
+        var alreadyFocusedBeforeAttempt: Bool?
         let resolved = focusIntegratedCandidates(
             candidates,
             integration: integration,
@@ -359,12 +377,13 @@ extension KeyboardInjector {
             preserveFocus: preserveFocus,
             focus: { element in
                 let wasAlreadyFocused = isElementAlreadyFocused(element)
+                alreadyFocusedBeforeAttempt = wasAlreadyFocused
                 guard focus(element) else { return false }
                 newlyFocusedElement = wasAlreadyFocused ? nil : element
                 return true
             },
             click: { element, snapshot in
-                let wasAlreadyFocused = isElementAlreadyFocused(element)
+                let wasAlreadyFocused = alreadyFocusedBeforeAttempt ?? isElementAlreadyFocused(element)
                 guard click(element, snapshot) else { return false }
                 newlyFocusedElement = wasAlreadyFocused ? nil : element
                 return true
@@ -373,29 +392,69 @@ extension KeyboardInjector {
         return (resolved, newlyFocusedElement)
     }
 
+    static func focusIntegratedComposerCandidates<Element>(
+        _ candidates: [(element: Element, snapshot: AccessibilityTextCandidate)],
+        integration: ApplicationIntegration,
+        windowFrame: CGRect?,
+        canContinue: () -> Bool,
+        preserveFocus: @escaping () -> Bool,
+        isElementAlreadyFocused: @escaping (Element) -> Bool,
+        focus: (Element) -> Bool,
+        click: (Element, AccessibilityTextCandidate) -> Bool
+    ) -> (resolved: Bool, newlyFocusedElement: Element?) {
+        var didAttemptFocus = false
+        return focusIntegratedComposerCandidates(
+            candidates,
+            integration: integration,
+            windowFrame: windowFrame,
+            canContinue: canContinue,
+            preserveFocus: { target in
+                if let target, didAttemptFocus, isElementAlreadyFocused(target) {
+                    return false
+                }
+                return preserveFocus()
+            },
+            isElementAlreadyFocused: isElementAlreadyFocused,
+            focus: { element in
+                didAttemptFocus = !isElementAlreadyFocused(element)
+                return focus(element)
+            },
+            click: click
+        )
+    }
+
     /// The same candidate-to-action pipeline runs against native AX elements and
     /// injected test elements. Its only actions are focus and a verified click.
     static func focusIntegratedCandidates<Element>(_ candidates: [(element: Element, snapshot: AccessibilityTextCandidate)],
                                                    integration: ApplicationIntegration, windowFrame: CGRect?,
-                                                   canContinue: () -> Bool, preserveFocus: () -> Bool = { false },
+                                                   canContinue: () -> Bool, preserveFocus: (Element?) -> Bool,
                                                    focus: (Element) -> Bool,
                                                    click: (Element, AccessibilityTextCandidate) -> Bool) -> Bool {
         guard canContinue() else { return false }
-        if preserveFocus() { return true }
+        if preserveFocus(nil) { return true }
         let ranked = candidates.indices.compactMap { index -> (Int, Int)? in
             integratedComposerScore(candidates[index].snapshot, integration: integration,
                                     windowFrame: windowFrame).map { (index, $0) }
         }.sorted { $0.1 > $1.1 }
         guard let best = ranked.first, ranked.count == 1 || best.1 > ranked[1].1, canContinue() else { return false }
         let candidate = candidates[best.0]
-        if preserveFocus() { return true }
+        if preserveFocus(nil) { return true }
         if focus(candidate.element) { return true }
         guard canContinue() else { return false }
-        if preserveFocus() { return true }
+        if preserveFocus(candidate.element) { return true }
         guard canContinue(),
               integratedComposerClickPoint(candidate.snapshot, integration: integration, windowFrame: windowFrame) != nil
         else { return false }
         return click(candidate.element, candidate.snapshot)
+    }
+
+    static func focusIntegratedCandidates<Element>(_ candidates: [(element: Element, snapshot: AccessibilityTextCandidate)],
+                                                   integration: ApplicationIntegration, windowFrame: CGRect?,
+                                                   canContinue: () -> Bool, preserveFocus: @escaping () -> Bool = { false },
+                                                   focus: (Element) -> Bool,
+                                                   click: (Element, AccessibilityTextCandidate) -> Bool) -> Bool {
+        focusIntegratedCandidates(candidates, integration: integration, windowFrame: windowFrame,
+            canContinue: canContinue, preserveFocus: { _ in preserveFocus() }, focus: focus, click: click)
     }
 
     static func integratedComposerClickPoint(_ candidate: AccessibilityTextCandidate,
@@ -527,6 +586,10 @@ extension KeyboardInjector {
             let prompts = ["write your prompt to claude", "write your reply to claude", "write your draft", "write your message",
                            "向 claude 发送消息", "回复 claude", "给 claude 发消息", "输入消息", "输入提示词"]
             return identifiers.contains(candidate.identifier.lowercased()) || labels.contains(where: prompts.contains)
+        case .deepSeek:
+            return candidate.role == "AXTextArea" && labels.contains {
+                $0.hasPrefix("message or run a task")
+            }
         case .workBuddy:
             return candidate.role == "AXTextArea" && candidate.hasWorkBuddyComposerControls
         case .weChat, .chatGPT: return false
@@ -559,7 +622,7 @@ extension KeyboardInjector {
         case .chatGPT: specific = ["do anything", "work with chatgpt", "message chatgpt", "ask anything", "ask chatgpt", "询问任何问题", "询问 chatgpt"]
         case .antigravity: specific = ["ask anything", "ask agent", "message agent", "agent input", "向 agent 提问"]
         case .weChat: specific = ["message", "输入", "编辑消息"]
-        case .claude, .workBuddy: specific = []
+        case .claude, .deepSeek, .workBuddy: specific = []
         }
         // Verified in the live WeChat accessibility tree. Avoid its unlabeled
         // search field and message list even if they move or resize.
@@ -568,7 +631,7 @@ extension KeyboardInjector {
         }
         // Verified Antigravity's current conversation composer is labeled Message input.
         if isVerifiedIntegratedComposer(candidate, integration: integration) { return 400 }
-        if integration == .claude || integration == .workBuddy { return nil }
+        if integration == .claude || integration == .deepSeek || integration == .workBuddy { return nil }
         if (common + specific).contains(where: ownText.contains) {
             return 200 + (candidate.role == "AXTextArea" ? 20 : 0)
         }
