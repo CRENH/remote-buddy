@@ -13,10 +13,7 @@ OUTPUT_DIR = ROOT / "pages/assets/screenshots"
 SETTINGS_SECTIONS = [
     ("general", "general-1020x772.png", "general"),
     ("permissions", "permissions-1020x772.png", "permissions"),
-    ("connection", "connection-1020x772.png", "connection"),
     ("mapping", "mapping-1020x772.png", "mapping"),
-    ("commonPhrases", "commonPhrases-1020x772.png", "phrases"),
-    ("integration", "integration-1020x772.png", "integration"),
     ("applicationIntegration", "applicationIntegration-1020x772.png", "application-integration"),
     ("about", "about-1020x772.png", "about"),
 ]
@@ -61,9 +58,27 @@ def render_onboarding(bin_path: Path, language: str, output_tmp: Path):
     env["REMOTE_BUDDY_ONBOARDING_SCREENSHOT_DEVICE"] = "chromecastG9N9N"
     subprocess.run([str(bin_path)], cwd=ROOT, env=env, check=True)
 
-def optimize_png(src: Path, dst: Path):
+MAX_RETINA_WIDTH = 1380
+
+
+def save_jpeg(src: Path, dst: Path):
     with Image.open(src) as img:
-        img.save(dst, format="PNG", optimize=True)
+        icc_profile = img.info.get("icc_profile")
+        rgb = img.convert("RGB")
+        if rgb.width > MAX_RETINA_WIDTH:
+            target_height = round(rgb.height * MAX_RETINA_WIDTH / rgb.width)
+            rgb = rgb.resize((MAX_RETINA_WIDTH, target_height), Image.Resampling.LANCZOS)
+
+        save_kwargs = {
+            "format": "JPEG",
+            "quality": 92,
+            "subsampling": 0,
+            "optimize": True,
+            "progressive": True,
+        }
+        if icc_profile:
+            save_kwargs["icc_profile"] = icc_profile
+        rgb.save(dst, **save_kwargs)
 
 def integration_variants():
     section = {"REMOTE_BUDDY_SETTINGS_SCREENSHOT_SECTION": "applicationIntegration"}
@@ -84,39 +99,42 @@ def main():
             render_settings(bin_path, lang_code, Path(tmp_settings_dir))
             for _, raw_filename, target_id in SETTINGS_SECTIONS:
                 source_file = Path(tmp_settings_dir) / raw_filename
-                target_file = OUTPUT_DIR / f"{target_id}-{lang_suffix}.png"
-                print(f"Optimizing {target_file.name}...")
-                optimize_png(source_file, target_file)
+                target_file = OUTPUT_DIR / f"{target_id}-{lang_suffix}.jpg"
+                print(f"Saving {target_file.name}...")
+                save_jpeg(source_file, target_file)
 
-            # Include all G9N9N media buttons and both connection cards in full, plus an active voice tool on integration.
-            for section, height, cards, voice_tool in [
-                ("mapping", 980, "0", ""),
-                ("connection", 860, "1", ""),
-                ("integration", 772, "1", "weixin"),
-            ]:
+            # Include all G9N9N media buttons, both connection cards, Xiaomi common phrases, and an active voice tool.
+            section_overrides = [
+                ("mapping", "mapping", 980, "0", "1", ""),
+                ("connection", "connection", 860, "1", "1", ""),
+                ("commonPhrases", "phrases", 772, "1", "0", ""),
+                ("integration", "integration", 772, "1", "1", "weixin"),
+            ]
+            for section, target_id, height, cards, chromecast, voice_tool in section_overrides:
                 overrides = {
                     "REMOTE_BUDDY_SETTINGS_SCREENSHOT_SECTION": section,
                     "REMOTE_BUDDY_SETTINGS_SCREENSHOT_REMOTE_CARDS": cards,
+                    "REMOTE_BUDDY_SETTINGS_SCREENSHOT_CHROMECAST": chromecast,
                     "REMOTE_BUDDY_SETTINGS_SCREENSHOT_SIZE": f"1020x{height}",
                 }
                 if voice_tool:
                     overrides["REMOTE_BUDDY_SETTINGS_SCREENSHOT_VOICE_TOOL"] = voice_tool
                 render_settings(bin_path, lang_code, Path(tmp_settings_dir), overrides)
-                optimize_png(Path(tmp_settings_dir) / f"{section}-1020x{height}.png",
-                             OUTPUT_DIR / f"{section}-{lang_suffix}.png")
+                save_jpeg(Path(tmp_settings_dir) / f"{section}-1020x{height}.png",
+                          OUTPUT_DIR / f"{target_id}-{lang_suffix}.jpg")
 
             for variant, overrides in integration_variants():
                 render_settings(bin_path, lang_code, Path(tmp_settings_dir), overrides)
-                optimize_png(Path(tmp_settings_dir) / "applicationIntegration-1020x772.png",
-                             OUTPUT_DIR / f"application-integration-{variant}-{lang_suffix}.png")
+                save_jpeg(Path(tmp_settings_dir) / "applicationIntegration-1020x772.png",
+                          OUTPUT_DIR / f"application-integration-{variant}-{lang_suffix}.jpg")
 
             print(f"Rendering {lang_code} onboarding screenshots...")
             render_onboarding(bin_path, lang_code, Path(tmp_onboarding_dir))
             for raw_filename, target_id in ONBOARDING_STEPS:
                 source_file = Path(tmp_onboarding_dir) / raw_filename
-                target_file = OUTPUT_DIR / f"{target_id}-{lang_suffix}.png"
-                print(f"Optimizing {target_file.name}...")
-                optimize_png(source_file, target_file)
+                target_file = OUTPUT_DIR / f"{target_id}-{lang_suffix}.jpg"
+                print(f"Saving {target_file.name}...")
+                save_jpeg(source_file, target_file)
 
     print("Screenshots generation complete!")
 
