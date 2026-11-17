@@ -917,11 +917,12 @@
 "settings.driver.missing" = "Compatible microphone not detected";
 "settings.driver.reload_help" = "If Remote Buddy Mic is still missing after installation, restart your Mac or follow the installation guide.";
 "settings.integration.title" = "Input Method & Voice Tool Integration";
-"settings.integration.introduction" = "Choose an input tool, then follow the wizard to set it up and test voice input.";
+"settings.integration.introduction" = "View your active voice trigger and input tool. Use the guide to switch tools or test voice input.";
 "settings.integration.current" = "Current Input Tool";
 "settings.integration.other_title" = "Other Tools";
-"settings.integration.configure" = "Configure & Test with Guide";
-"settings.integration.select_tool" = "Choose an input tool";
+"settings.integration.configure" = "Change Voice Key & Input Tool in Guide";
+"settings.integration.supported_tools" = "Supported Voice Tools";
+"settings.integration.active_badge" = "Current";
 "settings.integration.shortcut_title" = "Voice trigger";
 
 "remote.device.illustration" = "Remote control illustration";
@@ -1155,7 +1156,6 @@
 "onboarding.voice_trigger.title" = "Choose a Voice Shortcut";
 "settings.integration.tap_enabled" = "Tap mode: On";
 "settings.integration.tap_disabled" = "Tap mode: Off";
-"settings.integration.trigger_readonly" = "Change the trigger and tap mode only in the input-tool integration wizard. Changes take effect after the voice test passes.";
 "onboarding.audio.not_detected" = "Remote Buddy Mic was not detected. Install or check the virtual microphone.";
 "onboarding.side.microphone" = "Remote Buddy Mic";
 "onboarding.button_help.title" = "Buttons not responding?";
