@@ -286,21 +286,9 @@ final class RemoteHIDKeyMapper {
                     return .needsReapply
                 }
             case .t1Remote:
-                let original = originalMappings[registryID]
-                if suppressPowerKey || neutralizeVoiceKey {
-                    guard mappings.contains(RemoteHIDKeyMappingPolicy.neutralT1VoiceSearchKey),
-                          mappings.contains(RemoteHIDKeyMappingPolicy.neutralT1VoiceHoldKey)
-                    else { return .needsReapply }
-                } else {
-                    if original?.t1Search != RemoteHIDKeyMappingPolicy.neutralT1VoiceSearchKey,
-                       mappings.contains(RemoteHIDKeyMappingPolicy.neutralT1VoiceSearchKey) {
-                        return .needsReapply
-                    }
-                    if original?.t1Hold != RemoteHIDKeyMappingPolicy.neutralT1VoiceHoldKey,
-                       mappings.contains(RemoteHIDKeyMappingPolicy.neutralT1VoiceHoldKey) {
-                        return .needsReapply
-                    }
-                }
+                guard mappings.contains(RemoteHIDKeyMappingPolicy.neutralT1VoiceSearchKey),
+                      mappings.contains(RemoteHIDKeyMappingPolicy.neutralT1VoiceHoldKey)
+                else { return .needsReapply }
                 if suppressPowerKey,
                    !mappings.contains(RemoteHIDKeyMappingPolicy.suppressedT1PowerKey) {
                     return .needsReapply
@@ -319,13 +307,19 @@ final class RemoteHIDKeyMapper {
     @discardableResult
     func refreshAppliedMappingsValidity(
         expectedPowerKeySuppression: Bool,
-        expectedVoiceKeyNeutralization: Bool
+        expectedVoiceKeyNeutralization: Bool,
+        requiresT1VoiceKeySuppression: Bool = false
     ) -> Bool {
-        guard expectedPowerKeySuppression || expectedVoiceKeyNeutralization else {
+        let services = matchingServices()
+        guard expectedPowerKeySuppression || expectedVoiceKeyNeutralization ||
+                requiresT1VoiceKeySuppression || services.contains(where: { $0.family == .t1Remote }) else {
             return true
         }
-        let services = matchingServices()
         matchedServiceCount = services.count
+        if requiresT1VoiceKeySuppression, !services.contains(where: { $0.family == .t1Remote }) {
+            resetAppliedState()
+            return false
+        }
         if expectedVoiceKeyNeutralization, !isVoiceKeyNeutralized {
             resetAppliedState()
             return false
@@ -469,6 +463,7 @@ final class RemoteHIDKeyMapper {
             return false
         }
 
+        let requiresCompleteMapping = neutralizeVoiceKey || services.contains { $0.family == .t1Remote }
         var snapshots: [Int: [HIDUsageMapping]] = [:]
         var appliedIndices: [Int] = []
         var newlyStoredRegistryIDs = Set<UInt64>()
@@ -533,7 +528,7 @@ final class RemoteHIDKeyMapper {
 
         for (index, service) in services.enumerated() {
             guard let registryID = service.registryID else {
-                if neutralizeVoiceKey {
+                if requiresCompleteMapping {
                     rollback(
                         services: services,
                         snapshots: snapshots,
@@ -562,7 +557,7 @@ final class RemoteHIDKeyMapper {
                 let original = originalMappings[registryID]
                 desired = RemoteHIDKeyMappingPolicy.applyingT1(
                     to: current,
-                    neutralizeVoiceKeys: suppressPowerKey || neutralizeVoiceKey,
+                    neutralizeVoiceKeys: true,
                     originalSearchMapping: original?.t1Search,
                     originalHoldMapping: original?.t1Hold,
                     powerMapping: suppressPowerKey
@@ -571,7 +566,7 @@ final class RemoteHIDKeyMapper {
                 )
             }
             guard service.setMappings(desired) else {
-                if neutralizeVoiceKey {
+                if requiresCompleteMapping {
                     rollback(
                         services: services,
                         snapshots: snapshots,
