@@ -1,3 +1,4 @@
+import Carbon
 import Foundation
 import Testing
 @testable import RemoteBuddy
@@ -6,13 +7,14 @@ import Testing
 struct SettingsOverviewTests {
     private func state(bluetooth: Bool = true, input: Bool = true, accessibility: Bool = true,
                        driver: Bool = true, profiles: [RemoteDeviceProfile] = [], ids: Set<UUID> = [],
-                       tool: OnboardingVoiceTool = .unselected) -> SettingsOverviewState {
+                       tool: OnboardingVoiceTool = .unselected,
+                       availability: OnboardingVoiceToolAvailability = .available) -> SettingsOverviewState {
         SettingsOverviewState(bluetoothGranted: bluetooth, inputMonitoringGranted: input,
             accessibilityGranted: accessibility,
             audioDevices: driver ? [AudioDeviceInfo(id: 111, uid: BuddyMicrophoneDevicePolicy.deviceUID,
                 name: BuddyMicrophoneDevicePolicy.deviceName)] : [],
             profiles: profiles, connectedIDs: ids,
-            integrationTool: tool, remoteName: { $0.customName })
+            integrationTool: tool, integrationAvailability: availability, remoteName: { $0.customName })
     }
 
     @Test func missingDriverPreventsReadyDespiteAllPermissions() {
@@ -68,5 +70,63 @@ struct SettingsOverviewTests {
         let chinese = SettingsOverviewState.localizedList(["蓝牙", "辅助功能"], locale: Locale(identifier: "zh_CN"))
         #expect(!chinese.contains(", "))
         #expect(chinese.contains("蓝牙") && chinese.contains("辅助功能"))
+    }
+
+    @Test @MainActor func unavailableIntegrationToolIsFlaggedInOverview() throws {
+        let suite = "overview.tests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let localization = LocalizationStore(settings: AppSettings(defaults: defaults))
+
+        let missing = state(tool: .doubao, availability: .notInstalled)
+        #expect(missing.integrationMissing)
+        #expect(!missing.integrationReady)
+        for language in [AppLanguage.english, .simplifiedChinese] {
+            localization.select(language)
+            let summary = missing.integrationSummary(using: localization)
+            #expect(summary.contains(localization.text(OnboardingVoiceTool.doubao.titleKey)))
+            #expect(summary != localization.text(OnboardingVoiceTool.doubao.titleKey))
+            #expect(!summary.contains("%@"))
+        }
+
+        let unselected = state(tool: .unselected, availability: .notInstalled)
+        #expect(!unselected.integrationMissing)
+        #expect(!unselected.integrationReady)
+        #expect(unselected.integrationSummary(using: localization) == localization.text("settings.overview.not_configured"))
+    }
+
+    @Test @MainActor func integrationAvailabilityChecksEnabledInputSourcesAndFlowsIntoOverview() {
+        var probed: [(String, Bool)] = []
+        let installedButDisabled = OnboardingInputSourceSwitcher.integrationAvailability(
+            for: .doubao,
+            hasInputSource: { id, includeAllInstalled in
+                probed.append((id, includeAllInstalled))
+                return includeAllInstalled
+            }
+        )
+        #expect(probed.count == 1 && probed[0].0 == OnboardingVoiceTool.doubao.preferredInputSourceID && !probed[0].1)
+        #expect(installedButDisabled == .notInstalled)
+        #expect(state(tool: .doubao, availability: installedButDisabled).integrationMissing)
+
+        let enabledAvailability = OnboardingInputSourceSwitcher.integrationAvailability(
+            for: .doubao,
+            hasInputSource: { id, includeAllInstalled in
+                !includeAllInstalled && id == OnboardingVoiceTool.doubao.preferredInputSourceID
+            }
+        )
+        #expect(enabledAvailability == .available)
+        #expect(state(tool: .doubao, availability: enabledAvailability).integrationReady)
+
+        // Exercise real TIS list scanning on the host input sources.
+        #expect(OnboardingInputSourceSwitcher.inputSource(
+            withID: "com.example.nonexistent.inputmethod",
+            createList: { TISCreateInputSourceList(nil, false) }
+        ) == nil)
+        if let activeID = OnboardingInputSourceSwitcher.currentInputSourceID() {
+            #expect(OnboardingInputSourceSwitcher.inputSource(
+                withID: activeID,
+                createList: { TISCreateInputSourceList(nil, false) }
+            ) != nil)
+        }
     }
 }
