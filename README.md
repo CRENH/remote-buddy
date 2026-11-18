@@ -2,7 +2,7 @@
 
 **简体中文** | [English](README.en.md)
 
-> **这是 [CRENH](https://github.com/CRENH) 维护的分支版本。** 在上游基础上把 Chromecast 遥控器的常用语扩展到 11 个按键，并每天自动同步上游。与上游的区别和安装方法见 [FORK.md](FORK.md)，安装包在本仓库的 [Releases](https://github.com/CRENH/remote-buddy/releases)。
+> **这是 [CRENH](https://github.com/CRENH) 维护的分支版本。** 在上游基础上让 Chromecast 遥控器的电源键也能插入常用语（共 11 个按键），并每天自动同步上游。与上游的区别和安装方法见 [FORK.md](FORK.md)，安装包在本仓库的 [Releases](https://github.com/CRENH/remote-buddy/releases)。
 
 Remote Buddy（遥控搭子）把遥控器变成电脑上的语音输入按钮。拿起遥控器，按下说话、松开结束，就能在当前输入框中使用你喜欢的输入法或听写工具。
 

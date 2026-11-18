@@ -2,7 +2,7 @@
 
 [简体中文](README.md) | **English**
 
-> **This is a fork maintained by [CRENH](https://github.com/CRENH).** It extends common phrases on the Chromecast remote to 11 buttons and merges upstream automatically every day. See [FORK.en.md](FORK.en.md) for the differences and installation; installers are on this repository's [Releases](https://github.com/CRENH/remote-buddy/releases) page.
+> **This is a fork maintained by [CRENH](https://github.com/CRENH).** It lets Power on the Chromecast remote insert a common phrase too (11 buttons in total) and merges upstream automatically every day. See [FORK.en.md](FORK.en.md) for the differences and installation; installers are on this repository's [Releases](https://github.com/CRENH/remote-buddy/releases) page.
 
 Turn a remote control into a voice-input button for your computer. Press to talk, release to finish, and let your preferred input method or dictation tool enter text into the current field.
 

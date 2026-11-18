@@ -6,28 +6,17 @@ This repository is a fork of [zfdang/remote-buddy](https://github.com/zfdang/rem
 
 ## Differences from upstream
 
-### Common phrases on 11 Chromecast remote buttons
+The extra common-phrase buttons were merged upstream in [PR #158](https://github.com/zfdang/remote-buddy/pull/158); this fork uses the upstream implementation as-is (including the Xiaomi and T1 extra buttons). It differs in one place:
 
-For the Chromecast Voice Remote (G9N9N). Upstream assigns common phrases to 5 buttons (the four arrows and OK); this fork extends that to 11:
+### Power inserts a common phrase on the Chromecast remote
 
-| Original 5 buttons | 6 new buttons |
-|---|---|
-| Up, Down, Left, Right, OK | Home, Mute, YouTube, Netflix, Power, Input |
-
-- The 6 new buttons only take effect when the current remote is a Chromecast remote; Xiaomi and Siri remotes behave exactly as upstream.
-- The common phrase panel adds a 6-button grid below the D-pad, laid out like the physical remote: Home, YouTube, Power on the left; Mute, Netflix, Input on the right.
-- While the panel is open: Back and the voice button close it (the voice button does not start dictation); the volume buttons still change the volume; the other 11 buttons insert their phrases. Mute only inserts a phrase and does not mute the system.
-- The **Edit Common Phrases** page lets you assign a phrase to each of the 11 buttons.
-- Default phrases for the new buttons (in Chinese, editable): Home 「不对吧？」, Mute 「其他方案」, YouTube 「你会怎么选？」, Netflix 「总结结论」, Power 「先说怎么做」, Input 「都不接受，重新考虑」. Existing phrase data gains these defaults on upgrade; existing assignments are kept.
-- The Input button uses an icon that matches the physical remote (an arrow entering a box from the left), also on the button mapping page.
-
-### UI fixes
-
-- With the English UI, the backup buttons and hint at the top of **Edit Common Phrases** are no longer truncated.
-- Long action names on the button mapping page (such as “Open Common Phrases”) wrap instead of being truncated.
+- Upstream: while the common-phrase panel is open, Power closes it like Back, leaving 10 phrase buttons on the Chromecast remote.
+- This fork: Power on the Chromecast Voice Remote (G9N9N) inserts a phrase instead, for 11 buttons. Its default phrase is 「不对，再检查一下」 and can be changed on the **Edit Common Phrases** page. On the Xiaomi and T1 remotes Power still closes the panel, as upstream.
+- If your saved phrases assign anything to Power, upstream treats the whole phrase data as invalid and resets it to the built-in phrases; this fork reads it normally. Before switching from this fork to the upstream build, clear the Power assignment on the **Edit Common Phrases** page.
 
 ### Self-use build settings
 
+- **About page**: the Website and Website downloads rows are removed; GitHub Releases, GitHub and Feedback point to this repository.
 - **Automatic updates are disabled**, so the build is not replaced by an official upstream release. To switch back, install from the [upstream Releases](https://github.com/zfdang/remote-buddy/releases).
 - **The installer is not notarized by Apple.** It is signed with this repository's own fixed certificate, which differs from the official build (see [Signing certificate](#signing-certificate) below).
 
@@ -52,12 +41,12 @@ Maintainers: keep the signing identity in `~/Library/Application Support/RemoteB
 ## Relationship with upstream
 
 - This repository merges upstream `main` into the `crenh` branch automatically every day, so the source keeps up with upstream; installers are published manually from time to time.
-- The common phrase extension has been submitted upstream as [PR #158](https://github.com/zfdang/remote-buddy/pull/158). Once merged, it will ship in the official build.
+- The common phrase extension was merged upstream on 2026-11-16 in [PR #158](https://github.com/zfdang/remote-buddy/pull/158).
 - Support for GY3LE, another Chromecast remote model, is planned.
 
 ## Feedback
 
-- Issues specific to this fork (the features above, the installers): open an issue in this repository.
+- Issues specific to this fork (the Power phrase button, the installers): open an issue in this repository.
 - Everything else: please report to the [upstream repository](https://github.com/zfdang/remote-buddy/issues).
 
 ## License
