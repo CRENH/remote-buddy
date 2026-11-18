@@ -281,6 +281,21 @@ struct ProductBoundaryTests {
         #expect(probedApplication)
         #expect(OnboardingInputSourceSwitcher.integrationAvailability(for: tool,
             hasApplication: { _ in false }) == .notInstalled)
+        #expect(OnboardingInputSourceSwitcher.validApplicationURL(
+            forBundleIdentifier: "com.tencent.inputmethod.chatterfly",
+            lookup: { _ in URL(fileURLWithPath: "/Users/example/.Trash/Chatterfly.app") },
+            fileExists: { _ in true }
+        ) == nil)
+        #expect(OnboardingInputSourceSwitcher.validApplicationURL(
+            forBundleIdentifier: "com.tencent.inputmethod.chatterfly",
+            lookup: { _ in URL(fileURLWithPath: "/Applications/Chatterfly.app") },
+            fileExists: { _ in false }
+        ) == nil)
+        #expect(OnboardingInputSourceSwitcher.validApplicationURL(
+            forBundleIdentifier: "com.tencent.inputmethod.chatterfly",
+            lookup: { _ in URL(fileURLWithPath: "/Applications/Chatterfly.app") },
+            fileExists: { $0 == "/Applications/Chatterfly.app" }
+        )?.path == "/Applications/Chatterfly.app")
     }
 
     @Test func globalVoiceDiagnosticsIncludeChatterflyAndDoubaoOnly() {
@@ -309,6 +324,7 @@ struct ProductBoundaryTests {
             "settings.integration.supported_tools",
             "settings.integration.active_badge",
             "settings.integration.shortcut_title",
+            "onboarding.voice_tool.voice_buddy.website",
         ]
         for language in [AppLanguage.english, .simplifiedChinese] {
             localization.select(language)
