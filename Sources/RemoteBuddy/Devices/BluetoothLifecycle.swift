@@ -302,17 +302,23 @@ struct BluetoothReconnectPolicy {
     static let baseDelay: TimeInterval = 3
     static let maximumDelay: TimeInterval = 60
     static let jitterRatio = 0.1
+    static let maximumCachedTargetFailures = 3
 
     private(set) var consecutiveFailureCount = 0
+    private(set) var cachedTargetFailureCount = 0
     private(set) var allowsCachedTargetRetrieval = true
 
     mutating func nextAutomaticDelay(
         bypassCachedTarget: Bool,
+        failedCachedTargetAttempt: Bool = false,
         jitterUnit: Double
     ) -> TimeInterval {
         consecutiveFailureCount += 1
         if bypassCachedTarget {
             allowsCachedTargetRetrieval = false
+        }
+        if failedCachedTargetAttempt {
+            cachedTargetFailureCount += 1
         }
 
         let exponent = min(consecutiveFailureCount - 1, 5)
@@ -326,16 +332,22 @@ struct BluetoothReconnectPolicy {
         return min(Self.maximumDelay, nominalDelay * jitterFactor)
     }
 
-    /// Bypass a failed cached peripheral for one discovery pass, not forever.
-    /// The scan watchdog's next pass can actively retrieve the paired remote again.
-    mutating func consumeCachedTargetRetrievalPermission() -> Bool {
+    /// Returns whether the current discovery pass may use cached peripheral retrieval, and
+    /// clears a single-pass bypass for the following pass while below `maximumCachedTargetFailures`.
+    /// Once `maximumCachedTargetFailures` cached-target attempts fail (even across intervening
+    /// non-cached passes), blind cached connects stay paused until reset by wake, activity,
+    /// Bluetooth power-on, or manual reconnect.
+    mutating func nextCachedTargetRetrievalPermission() -> Bool {
         let allowed = allowsCachedTargetRetrieval
-        allowsCachedTargetRetrieval = true
+        if cachedTargetFailureCount < Self.maximumCachedTargetFailures {
+            allowsCachedTargetRetrieval = true
+        }
         return allowed
     }
 
     mutating func reset() {
         consecutiveFailureCount = 0
+        cachedTargetFailureCount = 0
         allowsCachedTargetRetrieval = true
     }
 }
@@ -388,6 +400,7 @@ struct BluetoothCentralRecoveryTransition: Equatable {
     let shouldDiscover: Bool
     let shouldStartFreshConnectionCycle: Bool
     let shouldReleaseCentral: Bool
+    let shouldResetReconnectPolicy: Bool
 }
 
 enum BluetoothCentralRecoveryPolicy {
@@ -405,7 +418,8 @@ enum BluetoothCentralRecoveryPolicy {
                     shouldCancelScheduledReconnect: true,
                     shouldDiscover: false,
                     shouldStartFreshConnectionCycle: false,
-                    shouldReleaseCentral: true
+                    shouldReleaseCentral: true,
+                    shouldResetReconnectPolicy: false
                 )
             }
             return BluetoothCentralRecoveryTransition(
@@ -413,7 +427,8 @@ enum BluetoothCentralRecoveryPolicy {
                 shouldCancelScheduledReconnect: true,
                 shouldDiscover: false,
                 shouldStartFreshConnectionCycle: false,
-                shouldReleaseCentral: false
+                shouldReleaseCentral: false,
+                shouldResetReconnectPolicy: false
             )
         case .poweredOn:
             guard shouldRun else {
@@ -422,18 +437,22 @@ enum BluetoothCentralRecoveryPolicy {
                     shouldCancelScheduledReconnect: true,
                     shouldDiscover: false,
                     shouldStartFreshConnectionCycle: false,
-                    shouldReleaseCentral: true
+                    shouldReleaseCentral: true,
+                    shouldResetReconnectPolicy: false
                 )
             }
             let requiresFreshConnectionCycle = phase == .waitingReconnect(generation) ||
                 phase == .waitingBluetoothPower(generation)
+            // Initial `.poweredOn` during `.scanning` fires on every normal reconnect timer's fresh
+            // CBCentralManager; only real recovery from `.waitingBluetoothPower`/`.waitingReconnect` resets backoff.
             return BluetoothCentralRecoveryTransition(
                 phase: requiresFreshConnectionCycle ? .stopped : phase,
                 shouldCancelScheduledReconnect: requiresFreshConnectionCycle,
                 shouldDiscover: !requiresFreshConnectionCycle &&
                     phase == .scanning(generation),
                 shouldStartFreshConnectionCycle: requiresFreshConnectionCycle,
-                shouldReleaseCentral: false
+                shouldReleaseCentral: false,
+                shouldResetReconnectPolicy: requiresFreshConnectionCycle
             )
         case .unauthorized, .unsupported:
             return BluetoothCentralRecoveryTransition(
@@ -441,7 +460,8 @@ enum BluetoothCentralRecoveryPolicy {
                 shouldCancelScheduledReconnect: true,
                 shouldDiscover: false,
                 shouldStartFreshConnectionCycle: false,
-                shouldReleaseCentral: true
+                shouldReleaseCentral: true,
+                shouldResetReconnectPolicy: false
             )
         }
     }

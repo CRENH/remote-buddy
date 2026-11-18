@@ -290,6 +290,31 @@ final class BluetoothRemoteBridge: NSObject {
 
     var isLifecycleReadyForTesting: Bool { lifecycle.isReady }
     var isConnectionCycleNeededForTesting: Bool { systemSuspension.connectionCycleNeeded }
+    var reconnectFailureCountForTesting: Int { reconnectPolicy.consecutiveFailureCount }
+    var cachedTargetFailureCountForTesting: Int { reconnectPolicy.cachedTargetFailureCount }
+    var allowsCachedTargetRetrievalForTesting: Bool { reconnectPolicy.allowsCachedTargetRetrieval }
+
+    @discardableResult
+    func advanceCachedTargetRetrievalPermissionForTesting() -> Bool {
+        reconnectPolicy.nextCachedTargetRetrievalPermission()
+    }
+
+    func simulateDiscoveryFailureReconnectForTesting(
+        bypassCachedTarget: Bool,
+        currentAttemptUsesCachedTarget: Bool
+    ) {
+        shouldRun = true
+        self.currentAttemptUsesCachedTarget = currentAttemptUsesCachedTarget
+        scheduleReconnect(bypassCachedTarget: bypassCachedTarget)
+    }
+
+    func simulatePowerOnRecoveryTransitionForTesting() {
+        shouldRun = true
+        generationCounter &+= 1
+        let generation = generationCounter
+        lifecycle = .waitingBluetoothPower(generation)
+        _ = applyCentralRecoveryTransition(.poweredOn, generation: generation)
+    }
 
     func simulateMicrophoneOpenedForTesting(_ opened: Bool) {
         microphoneOpened = opened
@@ -822,7 +847,7 @@ final class BluetoothRemoteBridge: NSObject {
 
         BluetoothDiscoverySequence.run(
             cachedTarget: { () -> CBPeripheral? in
-                guard reconnectPolicy.consumeCachedTargetRetrievalPermission(),
+                guard reconnectPolicy.nextCachedTargetRetrievalPermission(),
                       let identifier = targetIdentifier else { return nil }
                 return central.retrievePeripherals(withIdentifiers: [identifier]).first
             },
@@ -850,6 +875,7 @@ final class BluetoothRemoteBridge: NSObject {
                 )
             },
             scan: {
+                let wasScanning = scanSubscription != nil
                 state = .scanning
                 stopScan()
                 scanSubscription = MainActor.assumeIsolated {
@@ -884,7 +910,9 @@ final class BluetoothRemoteBridge: NSObject {
                     guard let self, let central else { return }
                     self.discoverOrScan(using: central, generation: generation)
                 })
-                AppLogger.shared.write("BLE SCANNING")
+                if !wasScanning {
+                    AppLogger.shared.write("BLE SCANNING")
+                }
                 monitorRemoteWake()
             }
         )
@@ -1158,8 +1186,10 @@ final class BluetoothRemoteBridge: NSObject {
         }
         reconnectWorkItem?.cancel()
         publishReconnectingState()
+        // Only count failures toward the blind-cached pause budget when the attempt itself came from `.cachedTarget`.
         let delay = nextAutomaticReconnectDelay(
-            bypassCachedTarget: bypassCachedTarget || currentAttemptUsesCachedTarget
+            bypassCachedTarget: bypassCachedTarget || currentAttemptUsesCachedTarget,
+            failedCachedTargetAttempt: currentAttemptUsesCachedTarget
         )
         if let central, let peripheral, peripheral.state != .disconnected {
             requestedReconnectDelay = delay
@@ -1171,17 +1201,25 @@ final class BluetoothRemoteBridge: NSObject {
         finishAttempt(reconnectAfter: delay)
     }
 
-    private func nextAutomaticReconnectDelay(bypassCachedTarget: Bool) -> TimeInterval {
+    private func nextAutomaticReconnectDelay(
+        bypassCachedTarget: Bool,
+        failedCachedTargetAttempt: Bool
+    ) -> TimeInterval {
         let delay = reconnectPolicy.nextAutomaticDelay(
             bypassCachedTarget: bypassCachedTarget,
+            failedCachedTargetAttempt: failedCachedTargetAttempt,
             jitterUnit: Double.random(in: 0 ... 1)
         )
         let cachedIdentifierBypassed = targetIdentifier != nil &&
             !reconnectPolicy.allowsCachedTargetRetrieval
+        let cachedPaused = targetIdentifier != nil &&
+            reconnectPolicy.cachedTargetFailureCount >= BluetoothReconnectPolicy.maximumCachedTargetFailures
         AppLogger.shared.write(
             "BLE RECONNECT scheduled failure_count=\(reconnectPolicy.consecutiveFailureCount) " +
                 "delay_ms=\(Int((delay * 1_000).rounded())) " +
-                "cached_identifier_bypassed=\(cachedIdentifierBypassed)"
+                "cached_identifier_bypassed=\(cachedIdentifierBypassed) " +
+                "cached_failures=\(reconnectPolicy.cachedTargetFailureCount) " +
+                "cached_paused=\(cachedPaused)"
         )
         return delay
     }
@@ -1193,7 +1231,8 @@ final class BluetoothRemoteBridge: NSObject {
             return 0
         }
         return requestedReconnectDelay ?? nextAutomaticReconnectDelay(
-            bypassCachedTarget: bypassCachedTarget
+            bypassCachedTarget: bypassCachedTarget,
+            failedCachedTargetAttempt: currentAttemptUsesCachedTarget
         )
     }
 
@@ -1762,11 +1801,10 @@ extension BluetoothRemoteBridge: @preconcurrency CBCentralManagerDelegate {
         }
     }
 
-    private func applyCentralRecovery(
+    private func applyCentralRecoveryTransition(
         _ event: BluetoothCentralRecoveryEvent,
-        central: CBCentralManager,
         generation: UInt64
-    ) {
+    ) -> BluetoothCentralRecoveryTransition {
         let transition = BluetoothCentralRecoveryPolicy.transition(
             from: lifecycle,
             generation: generation,
@@ -1778,6 +1816,18 @@ extension BluetoothRemoteBridge: @preconcurrency CBCentralManagerDelegate {
             reconnectWorkItem = nil
         }
         lifecycle = transition.phase
+        if transition.shouldResetReconnectPolicy {
+            reconnectPolicy.reset()
+        }
+        return transition
+    }
+
+    private func applyCentralRecovery(
+        _ event: BluetoothCentralRecoveryEvent,
+        central: CBCentralManager,
+        generation: UInt64
+    ) {
+        let transition = applyCentralRecoveryTransition(event, generation: generation)
         if transition.shouldReleaseCentral {
             resetPeripheral(reason: .centralReleased)
             stopScan()
