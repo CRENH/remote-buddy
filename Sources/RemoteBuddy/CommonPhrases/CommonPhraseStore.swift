@@ -66,7 +66,8 @@ final class CommonPhraseStore: ObservableObject {
     nonisolated static let chromecastExtraRows: [[RemoteButton?]] = [
         [.home, .mute],
         [.youtube, .netflix],
-        [nil, .input],
+        // CRENH fork: Power inserts a phrase on the Chromecast remote instead of closing the panel.
+        [.power, .input],
     ]
     nonisolated static let xiaomiExtraRows: [[RemoteButton?]] = [
         [nil, .volumeUp],
@@ -78,7 +79,7 @@ final class CommonPhraseStore: ObservableObject {
         [nil, .menu],
     ]
     nonisolated static let allExtraButtons: [RemoteButton] = [
-        .home, .mute, .menu, .tv, .volumeUp, .volumeDown, .youtube, .netflix, .input,
+        .home, .mute, .menu, .tv, .volumeUp, .volumeDown, .youtube, .netflix, .input, .power,
     ]
     nonisolated static let buttons = baseButtons + allExtraButtons
     nonisolated static func extraButtonRows(for model: RemoteModel?) -> [[RemoteButton?]] {
@@ -306,6 +307,7 @@ struct CommonPhraseRouting {
         else { return .unhandled }
         held.insert(input)
         owner = nil
-        return Self.exitButtons.contains(button) ? .close : .insert(button)
+        // A phrase key on this remote wins over the shared exit keys (CRENH fork: Chromecast Power).
+        return phraseButtons.contains(button) ? .insert(button) : .close
     }
 }

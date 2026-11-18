@@ -12,11 +12,11 @@ def generate(text):
     buttons = {'OK': 'ok', '左': 'left', '上': 'up', '右': 'right', '下': 'down',
                '主页': 'home', '静音': 'mute', '菜单': 'menu', 'TV': 'tv',
                '音量+': 'volume_up', '音量-': 'volume_down',
-               'YouTube': 'youtube', 'Netflix': 'netflix', '信源': 'input'}
+               'YouTube': 'youtube', 'Netflix': 'netflix', '信源': 'input', '电源': 'power'}
     base = ('ok', 'left', 'up', 'right', 'down')
     device_groups = (
         base + ('home', 'menu', 'tv', 'volume_up', 'volume_down'),
-        base + ('home', 'mute', 'youtube', 'netflix', 'input'),
+        base + ('home', 'mute', 'youtube', 'netflix', 'input', 'power'),
         base + ('mute', 'home', 'menu'),
     )
     for line in text.splitlines():

@@ -17,7 +17,7 @@ class PhraseTests(unittest.TestCase):
         self.assertEqual(result['entries'][3]['text'], '解释清楚一点')
     def test_device_keys_have_defaults(self):
         result = module.generate(source)
-        self.assertEqual(len(result['bindings']), 14)
+        self.assertEqual(len(result['bindings']), 15)
         self.assertEqual(result['bindings']['home'], 'builtin-006')
         self.assertEqual(result['bindings']['mute'], 'builtin-007')
         self.assertEqual(result['bindings']['volume_up'], 'builtin-007')
@@ -27,7 +27,7 @@ class PhraseTests(unittest.TestCase):
         self.assertEqual(result['bindings']['netflix'], 'builtin-009')
         self.assertEqual(result['bindings']['tv'], 'builtin-010')
         self.assertEqual(result['bindings']['input'], 'builtin-010')
-        self.assertNotIn('power', result['bindings'])
+        self.assertEqual(result['bindings']['power'], 'builtin-011')
         self.assertNotIn('back', result['bindings'])
     def test_swift_store_buttons_match_generator_bindings(self):
         swift = (root / 'Sources/RemoteBuddy/CommonPhrases/CommonPhraseStore.swift').read_text()

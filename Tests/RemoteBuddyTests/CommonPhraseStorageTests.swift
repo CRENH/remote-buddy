@@ -117,7 +117,7 @@ struct CommonPhraseStorageTests {
             var invalid = phrase("user-invalid")
             invalid.text = "  "
             #expect(throws: CommonPhraseStore.StoreError.self) { try store.save(invalid, replacing: nil) }
-            #expect(throws: CommonPhraseStore.StoreError.self) { try store.assign(.power, to: "builtin-one") }
+            #expect(throws: CommonPhraseStore.StoreError.self) { try store.assign(.back, to: "builtin-one") }
             #expect(throws: CommonPhraseStore.StoreError.self) { try store.assign(.ok, to: "missing") }
             #expect(throws: CommonPhraseStore.StoreError.self) { try store.save(phrase("builtin-one"), replacing: nil) }
             #expect(store.archive == original)
@@ -199,11 +199,11 @@ struct CommonPhraseStorageTests {
 
     @Test func archiveValidatesDeviceKeysAndRejectsNonPhraseKeys() throws {
         var archive = bundled
-        for key in ["home", "mute", "menu", "tv", "volume_up", "volume_down", "youtube", "netflix", "input"] {
+        for key in ["home", "mute", "menu", "tv", "volume_up", "volume_down", "youtube", "netflix", "input", "power"] {
             archive.bindings[key] = "builtin-one"
         }
         try archive.validate()
-        for invalidKey in ["power", "back", "play_pause"] {
+        for invalidKey in ["back", "play_pause"] {
             var bad = archive
             bad.bindings[invalidKey] = "builtin-one"
             #expect(throws: CommonPhraseStore.StoreError.self) { try bad.validate() }
@@ -212,7 +212,7 @@ struct CommonPhraseStorageTests {
 
     @Test func deviceButtonListsMatchEachRemoteLayout() {
         #expect(CommonPhraseStore.extraButtonRows(for: .chromecastVoiceRemote)
-            == [[.home, .mute], [.youtube, .netflix], [nil, .input]])
+            == [[.home, .mute], [.youtube, .netflix], [.power, .input]])
         #expect(CommonPhraseStore.extraButtonRows(for: .rc001)
             == [[nil, .volumeUp], [.home, .volumeDown], [.menu, .tv]])
         #expect(CommonPhraseStore.extraButtonRows(for: .rc003)
@@ -220,7 +220,7 @@ struct CommonPhraseStorageTests {
         #expect(CommonPhraseStore.extraButtonRows(for: .t1Remote)
             == [[.mute, .home], [nil, .menu]])
         #expect(CommonPhraseStore.buttons(for: .chromecastVoiceRemote)
-            == [.ok, .left, .up, .right, .down, .home, .mute, .youtube, .netflix, .input])
+            == [.ok, .left, .up, .right, .down, .home, .mute, .youtube, .netflix, .power, .input])
         #expect(CommonPhraseStore.buttons(for: .rc003)
             == [.ok, .left, .up, .right, .down, .volumeUp, .home, .volumeDown, .menu, .tv])
         #expect(CommonPhraseStore.buttons(for: .t1Remote)
@@ -459,7 +459,9 @@ struct CommonPhraseOwnershipTests {
     }
     @Test(arguments: [RemoteButton.back, .power])
     func exitButtonsClosePanelAcrossAllDevices(button: RemoteButton) {
-        for model in [RemoteModel.chromecastVoiceRemote, .rc003, .t1Remote] {
+        // CRENH fork: Chromecast Power is a phrase key, covered by chromecastKeysInsertWhenPanelIsOpen.
+        for model in [RemoteModel.chromecastVoiceRemote, .rc003, .t1Remote]
+        where !CommonPhraseStore.buttons(for: model).contains(button) {
             var routing = CommonPhraseRouting()
             routing.open(source: "first", buttons: CommonPhraseStore.buttons(for: model))
             #expect(routing.claims(button, source: "first"))
