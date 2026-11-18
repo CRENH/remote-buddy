@@ -1,3 +1,4 @@
+import AppKit
 import CoreGraphics
 import Foundation
 import Testing
@@ -302,7 +303,7 @@ struct VoiceInputActivationTests {
     }
 
     @Test func standaloneToolsNeverSelectWaitForOrRestoreAnInputSource() {
-        for tool in [OnboardingVoiceTool.voiceBuddy, .typeless, .bageshuo, .other] {
+        for tool in [OnboardingVoiceTool.voiceBuddy, .chatterfly, .typeless, .bageshuo, .other] {
             #expect(tool.preferredInputSourceID == nil)
             var sourceOperations = 0
             let monitor = PreferredInputSourceMonitor(voiceTool: { tool },
@@ -458,6 +459,7 @@ struct VoiceInputActivationTests {
     @Test func toolChangesRemainPendingUntilBothRecordingAndKeyCleanupEnd() throws {
         let (model, defaults, suite) = try makeModel()
         defer { defaults.removePersistentDomain(forName: suite) }
+        model.settings.setAllApplicationIntegrations(enabled: false)
         model.started = true
         model.isStreaming = true
         model.pendingVoiceToolMappingRefresh = true
@@ -542,5 +544,218 @@ struct VoiceInputActivationTests {
         #expect(model.heldVoiceKeyMode == .function)
         #expect(model.updateVoiceKeyState(streaming: false, forceSoftware: true, owner: .bluetooth, keySetter: setter))
         #expect(posted == [true, false])
+    }
+
+    @Test func unavailableInputSourceTriggersThrottledPromptWithoutPostingVoiceKey() throws {
+        let (model, defaults, suite) = try makeModel()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        model.settings.setOnboardingVoiceTool(.doubao)
+        var failures: [(OnboardingVoiceTool, OnboardingInputSourceSwitchResult)] = []
+        model.preferredInputSourceMonitor = PreferredInputSourceMonitor(
+            voiceTool: { .doubao },
+            prepareInputSource: { _ in .unavailable },
+            currentInputSourceID: { "com.apple.keylayout.ABC" },
+            restoreInputSource: { _ in .selected },
+            waitForInputSourceActivation: { _, _, _, done in done(false) },
+            installMonitor: { _ in nil },
+            logger: { _ in },
+            onSourcePreparationFailure: { [weak model] tool, result in
+                failures.append((tool, result))
+                model?.handleInputSourcePreparationFailure(for: tool, result: result, now: 100)
+            }
+        )
+        var posted: [Bool] = []
+        #expect(!model.updateVoiceKeyState(streaming: true, forceSoftware: true, owner: .bluetooth,
+            keySetter: { _, down in posted.append(down); return true }))
+        #expect(posted.isEmpty)
+        #expect(failures.count == 1 && failures[0].0 == .doubao && failures[0].1 == .unavailable)
+        #expect(model.unavailableVoiceToolPrompt == BridgeAppModel.VoiceToolUnavailablePrompt(
+            tool: .doubao, reason: .unavailable))
+
+        // Production mapping ignores non-failure switch results and enforces 10s per-tool throttling across reasons.
+        for ignored in [OnboardingInputSourceSwitchResult.selected, .notSelected, .notApplicable] {
+            model.unavailableVoiceToolPrompt = nil
+            model.handleInputSourcePreparationFailure(for: .doubao, result: ignored, now: 120)
+            #expect(model.unavailableVoiceToolPrompt == nil)
+        }
+        model.handleInputSourcePreparationFailure(for: .doubao, result: .failed, now: 105)
+        #expect(model.unavailableVoiceToolPrompt == nil)
+        model.handleInputSourcePreparationFailure(for: .weixin, result: .failed, now: 106)
+        #expect(model.unavailableVoiceToolPrompt == BridgeAppModel.VoiceToolUnavailablePrompt(
+            tool: .weixin, reason: .switchFailed))
+        model.unavailableVoiceToolPrompt = nil
+        model.handleInputSourcePreparationFailure(for: .doubao, result: .failed, now: 111)
+        #expect(model.unavailableVoiceToolPrompt == BridgeAppModel.VoiceToolUnavailablePrompt(
+            tool: .doubao, reason: .switchFailed))
+    }
+
+    @Test func missingApplicationVoiceToolTriggersPromptAndBlocksAllTriggerModes() throws {
+        let (model, defaults, suite) = try makeModel()
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        var available = false
+        model.voiceToolAvailabilityChecker = { _ in available ? .available : .notInstalled }
+
+        let cases: [(OnboardingVoiceTool, VoiceKeyMode, Bool, Bool)] = [
+            (.chatterfly, .suggestedShortcut, false, true),
+            (.voiceBuddy, .function, false, false),
+            (.bageshuo, .function, true, true),
+            (.typeless, .function, true, true),
+        ]
+        for (tool, mode, tapMode, forceSoftware) in cases {
+            model.settings.setOnboardingVoiceTool(tool)
+            model.settings.voiceKeyMode = mode
+            model.settings.voiceFnTapModeEnabled = tapMode
+            model.unavailableVoiceToolPrompt = nil
+            var posted: [Bool] = []
+            var completionResult: Bool?
+            #expect(!model.updateVoiceKeyState(
+                streaming: true,
+                forceSoftware: forceSoftware,
+                owner: .bluetooth,
+                keySetter: { _, down in posted.append(down); return true },
+                completion: { completionResult = $0 }
+            ))
+            #expect(completionResult == false)
+            #expect(posted.isEmpty)
+            #expect(model.unavailableVoiceToolPrompt == BridgeAppModel.VoiceToolUnavailablePrompt(
+                tool: tool,
+                reason: .applicationUnavailable
+            ))
+        }
+
+        available = true
+        model.settings.setOnboardingVoiceTool(.chatterfly)
+        model.settings.voiceKeyMode = .suggestedShortcut
+        model.settings.voiceFnTapModeEnabled = false
+        model.unavailableVoiceToolPrompt = nil
+        var posted: [Bool] = []
+        #expect(model.updateVoiceKeyState(
+            streaming: true,
+            forceSoftware: true,
+            owner: .bluetooth,
+            keySetter: { _, down in posted.append(down); return true }
+        ))
+        #expect(posted == [true])
+        #expect(model.unavailableVoiceToolPrompt == nil)
+        #expect(model.updateVoiceKeyState(
+            streaming: false,
+            forceSoftware: true,
+            owner: .bluetooth,
+            keySetter: { _, down in posted.append(down); return true }
+        ))
+    }
+
+    @Test func asyncActivationTimeoutNotifiesFailureAndCancellationStaysSilent() throws {
+        let target = try #require(OnboardingVoiceTool.doubao.preferredInputSourceID)
+        var source = "previous"
+        var restored: [String] = []
+        var finishWait: ((Bool) -> Void)?
+        var failures: [(OnboardingVoiceTool, OnboardingInputSourceSwitchResult)] = []
+        let monitor = PreferredInputSourceMonitor(
+            voiceTool: { .doubao },
+            prepareInputSource: { _ in source = target; return .selected },
+            currentInputSourceID: { source },
+            restoreInputSource: { id in restored.append(id); source = id; return .selected },
+            waitForInputSourceActivation: { _, _, _, done in finishWait = done },
+            installMonitor: { _ in nil },
+            logger: { _ in },
+            onSourcePreparationFailure: { tool, result in failures.append((tool, result)) }
+        )
+
+        var readyResults: [Bool] = []
+        monitor.beginVoiceSession { readyResults.append($0) }
+        finishWait?(false)
+        #expect(readyResults == [false])
+        #expect(failures.count == 1 && failures[0].0 == .doubao && failures[0].1 == .failed)
+        #expect(restored == ["previous"] && source == "previous")
+
+        failures.removeAll()
+        restored.removeAll()
+        readyResults.removeAll()
+        finishWait = nil
+        monitor.beginVoiceSession { readyResults.append($0) }
+        monitor.endVoiceSession()
+        finishWait?(false)
+        #expect(readyResults == [false])
+        #expect(failures.isEmpty)
+        #expect(restored == ["previous"])
+    }
+
+    @Test func unavailableVoiceToolAlertCopyNavigationAndReentrancy() throws {
+        let (model, defaults, suite) = try makeModel()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let localization = LocalizationStore(settings: model.settings)
+
+        for language in [AppLanguage.english, .simplifiedChinese] {
+            localization.select(language)
+            let toolTitle = localization.text(OnboardingVoiceTool.doubao.titleKey)
+            let unavailable = UnavailableVoiceToolAlertContent(
+                prompt: .init(tool: .doubao, reason: .unavailable),
+                using: localization
+            )
+            let switchFailed = UnavailableVoiceToolAlertContent(
+                prompt: .init(tool: .doubao, reason: .switchFailed),
+                using: localization
+            )
+            let appToolTitle = localization.text(OnboardingVoiceTool.chatterfly.titleKey)
+            let appUnavailable = UnavailableVoiceToolAlertContent(
+                prompt: .init(tool: .chatterfly, reason: .applicationUnavailable),
+                using: localization
+            )
+            for content in [unavailable, switchFailed] {
+                #expect(!content.title.isEmpty && !content.title.contains("%@") && content.title.contains(toolTitle))
+                #expect(!content.message.isEmpty && !content.message.contains("%@") && content.message.contains(toolTitle))
+                #expect(!content.openSettingsTitle.isEmpty && content.openSettingsTitle != "voice_tool.unavailable.alert.open_settings")
+                #expect(!content.cancelTitle.isEmpty && content.cancelTitle != "common.action.cancel")
+            }
+            #expect(!appUnavailable.title.isEmpty && !appUnavailable.title.contains("%@") && appUnavailable.title.contains(appToolTitle))
+            #expect(!appUnavailable.message.isEmpty && !appUnavailable.message.contains("%@") && appUnavailable.message.contains(appToolTitle))
+            #expect(appUnavailable.message != "voice_tool.application_unavailable.alert.message")
+            #expect(appUnavailable.message != unavailable.message)
+            #expect(unavailable.title != "voice_tool.unavailable.alert.title")
+            #expect(unavailable.message != "voice_tool.unavailable.alert.message")
+            #expect(switchFailed.title != "voice_tool.switch_failed.alert.title")
+            #expect(switchFailed.message != "voice_tool.switch_failed.alert.message")
+            #expect(unavailable.title != switchFailed.title)
+            #expect(unavailable.message != switchFailed.message)
+        }
+
+        let coordinator = UnavailableVoiceToolAlertCoordinator()
+        var shownTitles: [String] = []
+        var openedSettings = 0
+        var injectedReentrant = false
+        model.unavailableVoiceToolPrompt = .init(tool: .doubao, reason: .unavailable)
+        coordinator.presentIfIdle(
+            model: model,
+            localization: localization,
+            runModal: { content in
+                shownTitles.append(content.title)
+                if !injectedReentrant {
+                    injectedReentrant = true
+                    // A prompt arriving while a modal is active must neither open a nested modal nor be dropped.
+                    model.unavailableVoiceToolPrompt = .init(tool: .weixin, reason: .switchFailed)
+                    coordinator.presentIfIdle(
+                        model: model,
+                        localization: localization,
+                        runModal: { nested in
+                            shownTitles.append("nested:\(nested.title)")
+                            return .alertSecondButtonReturn
+                        },
+                        openSettings: { openedSettings += 1 }
+                    )
+                    return .alertSecondButtonReturn
+                }
+                return .alertFirstButtonReturn
+            },
+            openSettings: { openedSettings += 1 }
+        )
+
+        #expect(shownTitles.count == 2)
+        #expect(shownTitles[0] != shownTitles[1])
+        #expect(!shownTitles.contains { $0.hasPrefix("nested:") })
+        #expect(model.requestedSettingsSection == .integration)
+        #expect(openedSettings == 1)
+        #expect(model.unavailableVoiceToolPrompt == nil)
     }
 }

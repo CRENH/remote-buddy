@@ -17,6 +17,10 @@ enum CommonPhraseKeyGlyph: Equatable {
         case .right: .symbol("chevron.right")
         case .home: .symbol("house")
         case .mute: .symbol("speaker.slash")
+        case .menu: .symbol("line.3.horizontal")
+        case .tv: .symbol("tv")
+        case .volumeUp: .symbol("speaker.plus")
+        case .volumeDown: .symbol("speaker.minus")
         case .power: .symbol("power")
         case .input: .input
         default: .symbol("circle")
@@ -43,23 +47,30 @@ struct CommonPhraseKeyGlyphView: View {
     }
 }
 
-/// The Chromecast-only keys below the directional pad, two per row as on the
-/// remote. Like `CommonPhrasePad`, callers decide whether a press inserts text
-/// or selects the assignment position.
+/// Device-specific extra phrase keys below the directional pad, laid out in
+/// physical rows where `nil` keeps an empty slot for alignment.
 struct CommonPhraseKeyGrid: View {
     @ObservedObject var store: CommonPhraseStore
-    var buttons: [RemoteButton]
+    var rows: [[RemoteButton?]]
     var keyDiameter: CGFloat
     var selectedButton: RemoteButton? = nil
     var onSelect: (RemoteButton) -> Void
     @EnvironmentObject private var localization: LocalizationStore
 
     var body: some View {
-        Grid(horizontalSpacing: 12, verticalSpacing: 12) {
-            ForEach(Array(stride(from: 0, to: buttons.count, by: 2)), id: \.self) { index in
+        Grid(alignment: .top, horizontalSpacing: 12, verticalSpacing: 12) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
                 GridRow {
-                    key(buttons[index])
-                    if index + 1 < buttons.count { key(buttons[index + 1]) }
+                    ForEach(Array(row.enumerated()), id: \.offset) { _, button in
+                        if let button {
+                            key(button)
+                        } else {
+                            Color.clear
+                                .frame(height: 1)
+                                .frame(minWidth: keyDiameter * 1.6, maxWidth: .infinity)
+                                .accessibilityHidden(true)
+                        }
+                    }
                 }
             }
         }

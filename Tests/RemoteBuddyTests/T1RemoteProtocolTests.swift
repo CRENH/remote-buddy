@@ -228,17 +228,23 @@ struct T1RemoteProtocolTests {
             bootID: "boot-t1"
         )
 
+        // A fresh connection with default Fn and custom mapping disabled must also suppress Search.
+        #expect(mapper.apply())
+        #expect(t1Mappings.contains(RemoteHIDKeyMappingPolicy.neutralT1VoiceSearchKey))
+        #expect(t1Mappings.contains(RemoteHIDKeyMappingPolicy.neutralT1VoiceHoldKey))
+        #expect(!mapper.needsReapply(suppressPowerKey: false, neutralizeVoiceKey: false))
+
         #expect(mapper.apply(suppressPowerKey: true, neutralizeVoiceKey: false))
         #expect(t1Mappings.contains(RemoteHIDKeyMappingPolicy.neutralT1VoiceSearchKey))
         #expect(t1Mappings.contains(RemoteHIDKeyMappingPolicy.neutralT1VoiceHoldKey))
         #expect(t1Mappings.contains(RemoteHIDKeyMappingPolicy.suppressedT1PowerKey))
         #expect(!mapper.needsReapply(suppressPowerKey: true, neutralizeVoiceKey: false))
 
-        // Disabling custom mapping (when native voice key neutralization is inactive) removes all
-        // synthetic T1 UserKeyMapping entries instead of leaving 0x0221/0xAA behind.
+        // T1 has no native Fn: Search and voice-hold remain suppressed even when
+        // custom mapping is disabled. Only the power mapping follows that toggle.
         #expect(mapper.apply(suppressPowerKey: false, neutralizeVoiceKey: false))
-        #expect(!t1Mappings.contains(RemoteHIDKeyMappingPolicy.neutralT1VoiceSearchKey))
-        #expect(!t1Mappings.contains(RemoteHIDKeyMappingPolicy.neutralT1VoiceHoldKey))
+        #expect(t1Mappings.contains(RemoteHIDKeyMappingPolicy.neutralT1VoiceSearchKey))
+        #expect(t1Mappings.contains(RemoteHIDKeyMappingPolicy.neutralT1VoiceHoldKey))
         #expect(!t1Mappings.contains(RemoteHIDKeyMappingPolicy.suppressedT1PowerKey))
         #expect(!mapper.needsReapply(suppressPowerKey: false, neutralizeVoiceKey: false))
 
@@ -246,6 +252,84 @@ struct T1RemoteProtocolTests {
         #expect(mapper.apply(suppressPowerKey: true, neutralizeVoiceKey: false))
         mapper.restore()
         #expect(t1Mappings.isEmpty)
+    }
+
+    @Test func defaultFnValidityDetectsMissingT1KeysAndFailedRepairs() {
+        let suite = "t1-default-repair-" + UUID().uuidString
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        var mappings: [HIDUsageMapping] = []
+        var allowWrites = true
+        var connected = true
+        let mapper = RemoteHIDKeyMapper(serviceProvider: {
+            connected ? [RemoteHIDMappingService(registryID: 9001, family: .t1Remote,
+                readMappings: { mappings }, setMappings: {
+                    guard allowWrites else { return false }
+                    mappings = $0; return true
+                })] : []
+        }, recoveryDefaults: defaults, bootID: "t1-default-repair")
+        let valid = {
+            mapper.refreshAppliedMappingsValidity(expectedPowerKeySuppression: false,
+                expectedVoiceKeyNeutralization: false, requiresT1VoiceKeySuppression: true)
+        }
+        #expect(!valid())
+        #expect(mapper.apply())
+        #expect(valid())
+        mappings.removeAll { $0 == RemoteHIDKeyMappingPolicy.neutralT1VoiceSearchKey }
+        // Detect live T1 services even without an explicit T1 caller requirement.
+        #expect(!mapper.refreshAppliedMappingsValidity(expectedPowerKeySuppression: false,
+            expectedVoiceKeyNeutralization: false))
+        allowWrites = false
+        #expect(!mapper.apply())
+        #expect(!valid())
+        allowWrites = true
+        #expect(mapper.apply())
+        #expect(valid())
+        mapper.restore()
+        #expect(!valid())
+        #expect(mapper.apply())
+        #expect(valid())
+        connected = false
+        #expect(!valid())
+    }
+
+    @Test @MainActor func defaultT1FnRequiresRepairAndValidMappingsBeforeVoice() {
+        let granted = HIDPermissionSnapshot(inputMonitoringGranted: true, accessibilityGranted: true)
+        for servicesPresent in [false, true] {
+            #expect(BridgeAppModel.shouldReapplyHIDSettingsBeforeVoiceStart(
+                customMappingEnabled: false, mode: .function, fnTapModeEnabled: false,
+                requiresOrderedFn: false, hasHardwareVoiceKey: false,
+                hasMatchingHIDServices: servicesPresent, isVoiceKeyNeutralized: false,
+                currentServicesMatchDesiredMapping: false, fnTapSessionEnabled: false,
+                monitoringInterrupted: false, monitoringConfigurationApplied: true,
+                appliedPermissionSnapshot: granted, currentPermissionSnapshot: granted,
+                requiresT1VoiceKeySuppression: true))
+        }
+        #expect(!BridgeAppModel.canStartBluetoothVoice(mode: .function,
+            isVoiceKeyNeutralized: false, hasHardwareVoiceKey: false,
+            accessibilityGranted: true, nativeVoiceMappingIsValid: false))
+        #expect(BridgeAppModel.canStartBluetoothVoice(mode: .function,
+            isVoiceKeyNeutralized: false, hasHardwareVoiceKey: false,
+            accessibilityGranted: true, nativeVoiceMappingIsValid: true))
+    }
+
+    @Test func defaultT1WriteFailureRollsBackEarlierServices() {
+        let suite = "t1-default-rollback-" + UUID().uuidString
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let original = [HIDUsageMapping(source: 42, destination: 43)]
+        var mappings = original
+        let mapper = RemoteHIDKeyMapper(serviceProvider: {
+            [RemoteHIDMappingService(registryID: 1, family: .t1Remote,
+                readMappings: { mappings }, setMappings: { mappings = $0; return true }),
+             RemoteHIDMappingService(registryID: 2, family: .t1Remote,
+                readMappings: { [] }, setMappings: { _ in false })]
+        }, recoveryDefaults: defaults, bootID: "t1-default-rollback")
+        #expect(!mapper.apply())
+        #expect(mappings == original)
+        #expect(!mapper.isApplied)
+        #expect(!mapper.refreshAppliedMappingsValidity(expectedPowerKeySuppression: false,
+            expectedVoiceKeyNeutralization: false))
     }
 
     @Test func keyMapperRollsBackMixedXiaomiAndT1ServicesWhenT1WriteFails() {
@@ -297,6 +381,7 @@ struct T1RemoteProtocolTests {
             allowsT1Remote: true,
             runtimePermissions: { true },
             nativeSuppressionAvailable: { true },
+            actionPerformer: { _, _, _ in true },
             diagnosticLogger: { logs.append($0) }
         )
 
@@ -390,6 +475,7 @@ struct T1RemoteProtocolTests {
             allowsT1Remote: true,
             runtimePermissions: { true },
             nativeSuppressionAvailable: { true },
+            actionPerformer: { _, _, _ in true },
             diagnosticLogger: { _ in }
         )
         defer { monitor.cancelMappingInteractions() }
@@ -523,6 +609,7 @@ struct T1RemoteProtocolTests {
             allowsT1Remote: true,
             runtimePermissions: { true },
             nativeSuppressionAvailable: { true },
+            actionPerformer: { _, _, _ in true },
             diagnosticLogger: { _ in }
         )
         defer { monitor.cancelMappingInteractions() }
@@ -552,6 +639,7 @@ struct T1RemoteProtocolTests {
 
         let clock = ControlledTestScheduler()
         let profileID = UUID()
+        var performedActions: [ButtonAction] = []
         let monitor = HIDRemoteMonitor(
             settings: settings,
             allowsT1Remote: true,
@@ -559,6 +647,7 @@ struct T1RemoteProtocolTests {
             scheduler: clock,
             runtimePermissions: { true },
             nativeSuppressionAvailable: { true },
+            actionPerformer: { _, _, configured in performedActions.append(configured.action); return true },
             diagnosticLogger: { _ in }
         )
         defer { monitor.cancelMappingInteractions() }
@@ -574,6 +663,7 @@ struct T1RemoteProtocolTests {
             data: Data([0x01, 0x00, 0x00, 0x65, 0x00, 0x00, 0x00, 0x00, 0x00])
         )
         #expect(activeHistory.last == [.menu])
+        #expect(performedActions.contains(.contextMenu))
 
         // At t=5s, Air Mouse (Report 4, .ignore) arrives and must push out the 8s missing-release deadline.
         clock.advance(to: 5_000)
@@ -861,6 +951,7 @@ struct T1RemoteProtocolTests {
             ownsEventSuppressor: false,
             runtimePermissions: { true },
             nativeSuppressionAvailable: { true },
+            actionPerformer: { _, _, _ in true },
             diagnosticLogger: { _ in }
         )
 
@@ -959,10 +1050,19 @@ struct T1RemoteProtocolTests {
             ownsEventSuppressor: false,
             runtimePermissions: { true },
             nativeSuppressionAvailable: { true },
+            actionPerformer: { _, _, _ in true },
             diagnosticLogger: { _ in },
-            appSwitcherKeyStatePoster: { code, down, flags in
-                postedEvents.append((code, down, flags))
-                return true
+            appSwitcherHardwareFlags: { [] },
+            appSwitcherOwnedKeyStatePoster: { code, down, flags, excludingOwned in
+                let event = KeyboardInjector.makeMappedKeyEvent(
+                    code: code,
+                    isDown: down,
+                    flags: flags,
+                    excludingOwnedModifiers: excludingOwned,
+                    hardwareFlags: { [] }
+                )
+                postedEvents.append((code, down, event?.flags ?? flags))
+                return event != nil
             }
         )
         monitor.connectSimulatedDevice(fingerprint: "t1-fp", profileID: profileID, isSeized: false)
@@ -1046,6 +1146,7 @@ struct T1RemoteProtocolTests {
             scheduler: clock,
             runtimePermissions: { true },
             nativeSuppressionAvailable: { true },
+            actionPerformer: { _, _, _ in true },
             diagnosticLogger: { _ in }
         )
         monitor.onActiveButtons = { _, buttons in activeButtons = buttons }

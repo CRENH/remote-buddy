@@ -270,7 +270,8 @@ struct InputLifecycleRegressionTests {
             appSwitcherKeyStatePoster: { code, down, _ in
                 if down && (code == 123 || code == 124) { selections.append(code) }
                 return true
-            })
+            },
+            appSwitcherHardwareFlags: { [] })
         monitor.connectSimulatedDevice(fingerprint: "test", profileID: profile, isSeized: false)
         func report(_ button: RemoteButton?) {
             let usage = button?.hidUsage ?? 0
@@ -453,7 +454,7 @@ struct InputLifecycleRegressionTests {
             withExtendedLifetime(retained) {}
         }
         probe = nil
-        try await Task.sleep(for: .milliseconds(100))
+        try await waitForTestCondition("one-shot timer releases captured probe") { observed == nil }
         #expect(observed == nil)
         withExtendedLifetime(handle) {}
         var second: Probe? = Probe()
@@ -464,7 +465,7 @@ struct InputLifecycleRegressionTests {
         second = nil
         withExtendedLifetime(task) {}
         task = nil
-        try await Task.sleep(for: .milliseconds(100))
+        try await waitForTestCondition("cancelled timer releases captured probe") { secondObserved == nil }
         #expect(secondObserved == nil)
     }
 }

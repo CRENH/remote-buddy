@@ -113,6 +113,7 @@ final class HIDRemoteMonitor {
     private var lastT1MouseHeader: Data?
     private var lastT1MouseLogTime: TimeInterval = 0
     private var currentReportDescriptor: Data?
+    private var googleIndexedReportsIncludeID = false
     var reportedModel: RemoteModel {
         if currentReportIsGoogle { return .chromecastVoiceRemote }
         if currentReportIsT1 { return .t1Remote }
@@ -175,6 +176,7 @@ final class HIDRemoteMonitor {
     private(set) var status = LocalizedMessage("button_mapping.status.disabled")
     var onStatus: ((LocalizedMessage) -> Void)?
     var onActiveButtons: ((UUID?, Set<RemoteButton>) -> Void)?
+    var onObservedButtonReport: ((UUID?, Set<RemoteButton>) -> Void)?
     var onButtonPressed: ((UUID?, String, RemoteButton) -> (profileID: UUID, shouldPerformAction: Bool)?)?
     var onPassthroughButtonObserved: ((UUID?, String, RemoteButton) -> UUID?)?
     var onRuntimeButton: ((UUID?, RemoteButton, RemoteButtonPhase) -> Bool)?
@@ -218,7 +220,9 @@ final class HIDRemoteMonitor {
         karabinerElementsInstalled: @escaping () -> Bool = {
             HIDRemoteMonitor.isKarabinerElementsInstalled()
         },
-        appSwitcherKeyStatePoster: @escaping KeyboardInjector.KeyStatePoster = KeyboardInjector.postKeyState
+        appSwitcherKeyStatePoster: KeyboardInjector.KeyStatePoster? = nil,
+        appSwitcherHardwareFlags: @escaping () -> CGEventFlags = KeyboardHardwareModifierPolicy.currentForAppSwitcher,
+        appSwitcherOwnedKeyStatePoster: KeyboardInjector.AppSwitcherSession.OwnedKeyStatePoster? = nil
     ) {
         self.settings = settings
         self.allowsG9N9N = allowsG9N9N
@@ -233,10 +237,24 @@ final class HIDRemoteMonitor {
         self.permissionSnapshot = permissionSnapshot
         self.runtimePermissions = runtimePermissions
         self.nativeSuppressionAvailable = nativeSuppressionAvailable ?? { eventSuppressor.isRunning }
-        self.nativeKeyStatePoster = appSwitcherKeyStatePoster
-        self.appSwitcherSession = KeyboardInjector.AppSwitcherSession(
-            keyStatePoster: appSwitcherKeyStatePoster
-        )
+        self.nativeKeyStatePoster = appSwitcherKeyStatePoster ?? KeyboardInjector.postKeyState
+        if let appSwitcherOwnedKeyStatePoster {
+            self.appSwitcherSession = KeyboardInjector.AppSwitcherSession(
+                hardwareFlags: appSwitcherHardwareFlags,
+                keyStatePoster: appSwitcherOwnedKeyStatePoster
+            )
+        } else if let appSwitcherKeyStatePoster {
+            self.appSwitcherSession = KeyboardInjector.AppSwitcherSession(
+                hardwareFlags: appSwitcherHardwareFlags,
+                keyStatePoster: { code, down, flags, _ in
+                    appSwitcherKeyStatePoster(code, down, flags)
+                }
+            )
+        } else {
+            self.appSwitcherSession = KeyboardInjector.AppSwitcherSession(
+                hardwareFlags: appSwitcherHardwareFlags
+            )
+        }
         self.actionPerformer = actionPerformer ?? { _, _, configured in
             KeyboardInjector.send(
                 configured.action,
@@ -717,7 +735,7 @@ final class HIDRemoteMonitor {
         onDeviceConnected?(profileID, fingerprint)
     }
 
-    func handleSimulatedGoogleReport(reportID: UInt32, data: Data, descriptor: Data? = nil) {
+    func handleSimulatedGoogleReport(reportID: UInt32, data: Data, descriptor: Data? = nil, source: String = "simulated") {
         let previous = currentReportIsGoogle
         let previousT1 = currentReportIsT1
         let previousDescriptor = currentReportDescriptor
@@ -729,7 +747,7 @@ final class HIDRemoteMonitor {
         currentReportIsGoogle = true
         currentReportIsT1 = false
         currentReportDescriptor = descriptor
-        handleSimulatedReport(reportID: reportID, data: data)
+        handleSimulatedReport(reportID: reportID, data: data, source: source)
     }
 
     func handleSimulatedT1Report(reportID: UInt32, data: Data) {
@@ -744,17 +762,17 @@ final class HIDRemoteMonitor {
         handleSimulatedReport(reportID: reportID, data: data)
     }
 
-    func handleSimulatedReport(reportID: UInt32, data: Data) {
+    func handleSimulatedReport(reportID: UInt32, data: Data, source: String = "simulated") {
         guard settings.customMappingEnabled || backOnlyMode else {
-            diagnosticLogger("HID REPORT rejected reason=mapping_disabled source=simulated")
+            diagnosticLogger("HID REPORT rejected reason=mapping_disabled source=\(source)")
             return
         }
         guard runtimePermissionsAreValid() else {
-            diagnosticLogger("HID REPORT rejected reason=runtime_permission_revoked source=simulated")
+            diagnosticLogger("HID REPORT rejected reason=runtime_permission_revoked source=\(source)")
             releaseForRevokedPermissions()
             return
         }
-        parseAndProcess(reportID: reportID, data: data, source: "simulated")
+        parseAndProcess(reportID: reportID, data: data, source: source)
     }
 
     func handleSimulatedBackOnlyReport(reportID: UInt32, data: Data) {
@@ -800,8 +818,14 @@ final class HIDRemoteMonitor {
                 return nil
             }
         }
+        // On IOHID device callbacks ("device"), report-ID-prefixed descriptors always
+        // carry the ID byte, so a shortened [1, 0] release is never payload-only Power.
+        let indexedGoogleReport = currentReportIsGoogle && reportID == 1 &&
+            G9N9NProtocol.usesIndexedConsumerLayout(currentReportDescriptor)
+        let googleData = indexedGoogleReport && (source == "device" || googleIndexedReportsIncludeID) && data == Data([1, 0])
+            ? Data([1, 0, 0]) : data
         let decoded = currentReportIsGoogle
-            ? G9N9NProtocol.usages(reportID: reportID, data: data, descriptor: currentReportDescriptor)
+            ? G9N9NProtocol.usages(reportID: reportID, data: googleData, descriptor: currentReportDescriptor)
             : RemoteHIDReportParser.usages(reportID: reportID, data: data)
         guard let usages = decoded else {
             diagnosticLogger(
@@ -846,6 +870,11 @@ final class HIDRemoteMonitor {
         source: String,
         parsed: ParsedHIDReport
     ) {
+        if currentReportIsGoogle, reportID == 1,
+           G9N9NProtocol.usesIndexedConsumerLayout(currentReportDescriptor),
+           data.count == 3, data.first == 1 {
+            googleIndexedReportsIncludeID = true
+        }
         let usages = parsed.mappedUsages
         suppressedUntilReleasedT1PassthroughUsages = suppressedUntilReleasedT1PassthroughUsages
             .intersection(parsed.observedPassthroughUsages)
@@ -862,29 +891,6 @@ final class HIDRemoteMonitor {
             "HID REPORT accepted source=\(source) id=\(reportID) bytes=\(data.count) " +
                 "usage_count=\(observedAll.count) buttons=\(Self.buttonList(for: observedAll))"
         )
-        // The tested indexed G9N9N drops its release reports before IOHID.
-        // Treat each complete chord report as a tap, never as a held key.
-        // Require exclusive ownership: otherwise the system may also deliver
-        // the original buttons, including a down with no corresponding up.
-        if G9N9NProtocol.usesChordWorkaround(isGoogleProtocol: currentReportIsGoogle,
-                                            reportID: reportID, descriptor: currentReportDescriptor),
-           usages.count > 1, !backOnlyMode,
-           !OnboardingControlValidationPolicy.suppressConfiguredActions(
-               at: settings.onboardingStep,
-               source: settings.onboardingControlSource,
-               reportingModel: .chromecastVoiceRemote,
-               onboardingWindowIsActive: onboardingWindowIsActive()
-           ) {
-            if G9N9NProtocol.isEnterChord(usages) {
-                processG9N9NEnterChord()
-            } else {
-                // Unsupported pairs cannot safely enter the held-button pipeline:
-                // their missing release reports otherwise cause eight seconds of repeats.
-                resetInputState()
-                diagnosticLogger("HID G9N9N chord ignored reason=unsupported_pair")
-            }
-            return
-        }
         processT1PassthroughReleases(for: releasedPassthrough)
         if !pressedPassthrough.isEmpty {
             processT1PassthroughPresses(for: pressedPassthrough)
@@ -897,9 +903,79 @@ final class HIDRemoteMonitor {
         }
         if backOnlyMode {
             processBackOnly(usages: usages.intersection([RemoteButton.back.hidUsage]))
+        } else if currentReportIsGoogle,
+                  settings.g9n9nInputMode(for: profileID ?? settings.selectedRemoteProfileID) == .twoKeyCompatibility {
+            processGoogleTwoKeyCompatibility(usages: usages)
         } else {
             process(usages: usages)
         }
+    }
+
+    private func processGoogleTwoKeyCompatibility(usages: Set<UInt16>) {
+        let observedButtons = RemoteButton.buttons(for: usages)
+        guard !observedButtons.isEmpty else {
+            resetInputState()
+            return
+        }
+        // Arm native event suppression before any early returns (onboarding suppression or
+        // unsupported-input ignore) so unseized monitors never leak physical OS key events.
+        if !activeDeviceIsSeized {
+            for button in observedButtons {
+                eventSuppressor.arm(button: button, edge: .down)
+            }
+        }
+        let targetProfileID = profileID ?? settings.selectedRemoteProfileID
+        let representative = observedButtons.contains(.ok)
+            ? RemoteButton.ok
+            : observedButtons.sorted { $0.rawValue < $1.rawValue }.first!
+        if OnboardingControlValidationPolicy.suppressConfiguredActions(
+            at: settings.onboardingStep,
+            source: settings.onboardingControlSource,
+            reportingModel: .chromecastVoiceRemote,
+            onboardingWindowIsActive: onboardingWindowIsActive()
+        ) {
+            if let deviceFingerprint,
+               let routing = onButtonPressed?(profileID, deviceFingerprint, representative),
+               profileID == nil {
+                profileID = routing.profileID
+            }
+            let resolvedID = profileID ?? targetProfileID
+            onActiveButtons?(resolvedID, observedButtons)
+            onObservedButtonReport?(resolvedID, observedButtons)
+            clearTransientInputStateForCompatibility()
+            return
+        }
+
+        // Release notifications are absent on short-report G9N9N firmware, so clear active
+        // state on every report and only emit instant Return/Enter for direction + OK chords.
+        resetInputState()
+        var shouldPerformAction = true
+        if let deviceFingerprint,
+           let routing = onButtonPressed?(profileID, deviceFingerprint, representative) {
+            if profileID == nil { profileID = routing.profileID }
+            shouldPerformAction = routing.shouldPerformAction
+        }
+        guard shouldPerformAction else {
+            let resolvedID = profileID ?? targetProfileID
+            onActiveButtons?(resolvedID, observedButtons)
+            onObservedButtonReport?(resolvedID, observedButtons)
+            return
+        }
+        guard G9N9NProtocol.isEnterChord(usages) else {
+            diagnosticLogger("HID G9N9N compat ignored reason=unsupported_input")
+            return
+        }
+        guard profileID != nil else { return }
+        guard mappingDeliveryIsSafe else {
+            pauseForUnavailableNativeFilter()
+            return
+        }
+        let action = ConfiguredButtonAction(action: .returnKey, shortcut: nil)
+        guard actionPerformer(.ok, .singleClick, action) else {
+            if !runtimePermissionsAreValid() { releaseForRevokedPermissions() }
+            return
+        }
+        diagnosticLogger("HID G9N9N compat_enter_chord action=return")
     }
 
     private static func handlesAppSwitcherControl(_ button: RemoteButton) -> Bool {
@@ -980,25 +1056,6 @@ final class HIDRemoteMonitor {
         }
     }
 
-    private func processG9N9NEnterChord() {
-        resetInputState()
-        guard activeDeviceIsSeized else {
-            diagnosticLogger("HID G9N9N enter_chord ignored reason=device_not_exclusive")
-            return
-        }
-        if let deviceFingerprint,
-           let routing = onButtonPressed?(profileID, deviceFingerprint, .ok) {
-            if profileID == nil { profileID = routing.profileID }
-            guard routing.shouldPerformAction else { return }
-        }
-        guard profileID != nil else { return }
-        let action = ConfiguredButtonAction(action: .returnKey, shortcut: nil)
-        guard actionPerformer(.ok, .singleClick, action) else {
-            if !runtimePermissionsAreValid() { releaseForRevokedPermissions() }
-            return
-        }
-        diagnosticLogger("HID G9N9N enter_chord action=return")
-    }
 
     func disconnectSimulatedDevice() {
         deviceFingerprint = nil
@@ -1033,6 +1090,8 @@ final class HIDRemoteMonitor {
         }
         for usage in usages { refreshUsageExpiry(usage) }
         emitActiveButtons()
+        let reportButtons = RemoteButton.buttons(for: usages)
+        var emittedObservedReport = false
 
         for usage in pressed.sorted() {
             // A failed action may stop/reset the monitor. Do not dispatch further
@@ -1068,6 +1127,10 @@ final class HIDRemoteMonitor {
                     profileID = routing.profileID
                 }
                 shouldPerformAction = routing.shouldPerformAction
+            }
+            if !emittedObservedReport, !reportButtons.isEmpty {
+                emittedObservedReport = true
+                onObservedButtonReport?(profileID, reportButtons)
             }
             guard let profileID, shouldPerformAction else {
                 if !activeDeviceIsSeized, usesNativePassthrough {
@@ -2042,6 +2105,15 @@ final class HIDRemoteMonitor {
     }
 
     private func resetInputState() {
+        clearTransientInputState(emitEmptyActiveButtons: true)
+    }
+
+    func clearTransientInputStateForCompatibility() {
+        clearTransientInputState(emitEmptyActiveButtons: false)
+    }
+
+    private func clearTransientInputState(emitEmptyActiveButtons: Bool) {
+        googleIndexedReportsIncludeID = false
         onInputReset?(profileID)
         if appSwitcherSession.isActive {
             _ = appSwitcherSession.cancel()
@@ -2069,6 +2141,15 @@ final class HIDRemoteMonitor {
         repeatTimers.values.forEach { $0.cancel() }
         repeatTimers.removeAll()
         repeatTokens.removeAll()
+        // No physical key-up is guaranteed after a disconnect or mapping reset.
+        for usage in nativePassthroughUsages {
+            guard let button = RemoteButton.usageMap[usage] else { continue }
+            for event in button.nativeEvents {
+                if case .keyboard(let code) = event {
+                    _ = nativeKeyStatePoster(code, false, [])
+                }
+            }
+        }
         nativePassthroughUsages.removeAll()
         usageExpiryTokens.removeAll()
         usageExpiryTimers.values.forEach { $0.cancel() }
@@ -2092,7 +2173,9 @@ final class HIDRemoteMonitor {
         lastT1MouseLogTime = 0
         resetGestureRecognition()
         activeUsages.removeAll()
-        emitActiveButtons()
+        if emitEmptyActiveButtons {
+            emitActiveButtons()
+        }
     }
 
     private func emitActiveButtons() {

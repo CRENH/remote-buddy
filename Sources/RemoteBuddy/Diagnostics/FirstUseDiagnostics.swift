@@ -21,7 +21,6 @@ enum FirstUseFailureReason: String, Codable, Equatable {
     case voiceAudioDeliveryFailed = "voice.audio_delivery_failed"
     case voiceExternalToolNoCommit = "voice.external_tool_no_commit"
     case controlsNotConfirmed = "controls.not_confirmed"
-    case completeRuntimeRegressed = "complete.runtime_regressed"
 
     var recoveryStep: OnboardingStep {
         switch self {
@@ -46,8 +45,6 @@ enum FirstUseFailureReason: String, Codable, Equatable {
             return .voiceTest
         case .controlsNotConfirmed:
             return .controls
-        case .completeRuntimeRegressed:
-            return .permissions
         }
     }
 }
@@ -285,15 +282,14 @@ struct FirstUseDiagnosticContext: Equatable {
             if capabilities.manualTranscriptInputObserved { return .voiceManualInput }
             if !capabilities.transcriptionAppeared { return .voiceNoTranscript }
         case .controls:
-            if capabilities.testedRemoteButtonCount < 3 { return .controlsNotConfirmed }
+            if !capabilities.remoteConnected { return .remoteNotFound }
+            if capabilities.isTwoKeyCompatibleMode {
+                if !capabilities.compatibleChordConfirmed { return .controlsNotConfirmed }
+            } else if capabilities.testedRemoteButtonCount < 3 {
+                return .controlsNotConfirmed
+            }
         case .complete:
-            guard OnboardingFlowPolicy.canContinue(
-                from: .complete,
-                voiceTool: .other,
-                remoteAvailability: remoteAvailability,
-                controlMethod: controlMethod,
-                capabilities: capabilities
-            ) else { return .completeRuntimeRegressed }
+            break
         }
         return nil
     }

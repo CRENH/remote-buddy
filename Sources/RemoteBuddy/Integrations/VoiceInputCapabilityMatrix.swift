@@ -22,11 +22,11 @@ extension RemoteModel {
 
 extension OnboardingVoiceTool {
     /// 是否支持「长按收音」（按住说话、松手结束）。
-    /// 已知工具里 Typeless、网易叭哥说与 macOS 听写不支持；微信输入法、豆包输入法与 Voice Buddy 支持。
+    /// 已知工具里 Typeless、网易叭哥说与 macOS 听写不支持；微信输入法、豆包输入法、腾讯Chatterfly 与 Voice Buddy 支持。
     var supportsHoldVoiceRecording: Bool {
         switch self {
         case .typeless, .bageshuo, .macosDictation: return false
-        case .weixin, .doubao, .voiceBuddy, .unselected, .other: return true
+        case .weixin, .doubao, .chatterfly, .voiceBuddy, .unselected, .other: return true
         }
     }
 }
@@ -62,16 +62,5 @@ struct RemoteVoiceCapabilities: Equatable {
             supportsToggleVoiceRecording: model.supportsToggleVoiceRecording,
             supportsTouchSurface: model.supportsTouchSurface
         )
-    }
-}
-
-/// 触摸面类设置（滑动箭头、光标反馈）的适用性。
-enum TouchSurfaceControlApplicability {
-    /// 页面请求了触摸类控件、且该遥控器确实有触摸面时才显示。
-    static func isApplicable(
-        capabilities: RemoteVoiceCapabilities,
-        pageRequestsControl: Bool
-    ) -> Bool {
-        pageRequestsControl && capabilities.supportsTouchSurface
     }
 }

@@ -16,17 +16,26 @@ struct ApplicationIntegrationTests {
 
     @Test func switchesPersistIndependentlyAndSupportBulkChanges() throws {
         try withSettings { settings, defaults in
-            #expect(settings.enabledApplicationIntegrations.isEmpty)
-            settings.setApplicationIntegration(.chatGPT, enabled: true)
-            #expect(AppSettings(defaults: defaults).isApplicationIntegrationEnabled(.chatGPT))
-            #expect(!settings.isApplicationIntegrationEnabled(.weChat))
-            settings.setAllApplicationIntegrations(enabled: true)
+            let allIdentifiers = Set(ApplicationIntegration.allCases.map(\.rawValue))
+            #expect(settings.enabledApplicationIntegrations == allIdentifiers)
             settings.setApplicationIntegration(.weChat, enabled: false)
-            let restored = AppSettings(defaults: defaults)
-            #expect(restored.enabledApplicationIntegrations.count == ApplicationIntegration.allCases.count - 1)
-            #expect(!restored.isApplicationIntegrationEnabled(.weChat))
+            let afterSingleDisable = AppSettings(defaults: defaults)
+            #expect(afterSingleDisable.enabledApplicationIntegrations.count == ApplicationIntegration.allCases.count - 1)
+            #expect(!afterSingleDisable.isApplicationIntegrationEnabled(.weChat))
+            #expect(afterSingleDisable.isApplicationIntegrationEnabled(.chatGPT))
+            #expect(afterSingleDisable.isApplicationIntegrationEnabled(.deepSeek))
+
             settings.setAllApplicationIntegrations(enabled: false)
             #expect(AppSettings(defaults: defaults).enabledApplicationIntegrations.isEmpty)
+
+            // Newly added integrations not present in the stored disabled list stay enabled by default.
+            let priorIntegrations = allIdentifiers.subtracting([ApplicationIntegration.deepSeek.rawValue])
+            defaults.set(priorIntegrations.sorted(), forKey: AppSettings.Keys.disabledApplicationIntegrations)
+            let upgraded = AppSettings(defaults: defaults)
+            #expect(upgraded.enabledApplicationIntegrations == [ApplicationIntegration.deepSeek.rawValue])
+
+            settings.setAllApplicationIntegrations(enabled: true)
+            #expect(AppSettings(defaults: defaults).enabledApplicationIntegrations == allIdentifiers)
         }
     }
 
@@ -733,6 +742,7 @@ struct ApplicationIntegrationTests {
         let fields: [(ApplicationIntegration, KeyboardInjector.AccessibilityTextCandidate)] = [
             (.chatGPT, candidate("Ask anything")), (.antigravity, candidate("Message input")),
             (.claude, candidate("Write your prompt to Claude")),
+            (.deepSeek, candidate("Message or run a task, / commands, @ files or sessions")),
             (.weChat, candidate(identifier: "chat_input_field")),
         ]
         for (app, field) in fields {
@@ -795,22 +805,29 @@ struct ApplicationIntegrationTests {
         #expect(!KeyboardInjector.workBuddyComposerControlsMatch(["发送", "语音输入"]))
     }
 
-    @Test(arguments: [ApplicationIntegration.claude, .workBuddy])
+    @Test(arguments: [ApplicationIntegration.claude, .deepSeek, .workBuddy])
     func newDesktopIntegrationsSelectOnlyTheirVerifiedComposer(app: ApplicationIntegration) {
-        let label = "Write your prompt to Claude"
+        let label = app == .deepSeek
+            ? "Message or run a task, / commands, @ files or sessions"
+            : "Write your prompt to Claude"
         let field = app == .workBuddy ? candidate(workBuddyControls: true) : candidate(label)
         #expect(ApplicationIntegration.matching(app.bundleIdentifier) == app)
         #expect(KeyboardInjector.integratedComposerScore(field, integration: app, windowFrame: window) == 400)
-        #expect(KeyboardInjector.integratedComposerScore(field,
-            integration: app == .claude ? .workBuddy : .claude, windowFrame: window) == nil)
+        for other in [ApplicationIntegration.claude, .deepSeek, .workBuddy] where other != app {
+            #expect(KeyboardInjector.integratedComposerScore(field, integration: other, windowFrame: window) == nil)
+        }
         for invalid in [candidate(), candidate("composer"), candidate("Search " + label),
+                        candidate(label, role: "AXTextField"),
+                        candidate("Search session names", role: "AXTextField"),
                         candidate(label, protected: true), candidate(label, enabled: false),
                         candidate(label, context: "monaco code editor")] {
+            if invalid.role == "AXTextField", app == .claude, invalid.placeholder == label { continue }
             #expect(KeyboardInjector.integratedComposerScore(invalid, integration: app, windowFrame: window) == nil)
         }
         var focused: [String] = []
         #expect(KeyboardInjector.focusIntegratedCandidates(
-            [(element: "search", snapshot: candidate("Search")), (element: "composer", snapshot: field)],
+            [(element: "search", snapshot: candidate("Search session names", role: "AXTextField")),
+             (element: "composer", snapshot: field)],
             integration: app, windowFrame: window, canContinue: { true },
             focus: { focused.append($0); return true },
             click: { _, _ in Issue.record("Direct focus must not click"); return false }))
@@ -822,9 +839,13 @@ struct ApplicationIntegrationTests {
             click: { _, _ in Issue.record("Ambiguous composers must not click"); return true }))
     }
 
-    @Test(arguments: [ApplicationIntegration.claude, .workBuddy])
+    @Test(arguments: [ApplicationIntegration.claude, .deepSeek, .workBuddy])
     func newDesktopComposerClicksRequireHitTestAndConfirmedFocus(app: ApplicationIntegration) {
-        let field = app == .claude ? candidate("Write your prompt to Claude") : candidate(workBuddyControls: true)
+        let field: KeyboardInjector.AccessibilityTextCandidate = switch app {
+        case .claude: candidate("Write your prompt to Claude")
+        case .deepSeek: candidate("Message or run a task, / commands, @ files or sessions")
+        default: candidate(workBuddyControls: true)
+        }
         for hit in [false, true] {
             for focused in [false, true] {
                 var clicks = 0
@@ -875,6 +896,12 @@ struct ApplicationIntegrationTests {
                     #expect(localization.text(key) != key)
                 }
             }
+            localization.select(.simplifiedChinese)
+            #expect(ApplicationIntegration.sortedForDisplay(using: localization) ==
+                [.weChat, .antigravity, .chatGPT, .claude, .deepSeek, .workBuddy])
+            localization.select(.english)
+            #expect(ApplicationIntegration.sortedForDisplay(using: localization) ==
+                [.antigravity, .chatGPT, .claude, .deepSeek, .weChat, .workBuddy])
         }
     }
     @Test func screenshotHarnessInjectsPreparationAndPreservation() throws {
@@ -882,6 +909,375 @@ struct ApplicationIntegrationTests {
         #expect(try SettingsScreenshotRenderer.integrationState(from: "preserved") == .preserved)
         #expect(try SettingsScreenshotRenderer.integrationState(from: nil) == nil)
         #expect(throws: (any Error).self) { try SettingsScreenshotRenderer.integrationState(from: "unknown") }
+    }
+
+    @Test func autoFocusedComposerMovesCaretToEndViaAXRangeBeforeFallingBackToCommandDown() {
+        // 1. Empty composer needs no range write or shortcut keystroke.
+        var writes = 0
+        var keys = 0
+        #expect(KeyboardInjector.moveIntegratedComposerCaretToEnd(
+            readNumberOfCharacters: { 0 },
+            readSelectedRange: { CFRange(location: 0, length: 0) },
+            isSelectedRangeSettable: { true },
+            writeSelectedRange: { _ in writes += 1; return true },
+            canContinue: { true },
+            postMoveToEndKey: { keys += 1; return true },
+            pause: {}
+        ))
+        #expect(writes == 0 && keys == 0)
+
+        // 2. Non-empty composer already ending at count stays untouched.
+        #expect(KeyboardInjector.moveIntegratedComposerCaretToEnd(
+            readNumberOfCharacters: { 10 },
+            readSelectedRange: { CFRange(location: 10, length: 0) },
+            isSelectedRangeSettable: { true },
+            writeSelectedRange: { _ in writes += 1; return true },
+            canContinue: { true },
+            postMoveToEndKey: { keys += 1; return true },
+            pause: {}
+        ))
+        #expect(writes == 0 && keys == 0)
+
+        // 3. Click landing after first character (location=1 of 10) moves cleanly to 10 via AX range.
+        var range = CFRange(location: 1, length: 0)
+        #expect(KeyboardInjector.moveIntegratedComposerCaretToEnd(
+            readNumberOfCharacters: { 10 },
+            readSelectedRange: { range },
+            isSelectedRangeSettable: { true },
+            writeSelectedRange: { updated in writes += 1; range = updated; return true },
+            canContinue: { true },
+            postMoveToEndKey: { keys += 1; return true },
+            pause: {}
+        ))
+        #expect(writes == 1 && range.location == 10 && range.length == 0 && keys == 0)
+
+        // 4. Ignored AX writes or missing character count fall back to Command+Down when still safe.
+        var pauses = 0
+        #expect(KeyboardInjector.moveIntegratedComposerCaretToEnd(
+            readNumberOfCharacters: { 10 },
+            readSelectedRange: { CFRange(location: 1, length: 0) },
+            isSelectedRangeSettable: { true },
+            writeSelectedRange: { _ in writes += 1; return true },
+            canContinue: { true },
+            postMoveToEndKey: { keys += 1; return true },
+            pause: { pauses += 1 }
+        ))
+        #expect(writes == 2 && keys == 1 && pauses == 1)
+
+        #expect(KeyboardInjector.moveIntegratedComposerCaretToEnd(
+            readNumberOfCharacters: { nil },
+            readSelectedRange: { nil },
+            isSelectedRangeSettable: { false },
+            writeSelectedRange: { _ in writes += 1; return false },
+            canContinue: { true },
+            postMoveToEndKey: { keys += 1; return true },
+            pause: { pauses += 1 }
+        ))
+        #expect(keys == 2 && pauses == 2)
+
+        // 5. Cancelled or unfocused target aborts before writing or posting keys.
+        #expect(!KeyboardInjector.moveIntegratedComposerCaretToEnd(
+            readNumberOfCharacters: { 10 },
+            readSelectedRange: { CFRange(location: 1, length: 0) },
+            isSelectedRangeSettable: { true },
+            writeSelectedRange: { _ in writes += 1; return true },
+            canContinue: { false },
+            postMoveToEndKey: { keys += 1; return true },
+            pause: {}
+        ))
+        #expect(writes == 2 && keys == 2)
+    }
+
+    @Test func composerCaretMoveAbortsWhenTargetInvalidatesDuringAXQueries() {
+        enum InvalidationPoint: CaseIterable {
+            case afterCount
+            case afterInitialRange
+            case duringSettableCheck
+            case duringWrite
+            case afterWriteVerification
+            case duringCountVerification
+        }
+
+        for point in InvalidationPoint.allCases {
+            var valid = true
+            var writes = 0
+            var countReads = 0
+            var rangeReads = 0
+            var keys = 0
+            let moved = KeyboardInjector.moveIntegratedComposerCaretToEnd(
+                readNumberOfCharacters: {
+                    countReads += 1
+                    if countReads == 1 && point == .afterCount { valid = false }
+                    if countReads == 2 && point == .duringCountVerification { valid = false }
+                    return 10
+                },
+                readSelectedRange: {
+                    rangeReads += 1
+                    if rangeReads == 1 && point == .afterInitialRange {
+                        valid = false
+                        return CFRange(location: 10, length: 0)
+                    }
+                    if rangeReads == 2 && point == .afterWriteVerification {
+                        valid = false
+                    }
+                    return rangeReads == 1 ? CFRange(location: 1, length: 0) : CFRange(location: 10, length: 0)
+                },
+                isSelectedRangeSettable: {
+                    if point == .duringSettableCheck { valid = false }
+                    return true
+                },
+                writeSelectedRange: { _ in
+                    writes += 1
+                    if point == .duringWrite { valid = false }
+                    return true
+                },
+                canContinue: { valid },
+                postMoveToEndKey: { keys += 1; return true },
+                pause: {}
+            )
+            #expect(!moved)
+            #expect(keys == 0)
+            let expectedWrites = (point == .duringWrite ||
+                point == .afterWriteVerification ||
+                point == .duringCountVerification) ? 1 : 0
+            #expect(writes == expectedWrites)
+        }
+    }
+
+    @Test func composerCaretMoveFallsBackWhenTextGrowsBeforeVerification() {
+        var countReads = 0
+        var writes = 0
+        var keys = 0
+        var pauses = 0
+        var writtenLocation: Int?
+        let moved = KeyboardInjector.moveIntegratedComposerCaretToEnd(
+            readNumberOfCharacters: {
+                countReads += 1
+                // Streaming output or IME commit appends characters before verification read.
+                return countReads == 1 ? 10 : 14
+            },
+            readSelectedRange: {
+                CFRange(location: writtenLocation ?? 1, length: 0)
+            },
+            isSelectedRangeSettable: { true },
+            writeSelectedRange: { range in
+                writes += 1
+                writtenLocation = range.location
+                return true
+            },
+            canContinue: { true },
+            postMoveToEndKey: { keys += 1; return true },
+            pause: { pauses += 1 }
+        )
+        #expect(moved)
+        #expect(writes == 1 && writtenLocation == 10)
+        #expect(keys == 1 && pauses == 1)
+    }
+
+    @Test func allComposerFocusPathsPreserveAlreadyFocusedCaretAndMoveOnlyNewlyFocused() {
+        // Call site 1: focusElementPreservingExistingCaret (generic accessibility composer path).
+        var genericCaretMoves = 0
+        #expect(KeyboardInjector.focusElementPreservingExistingCaret(
+            isAlreadyFocused: { true },
+            focusElement: { true },
+            moveCaretToEnd: { genericCaretMoves += 1 }
+        ))
+        #expect(genericCaretMoves == 0)
+        #expect(KeyboardInjector.focusElementPreservingExistingCaret(
+            isAlreadyFocused: { false },
+            focusElement: { true },
+            moveCaretToEnd: { genericCaretMoves += 1 }
+        ))
+        #expect(genericCaretMoves == 1)
+
+        // Call site 2: integrated composer candidate pipeline when preserveFocus returns false
+        // (e.g. host omits AXEditable / settable AXValue) yet the candidate is already focused.
+        let nodes = [(element: "composer", snapshot: candidate("Message input"))]
+        let alreadyFocusedOutcome = KeyboardInjector.focusIntegratedComposerCandidates(
+            nodes,
+            integration: .antigravity,
+            windowFrame: window,
+            canContinue: { true },
+            preserveFocus: { false },
+            isElementAlreadyFocused: { _ in true },
+            focus: { _ in true },
+            click: { _, _ in Issue.record("Already-focused focus path must not click"); return false }
+        )
+        #expect(alreadyFocusedOutcome.resolved)
+        #expect(alreadyFocusedOutcome.newlyFocusedElement == nil)
+
+        let newlyFocusedOutcome = KeyboardInjector.focusIntegratedComposerCandidates(
+            nodes,
+            integration: .antigravity,
+            windowFrame: window,
+            canContinue: { true },
+            preserveFocus: { false },
+            isElementAlreadyFocused: { _ in false },
+            focus: { _ in true },
+            click: { _, _ in Issue.record("Direct focus must not click"); return false }
+        )
+        #expect(newlyFocusedOutcome.resolved)
+        #expect(newlyFocusedOutcome.newlyFocusedElement == "composer")
+
+        // Asynchronous AX focus side effects between focus() returning false and preserveFocus()/click()
+        // must be treated as newly focused (without redundant clicks when already confirmed) while
+        // switching to a different editable field is still preserved.
+        let deepSeekNodes = [(element: "composer", snapshot: candidate("Message or run a task, / commands, @ files or sessions"))]
+        var focusedControl: String?
+        var syntheticClicks = 0
+        let asyncFocusedOutcome = KeyboardInjector.focusIntegratedComposerCandidates(
+            deepSeekNodes,
+            integration: .deepSeek,
+            windowFrame: window,
+            canContinue: { true },
+            preserveFocus: { excluded in
+                guard let current = focusedControl else { return false }
+                return excluded.map { current != $0 } ?? true
+            },
+            isElementAlreadyFocused: { focusedControl == $0 },
+            focus: { element in focusedControl = element; return false },
+            click: { element, _ in
+                if focusedControl == element { return true }
+                syntheticClicks += 1
+                return true
+            }
+        )
+        #expect(asyncFocusedOutcome.resolved)
+        #expect(asyncFocusedOutcome.newlyFocusedElement == "composer")
+        #expect(syntheticClicks == 0)
+
+        // Same race when the caller's preserveFocus does not exclude the target directly.
+        focusedControl = nil
+        let dynamicPreserveOutcome = KeyboardInjector.focusIntegratedComposerCandidates(
+            deepSeekNodes,
+            integration: .deepSeek,
+            windowFrame: window,
+            canContinue: { true },
+            preserveFocus: { focusedControl != nil },
+            isElementAlreadyFocused: { focusedControl == $0 },
+            focus: { element in focusedControl = element; return false },
+            click: { _, _ in true }
+        )
+        #expect(dynamicPreserveOutcome.resolved)
+        #expect(dynamicPreserveOutcome.newlyFocusedElement == "composer")
+
+        // User switching to another editable field during focus() must preserve that field without clicking.
+        focusedControl = nil
+        let switchedInputOutcome = KeyboardInjector.focusIntegratedComposerCandidates(
+            deepSeekNodes,
+            integration: .deepSeek,
+            windowFrame: window,
+            canContinue: { true },
+            preserveFocus: { excluded in
+                guard let current = focusedControl else { return false }
+                return excluded.map { current != $0 } ?? true
+            },
+            isElementAlreadyFocused: { focusedControl == $0 },
+            focus: { _ in focusedControl = "search_field"; return false },
+            click: { _, _ in Issue.record("Switched user input must not be replaced by a click"); return false }
+        )
+        #expect(switchedInputOutcome.resolved)
+        #expect(switchedInputOutcome.newlyFocusedElement == nil)
+
+        // Call site 3: WeChat fallback skips click and caret movement when already focused,
+        // rejects wrong controls such as search fields, and moves caret when newly focused.
+        var weChatClicks = 0
+        var weChatCaretMoves = 0
+        #expect(KeyboardInjector.focusWeChatComposerFlow(
+            isAlreadyFocused: { true },
+            performWindowClick: { weChatClicks += 1; return true },
+            pauseAfterClick: {},
+            confirmFocused: { true },
+            moveCaretToEnd: { weChatCaretMoves += 1 }
+        ))
+        #expect(weChatClicks == 0 && weChatCaretMoves == 0)
+
+        #expect(KeyboardInjector.focusWeChatComposerFlow(
+            isAlreadyFocused: { false },
+            performWindowClick: { weChatClicks += 1; return true },
+            pauseAfterClick: {},
+            confirmFocused: { true },
+            moveCaretToEnd: { weChatCaretMoves += 1 }
+        ))
+        #expect(weChatClicks == 1 && weChatCaretMoves == 1)
+
+        #expect(!KeyboardInjector.focusWeChatComposerFlow(
+            isAlreadyFocused: { false },
+            performWindowClick: { weChatClicks += 1; return true },
+            pauseAfterClick: {},
+            confirmFocused: { false },
+            moveCaretToEnd: { weChatCaretMoves += 1 }
+        ))
+        #expect(weChatClicks == 2 && weChatCaretMoves == 1)
+
+        #expect(KeyboardInjector.isWeChatComposerElementFocused(
+            role: "AXTextArea",
+            subrole: "",
+            identifier: "chat_input_field",
+            semanticText: "chat_input_field",
+            isFocused: true
+        ))
+        #expect(KeyboardInjector.isWeChatComposerElementFocused(
+            role: "AXTextArea",
+            subrole: "",
+            identifier: "",
+            semanticText: "",
+            isFocused: true
+        ))
+        #expect(!KeyboardInjector.isWeChatComposerElementFocused(
+            role: "AXTextField",
+            subrole: "AXSearchField",
+            identifier: "",
+            semanticText: "搜索",
+            isFocused: true
+        ))
+        #expect(!KeyboardInjector.isWeChatComposerElementFocused(
+            role: "AXTextField",
+            subrole: "",
+            identifier: "search_bar",
+            semanticText: "search_bar",
+            isFocused: true
+        ))
+    }
+
+    @Test func composerCaretMoveShortcutRespectsPhysicalModifiers() {
+        // 1. No held modifiers: synthesizes Command down/up around Down arrow.
+        var noModifierEvents: [CGEvent] = []
+        #expect(KeyboardInjector.sendMoveCaretToEndShortcut(
+            hardwareFlags: { [] },
+            eventPoster: { noModifierEvents.append($0); return true },
+            logger: { _ in }
+        ))
+        #expect(noModifierEvents.map { $0.getIntegerValueField(.keyboardEventKeycode) } == [55, 125, 125, 55])
+        #expect(noModifierEvents.last?.flags.contains(.maskCommand) == false)
+
+        // 2. Physical Command already held: emits only Down arrow events and preserves Command.
+        var heldCommandEvents: [CGEvent] = []
+        #expect(KeyboardInjector.sendMoveCaretToEndShortcut(
+            hardwareFlags: { .maskCommand },
+            eventPoster: { heldCommandEvents.append($0); return true },
+            logger: { _ in }
+        ))
+        #expect(heldCommandEvents.map { $0.getIntegerValueField(.keyboardEventKeycode) } == [125, 125])
+        #expect(heldCommandEvents.allSatisfy { $0.flags.contains(.maskCommand) })
+
+        // 3. Conflicting modifiers that alter Command+Down meaning skip shortcut injection.
+        let conflicting: [CGEventFlags] = [
+            .maskShift,
+            [.maskCommand, .maskShift],
+            .maskControl,
+            .maskAlternate,
+            .maskSecondaryFn
+        ]
+        for held in conflicting {
+            var posted = 0
+            #expect(!KeyboardInjector.sendMoveCaretToEndShortcut(
+                hardwareFlags: { held },
+                eventPoster: { _ in posted += 1; return true },
+                logger: { _ in }
+            ))
+            #expect(posted == 0)
+        }
     }
 
 }

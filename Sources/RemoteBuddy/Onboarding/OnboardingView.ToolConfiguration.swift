@@ -30,9 +30,6 @@ extension OnboardingView {
     }
 
     func selectControlSource(_ source: OnboardingControlSource) {
-        if source != .siriRemote {
-            settings.setOnboardingAppleRemoteGeneration(nil)
-        }
         settings.setOnboardingControlSource(source)
         if source.supportedGestureModes.count == 1 {
             settings.setOnboardingPreferredGesture(source.supportedGestureModes.first)
@@ -40,6 +37,10 @@ extension OnboardingView {
             settings.setOnboardingPreferredGesture(nil)
         }
         observedRemoteButtons.removeAll()
+        chromecastSingleKeyObserved = false
+        chromecastTwoKeyDetectedWithoutSingleKey = false
+        pendingChromecastComboButtons.removeAll()
+        compatibleChordConfirmed = false
         remoteInputDiagnostic = FirstUseRemoteInputDiagnostic()
         testedControlButtons.removeAll()
         secureInputActive = nil
@@ -47,10 +48,6 @@ extension OnboardingView {
         lastLoggedSecureInputState = nil
     }
 
-    func selectAppleRemote(_ generation: OnboardingAppleRemoteGeneration) {
-        settings.setOnboardingAppleRemoteGeneration(generation)
-        selectControlSource(.siriRemote)
-    }
 
     func refreshSelectedInputMethodStatus() {
         guard settings.onboardingStep == .voiceTool else { return }

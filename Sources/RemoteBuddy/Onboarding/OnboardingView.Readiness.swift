@@ -10,6 +10,11 @@ extension OnboardingView {
         }
     }
 
+    var isChromecastTwoKeyCompatible: Bool {
+        settings.onboardingControlSource == .chromecastRemote &&
+            settings.g9n9nInputMode(for: settings.selectedRemoteProfileID) == .twoKeyCompatibility
+    }
+
     var capabilities: OnboardingCapabilities {
         OnboardingCapabilities(
             systemFunctionKeyAvailable: systemFunctionKeyAvailable,
@@ -26,15 +31,13 @@ extension OnboardingView {
             voiceSessionEnded: voiceSessionEnded,
             transcriptionAppeared: transcriptionAppeared,
             manualTranscriptInputObserved: manualTranscriptInputObserved,
-            testedRemoteButtonCount: testedControlButtons.count
+            testedRemoteButtonCount: testedControlButtons.count,
+            isTwoKeyCompatibleMode: isChromecastTwoKeyCompatible,
+            compatibleChordConfirmed: compatibleChordConfirmed
         )
     }
 
     var canContinue: Bool {
-        if settings.onboardingStep == .complete,
-           let completeRuntimeReadyOverride {
-            return completeRuntimeReadyOverride
-        }
         let policyAllowsContinue = OnboardingFlowPolicy.canContinue(
             from: settings.onboardingStep,
             voiceTool: settings.onboardingVoiceTool,
@@ -62,7 +65,7 @@ extension OnboardingView {
     }
 
     var allRecognizedVoiceToolsUnavailable: Bool {
-        [OnboardingVoiceTool.weixin, .doubao, .voiceBuddy, .bageshuo, .typeless].allSatisfy {
+        [OnboardingVoiceTool.weixin, .doubao, .chatterfly, .voiceBuddy, .bageshuo, .typeless].allSatisfy {
             voiceToolAvailability[$0] == .notInstalled
         }
     }
@@ -73,9 +76,14 @@ extension OnboardingView {
             return false
         case .macosDictation, .other:
             return true
-        case .weixin, .doubao, .voiceBuddy, .bageshuo, .typeless:
+        case .weixin, .doubao, .chatterfly, .voiceBuddy, .bageshuo, .typeless:
             return voiceToolAvailability[settings.onboardingVoiceTool] == .available
         }
+    }
+
+    var voiceToolRequiresHoldConfirmation: Bool {
+        VoiceToolAdapterProfile.profile(for: settings.onboardingVoiceTool).supportedModes == [.hold]
+            && settings.selectedVoiceTrigger.voiceFnTapModeEnabled
     }
 
     var voiceToolRequiresTapConfirmation: Bool {
@@ -89,6 +97,7 @@ extension OnboardingView {
         if settings.onboardingVoiceTool == .macosDictation && settings.selectedVoiceTrigger.voiceKeyMode != .function {
             return "onboarding.voice_tool.trigger_incompatible"
         }
+        if voiceToolRequiresHoldConfirmation { return "onboarding.voice_tool.hold_required" }
         if voiceToolRequiresTapConfirmation { return "onboarding.voice_tool.tap_required" }
         if !hasViewedInputMethodGuideSteps(viewedInputMethodGuideSteps) {
             return "onboarding.voice_tool.guide.continue_hint"
@@ -106,7 +115,7 @@ extension OnboardingView {
     }
 
     var proposedPairingPlan: OnboardingVoicePairingPlan? {
-        guard !voiceToolRequiresTapConfirmation else { return nil }
+        guard !voiceToolRequiresTapConfirmation, !voiceToolRequiresHoldConfirmation else { return nil }
         let selectedBinding: VoiceToolUserBinding?
         if let staged = settings.stagedVoiceToolBinding,
            staged.tool == settings.onboardingVoiceTool {
@@ -142,11 +151,6 @@ extension OnboardingView {
     }
 
     var failureReason: FirstUseFailureReason? {
-        if settings.onboardingStep == .complete,
-           let completeRuntimeReadyOverride,
-           completeRuntimeReadyOverride {
-            return nil
-        }
         return diagnosticContext.failureReason
     }
 

@@ -120,9 +120,6 @@ enum OnboardingScreenshotRenderer {
         let requestedControlSource = ProcessInfo.processInfo.environment[
             "REMOTE_BUDDY_ONBOARDING_SCREENSHOT_CONTROL_SOURCE"
         ].flatMap(OnboardingControlSource.init(rawValue:))
-        let requestedAppleRemoteGeneration = ProcessInfo.processInfo.environment[
-            "REMOTE_BUDDY_ONBOARDING_SCREENSHOT_APPLE_REMOTE_GENERATION"
-        ].flatMap(OnboardingAppleRemoteGeneration.init(rawValue:))
         let verifiedPreview = ProcessInfo.processInfo.environment["REMOTE_BUDDY_ONBOARDING_SCREENSHOT_VERIFIED"] == "1"
         let requestedTapMode = ProcessInfo.processInfo.environment["REMOTE_BUDDY_ONBOARDING_SCREENSHOT_TAP_MODE"] == "1"
         let systemFunctionKeyAvailable = ProcessInfo.processInfo.environment[
@@ -161,11 +158,6 @@ enum OnboardingScreenshotRenderer {
         settings.voiceFnTapModeEnabled = requestedTapMode
         settings.setOnboardingVoiceTool(requestedVoiceTool ?? .doubao)
         settings.setOnboardingControlSource(controlSource)
-        if controlSource == .siriRemote {
-            settings.setOnboardingAppleRemoteGeneration(
-                requestedAppleRemoteGeneration ?? .generation7
-            )
-        }
         if let requestedDevice = ProcessInfo.processInfo.environment[
             "REMOTE_BUDDY_ONBOARDING_SCREENSHOT_DEVICE"
         ].flatMap(RemoteSetupDevice.init(rawValue:)) {
@@ -199,6 +191,14 @@ enum OnboardingScreenshotRenderer {
             settings: settings,
             initialAudioDevices: screenshotAudioDevices
         )
+        if settings.onboardingControlSource == .chromecastRemote {
+            let profileID = settings.registerBluetoothRemote(identifier: UUID(), model: .chromecastVoiceRemote)
+            settings.selectRemoteProfile(profileID)
+            model.configureRemoteCardsForSettingsScreenshot(
+                profileIDs: [profileID], systemNames: [profileID: "Chromecast Remote"],
+                batteryLevels: [profileID: 64], powerStates: [profileID: .onBattery]
+            )
+        }
         if verifiedPreview { model.isAudioOutputVerified = true }
         let localization = LocalizationStore(
             settings: settings,
@@ -242,12 +242,13 @@ enum OnboardingScreenshotRenderer {
                 } else {
                     OnboardingView(
                         model: model,
-                        completeRuntimeReadyOverride: true,
                         allowsInputSourceSwitching: false,
+                        allowsHardwareMonitoring: false,
                         systemFunctionKeyAvailableOverride: systemFunctionKeyAvailable,
                         voiceToolAvailabilityOverride: [
                             .weixin: allVoiceToolsUnavailable ? .notInstalled : .available,
                             .doubao: allVoiceToolsUnavailable ? .notInstalled : .available,
+                            .chatterfly: allVoiceToolsUnavailable ? .notInstalled : .available,
                             .voiceBuddy: allVoiceToolsUnavailable ? .notInstalled : .available,
                             .bageshuo: allVoiceToolsUnavailable ? .notInstalled : .available,
                             .typeless: allVoiceToolsUnavailable ? .notInstalled : .available,

@@ -155,7 +155,7 @@ def frame(index, progress, total, duration, subtitle=""):
         rows = [
             ("小米 2 Pro · RC003", "语音与按键已验证；2 代 RC001 完整音频待验收", GREEN),
             ("T1 飞鼠键盘遥控器", "已测蓝牙样机支持；兼容批次需单独验证", GREEN),
-            ("Chromecast · G9N9N", "支持语音；不支持普通单键映射", ORANGE),
+            ("Chromecast · G9N9N", "已验证版本支持语音与按键", GREEN),
         ]
         for j, row in enumerate(rows):
             card(d, 305+j*153, *row)
@@ -182,7 +182,7 @@ def frame(index, progress, total, duration, subtitle=""):
     elif kind in ("permissions", "tools", "mapping"):
         filename = scene["screenshot"]
         if kind == "mapping" and progress > 0.55:
-            filename = "phrases-zh.png"
+            filename = "phrases-zh.jpg"
         screenshot(im, d, filename, {"permissions": "权限与麦克风", "tools": "输入法集成", "mapping": "按键映射 / 常用语"}[kind])
     elif kind == "privacy":
         card(d, 325, "遥控搭子", "不保存录音或转写历史，不采集使用统计", GREEN)

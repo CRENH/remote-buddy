@@ -264,6 +264,53 @@ enum OnboardingVoiceToolRuntimePolicy {
 
 }
 
+enum ChromecastOnboardingStepOutcome: Equatable {
+    case recordFullMode(buttons: Set<RemoteButton>)
+    case recordCompatibilityMode(buttons: Set<RemoteButton>)
+    case awaitCompatibilityOptIn(buttons: Set<RemoteButton>)
+    case controlsChordConfirmed(buttons: Set<RemoteButton>)
+    case controlsNonChordObserved(buttons: Set<RemoteButton>)
+}
+
+enum ChromecastCompatibilityDetection {
+    /// Distinguishes full single-key G9N9N units from partial two-key units without auto-enabling
+    /// compatibility mode: multi-key reports before single-key proof require explicit user opt-in.
+    static func evaluate(
+        step: OnboardingStep,
+        buttons: Set<RemoteButton>,
+        singleKeyObserved: Bool,
+        compatibilityModeEnabled: Bool
+    ) -> ChromecastOnboardingStepOutcome {
+        if step == .remote {
+            if buttons.count == 1 {
+                return .recordFullMode(buttons: buttons)
+            }
+            if singleKeyObserved {
+                return .recordFullMode(buttons: buttons)
+            }
+            if compatibilityModeEnabled {
+                return .recordCompatibilityMode(buttons: buttons)
+            }
+            return .awaitCompatibilityOptIn(buttons: buttons)
+        }
+        if compatibilityModeEnabled,
+           G9N9NProtocol.isEnterChord(Set(buttons.map(\.hidUsage))) {
+            return .controlsChordConfirmed(buttons: buttons)
+        }
+        return .controlsNonChordObserved(buttons: buttons)
+    }
+
+    /// Show the two-mode explanation & explicit opt-in checkbox upfront on `.remote`
+    /// until single-key input confirms a Fully Supported G9N9N unit.
+    static func shouldShowCompatibilityOptInCard(
+        step: OnboardingStep,
+        source: OnboardingControlSource,
+        singleKeyObserved: Bool
+    ) -> Bool {
+        step == .remote && source == .chromecastRemote && !singleKeyObserved
+    }
+}
+
 struct OnboardingCapabilities: Equatable {
     var systemFunctionKeyAvailable = false
     var bluetoothGranted = false
@@ -280,6 +327,8 @@ struct OnboardingCapabilities: Equatable {
     var transcriptionAppeared = false
     var manualTranscriptInputObserved = false
     var testedRemoteButtonCount = 0
+    var isTwoKeyCompatibleMode = false
+    var compatibleChordConfirmed = false
 }
 
 enum OnboardingAudioSelectionPolicy {
@@ -335,7 +384,7 @@ enum OnboardingTranscriptInputPolicy {
 
 enum OnboardingVoiceTestConfigurationPolicy {
     static func requiresGlobalVoiceConfirmation(for voiceTool: OnboardingVoiceTool) -> Bool {
-        voiceTool == .doubao
+        voiceTool == .doubao || voiceTool == .chatterfly
     }
 }
 
@@ -402,19 +451,12 @@ enum OnboardingFlowPolicy {
                 capabilities.transcriptionAppeared &&
                 !capabilities.manualTranscriptInputObserved
         case .controls:
-            return capabilities.testedRemoteButtonCount >= 3
+            if capabilities.isTwoKeyCompatibleMode {
+                return capabilities.remoteConnected && capabilities.compatibleChordConfirmed
+            }
+            return capabilities.remoteConnected && capabilities.testedRemoteButtonCount >= 3
         case .complete:
-            return isControlSelectionValid(
-                remoteAvailability: remoteAvailability,
-                controlMethod: controlMethod
-            ) &&
-                (!controlMethod.requiresBluetoothPermission || capabilities.bluetoothGranted) &&
-                (!controlMethod.requiresInputMonitoringPermission ||
-                    capabilities.inputMonitoringGranted) &&
-                capabilities.accessibilityGranted &&
-                capabilities.remoteConnected &&
-                capabilities.audioOutputSelected &&
-                capabilities.audioReady
+            return true
         }
     }
 
@@ -446,22 +488,6 @@ enum OnboardingFlowPolicy {
             hasSelectedAudioUID: hasSelectedAudioUID
         )
         guard let failure = context.failureReason else { return nil }
-        if step == .complete, failure == .completeRuntimeRegressed {
-            if !isControlSelectionValid(
-                remoteAvailability: remoteAvailability,
-                controlMethod: controlMethod
-            ) {
-                return .remoteAvailability
-            }
-            if (controlMethod.requiresBluetoothPermission && !capabilities.bluetoothGranted) ||
-                (controlMethod.requiresInputMonitoringPermission &&
-                    !capabilities.inputMonitoringGranted) ||
-                !capabilities.accessibilityGranted {
-                return .permissions
-            }
-            if !capabilities.remoteConnected { return .remote }
-            return .permissions
-        }
         return failure.recoveryStep
     }
 

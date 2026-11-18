@@ -24,8 +24,21 @@ extension KeyboardInjector {
         isDown: Bool,
         flags: CGEventFlags
     ) -> Bool {
-        guard let event = makeMappedKeyEvent(code: code, isDown: isDown, flags: flags)
-        else { return false }
+        postOwnedKeyState(code: code, isDown: isDown, flags: flags, excludingOwnedModifiers: [])
+    }
+
+    static func postOwnedKeyState(
+        code: CGKeyCode,
+        isDown: Bool,
+        flags: CGEventFlags,
+        excludingOwnedModifiers: CGEventFlags
+    ) -> Bool {
+        guard let event = makeMappedKeyEvent(
+            code: code,
+            isDown: isDown,
+            flags: flags,
+            excludingOwnedModifiers: excludingOwnedModifiers
+        ) else { return false }
         AppLogger.shared.write(
             "MAPPED KEY EVENT key_code=\(code) edge=\(isDown ? "down" : "up") " +
                 "modifier_flags=\(event.flags.rawValue) result=submitted target_response=unknown"
@@ -63,12 +76,14 @@ extension KeyboardInjector {
 
     static func makeMappedKeyEvent(
         code: CGKeyCode, isDown: Bool, flags: CGEventFlags,
+        excludingOwnedModifiers: CGEventFlags = [],
         hardwareFlags: () -> CGEventFlags = KeyboardHardwareModifierPolicy.current
     ) -> CGEvent? {
         // The remote's native Home carries Fn even without numeric-pad flags.
         // Only the configured shortcut may add Fn to a mapped event.
         makeMarkedKeyEvent(code: code, isDown: isDown, flags: flags,
             marker: syntheticEventMarker,
+            excludingOwnedModifiers: excludingOwnedModifiers,
             hardwareFlags: { KeyboardHardwareModifierPolicy.mappedActionFlags(hardwareFlags()) })
     }
 
@@ -82,18 +97,22 @@ extension KeyboardInjector {
     private static let markedKeySource = CGEventSource(stateID: .privateState)
 
     static func makeMarkedKeyEvent(code: CGKeyCode, isDown: Bool, flags: CGEventFlags, marker: Int64,
+                                   excludingOwnedModifiers: CGEventFlags = [],
                                    hardwareFlags: () -> CGEventFlags = { CGEventSource.flagsState(.hidSystemState) }) -> CGEvent? {
         guard let source = markedKeySource,
               let event = CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: isDown)
         else { return nil }
         event.type = keyEventType(code: code, isDown: isDown)
-        // Voice modifiers must not re-inherit their own HID state on release.
+        // Voice modifiers and session-owned modifiers must not re-inherit their own HID state on release.
         // Preserve other physical modifiers, including the opposite-side key.
         let observedFlags = hardwareFlags()
+        let ownedModifiers = marker == orderedVoiceEventMarker
+            ? ShortcutEventSequence.modifierFlags(for: code)
+            : excludingOwnedModifiers
         let inheritedFlags: CGEventFlags
-        if marker == orderedVoiceEventMarker {
+        if !ownedModifiers.isEmpty {
             inheritedFlags = ShortcutEventSequence.hardwareFlags(observedFlags,
-                excludingOwned: ShortcutEventSequence.modifierFlags(for: code))
+                excludingOwned: ownedModifiers)
         } else {
             inheritedFlags = code == VoiceKeyMode.function.keyCode
                 ? observedFlags.subtracting(.maskSecondaryFn) : observedFlags
@@ -154,78 +173,7 @@ extension KeyboardInjector {
             .max { $0.width * $0.height < $1.width * $1.height }
     }
 
-    static func ordinaryWindowCount(
-        windowInfo: [[String: Any]],
-        processIdentifier: pid_t
-    ) -> Int {
-        windowInfo.reduce(into: 0) { count, entry in
-            guard let owner = entry[kCGWindowOwnerPID as String] as? NSNumber,
-                  owner.int32Value == processIdentifier,
-                  let layer = entry[kCGWindowLayer as String] as? NSNumber,
-                  layer.intValue == 0,
-                  let bounds = entry[kCGWindowBounds as String] as? NSDictionary,
-                  let frame = CGRect(dictionaryRepresentation: bounds as CFDictionary),
-                  frame.width > 0,
-                  frame.height > 0
-            else { return }
-            count += 1
-        }
-    }
 
-    static func applicationVisibilitySnapshot(
-        bundleIdentifier: String
-    ) -> ApplicationVisibilitySnapshot {
-        let applications = NSRunningApplication.runningApplications(
-            withBundleIdentifier: bundleIdentifier
-        )
-        guard let application = applications.first(where: { $0.isActive && !$0.isTerminated })
-            ?? applications.first(where: { !$0.isTerminated })
-        else {
-            return ApplicationVisibilitySnapshot(
-                bundleIdentifier: bundleIdentifier,
-                processActive: false,
-                processHidden: false,
-                processTerminated: true,
-                activationPolicy: "unknown",
-                ordinaryWindowCount: 0,
-                onscreenWindowCount: 0
-            )
-        }
-
-        let allWindows = CGWindowListCopyWindowInfo(
-            [.optionAll, .excludeDesktopElements],
-            kCGNullWindowID
-        ) as? [[String: Any]]
-        let onscreenWindows = CGWindowListCopyWindowInfo(
-            [.optionOnScreenOnly, .excludeDesktopElements],
-            kCGNullWindowID
-        ) as? [[String: Any]]
-        let activationPolicy: String = switch application.activationPolicy {
-        case .regular: "regular"
-        case .accessory: "accessory"
-        case .prohibited: "prohibited"
-        @unknown default: "unknown"
-        }
-        return ApplicationVisibilitySnapshot(
-            bundleIdentifier: bundleIdentifier,
-            processActive: application.isActive,
-            processHidden: application.isHidden,
-            processTerminated: application.isTerminated,
-            activationPolicy: activationPolicy,
-            ordinaryWindowCount: allWindows.map {
-                ordinaryWindowCount(
-                    windowInfo: $0,
-                    processIdentifier: application.processIdentifier
-                )
-            },
-            onscreenWindowCount: onscreenWindows.map {
-                ordinaryWindowCount(
-                    windowInfo: $0,
-                    processIdentifier: application.processIdentifier
-                )
-            }
-        )
-    }
 
     private static func frontmostWindowFrame() -> CGRect? {
         guard let processIdentifier = NSWorkspace.shared

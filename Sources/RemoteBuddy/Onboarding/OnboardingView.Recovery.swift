@@ -8,24 +8,22 @@ extension OnboardingView {
         buttonHelpExpanded = false
         diagnosticCopySucceeded = nil
         refreshPermissionStates()
-        model.applyHIDSettings(allowVoiceKeyModeFallback: false)
+        if allowsHardwareMonitoring {
+            model.applyHIDSettings(allowVoiceKeyModeFallback: false)
+        }
         switch step {
         case .voiceTool:
             refreshVoiceToolAvailability()
             refreshSelectedInputMethodStatus()
             refreshSystemFunctionKeyUsage()
         case .remoteAvailability:
-            if settings.onboardingControlSource == .siriRemote,
-               settings.onboardingAppleRemoteGeneration == nil {
-                let generation: OnboardingAppleRemoteGeneration =
-                    settings.selectedRemoteProfile?.model == .appleSiriRemoteA2540
-                    ? .generation6
-                    : .generation7
-                settings.setOnboardingAppleRemoteGeneration(generation)
-            }
             routeConnectedPhysicalRemoteIfNeeded()
         case .remote:
             observedRemoteButtons.removeAll()
+            chromecastSingleKeyObserved = false
+            chromecastTwoKeyDetectedWithoutSingleKey = false
+            pendingChromecastComboButtons.removeAll()
+            compatibleChordConfirmed = false
             remoteInputDiagnostic = remoteInputDiagnosticOverride ?? FirstUseRemoteInputDiagnostic()
             requestedRemoteConnectionRecovery = false
             secureInputWaitStartedAtUptime = nil
@@ -40,13 +38,12 @@ extension OnboardingView {
             resetVoiceTestForRetry()
         case .controls:
             testedControlButtons.removeAll()
+            compatibleChordConfirmed = false
             secureInputWaitStartedAtUptime = nil
         case .complete:
             if secureInputActive != nil { secureInputActive = nil }
             if secureInputWaitStartedAtUptime != nil { secureInputWaitStartedAtUptime = nil }
             if lastLoggedSecureInputState != nil { lastLoggedSecureInputState = nil }
-            prepareSelectedControlConnection()
-            model.refreshAudioDevices()
         }
         settings.recordFirstUseEvent(.entered, step: step)
         lastRecordedFailure = nil
@@ -119,16 +116,6 @@ extension OnboardingView {
         case .voiceNoSamples, .voiceAudioDeliveryFailed:
             model.applyAudioSettings(reason: "onboarding_voice_retry")
             resetVoiceTestForRetry()
-        case .completeRuntimeRegressed:
-            guard let recoveryStep = OnboardingFlowPolicy.recoveryStep(
-                from: .complete,
-                voiceTool: settings.onboardingVoiceTool,
-                remoteAvailability: settings.onboardingRemoteAvailability,
-                controlMethod: settings.onboardingControlMethod,
-                capabilities: capabilities,
-                hasSelectedAudioUID: !settings.selectedAudioDeviceUID.isEmpty
-            ) else { return }
-            settings.setOnboardingStep(recoveryStep)
         }
     }
 

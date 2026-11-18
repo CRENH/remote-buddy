@@ -8,7 +8,14 @@ extension SettingsView {
     var connectionPage: some View {
         settingsPage {
             HStack(spacing: 16) {
-                PageHeader(title: localization.text("connection.page.title"))
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    PageHeader(title: localization.text("connection.page.title"))
+                    Link(destination: AppLinks.devices(for: localization.locale)) {
+                        Text(localization.text("connection.action.device_comparison"))
+                            .font(.system(size: 13))
+                    }
+                    .accessibilityIdentifier("connection.device-comparison-link")
+                }
                 Spacer()
                 Button {
                     SettingsPageBehavior.beginDeviceSetup(settings: settings)
@@ -31,7 +38,12 @@ extension SettingsView {
                         runtimePermissionIssuePanel(runtimeIssue)
                     }
                     if profiles.isEmpty {
-                        GlassPanel { remoteDeviceSelector(vertical: true) }
+                        ContentUnavailableView(
+                            localization.text("connection.empty.title"),
+                            systemImage: "appletvremote.gen4",
+                            description: Text(localization.text("connection.empty.detail"))
+                        )
+                        .frame(maxWidth: .infinity, minHeight: 240)
                     }
                     ForEach(profiles) { profile in
                         connectionDeviceGroup(profile)
@@ -203,6 +215,37 @@ extension SettingsView {
                        let information = model.remoteDeviceInformation[identifier],
                        information != RemoteDeviceInformation() {
                         connectionDeviceInformation(information)
+                    }
+                    if profile.model.isChromecastRemote {
+                        let mode = profile.effectiveG9N9NInputMode
+                        Divider()
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                g9n9nSupportBadge(for: mode)
+                                    .fixedSize()
+                                Text(localization.text(
+                                    mode == .twoKeyCompatibility
+                                        ? "connection.g9n9n.partial_support_notice"
+                                        : "connection.g9n9n.full_support_notice"
+                                ))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            }
+                            if mode == .twoKeyCompatibility {
+                                HStack(spacing: 12) {
+                                    Link(
+                                        localization.text("connection.g9n9n.compatibility_doc_link"),
+                                        destination: AppLinks.g9n9nCompatibilityGuide
+                                    )
+                                    Link(
+                                        localization.text("onboarding.chromecast.replace_hardware_link"),
+                                        destination: AppLinks.devices(for: localization.locale)
+                                    )
+                                }
+                                .font(.caption)
+                            }
+                        }
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading).padding(.top, 10)
             }

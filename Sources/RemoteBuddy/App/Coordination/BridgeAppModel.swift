@@ -5,6 +5,11 @@ import CoreAudio
 import CoreBluetooth
 import Foundation
 
+struct RemoteButtonObservation: Equatable {
+    let profileID: UUID?
+    let buttons: Set<RemoteButton>
+}
+
 @MainActor
 final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
     static let longRecordingOpenTimeout: TimeInterval = 5
@@ -40,6 +45,7 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
     @Published var isVoiceTriggerEnabled = false
     @Published var activeRemoteButtons = Set<RemoteButton>()
     @Published var lastRemoteButtonPress: RemoteButton?
+    @Published var lastObservedRemoteButtonReport: RemoteButtonObservation?
     @Published var connectedRemoteProfileIDs = Set<UUID>()
     @Published var remoteBatteryLevels: [UUID: Int] = [:]
     @Published var remotePowerStates: [UUID: RemotePowerState] = [:]
@@ -49,8 +55,6 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
     @Published var remoteSystemDeviceNames: [UUID: String] = [:]
     @Published var remoteDeviceInformation: [UUID: RemoteDeviceInformation] = [:]
     @Published var audioDevices: [AudioDeviceInfo] = []
-    @Published var testToneStatus = LocalizedMessage("audio.output.none_selected")
-    @Published var isPlayingTestTone = false
     @Published var isAudioOutputReady = false {
         didSet { if isAudioOutputReady { isAudioOutputVerified = true } }
     }
@@ -61,6 +65,19 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
     @Published var activeVoiceSource: RemoteInputSource?
     @Published var voiceShortcutStatus = LocalizedMessage("voice_button.status.preparing")
     @Published var voiceKeyCompatibilityWarning: VoiceKeyCompatibilityWarning?
+    struct VoiceToolUnavailablePrompt: Equatable {
+        enum Reason: Equatable {
+            case unavailable
+            case applicationUnavailable
+            case switchFailed
+        }
+
+        let tool: OnboardingVoiceTool
+        let reason: Reason
+    }
+
+    @Published var unavailableVoiceToolPrompt: VoiceToolUnavailablePrompt?
+    @Published var requestedSettingsSection: SettingsSection?
 
     func isOnboardingControlSourceConnected(_ source: OnboardingControlSource) -> Bool {
         switch source {
@@ -109,8 +126,63 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
     lazy var preferredInputSourceMonitor = PreferredInputSourceMonitor(
         voiceTool: { [weak self] in
             self?.settings.onboardingVoiceTool ?? .unselected
+        },
+        onSourcePreparationFailure: { [weak self] tool, result in
+            self?.handleInputSourcePreparationFailure(for: tool, result: result)
         }
     )
+
+    private var lastUnavailableVoiceToolPrompt: (tool: OnboardingVoiceTool, uptime: TimeInterval)?
+    var voiceToolAvailabilityChecker: (OnboardingVoiceTool) -> OnboardingVoiceToolAvailability = {
+        OnboardingInputSourceSwitcher.integrationAvailability(for: $0)
+    }
+
+    func ensureVoiceToolApplicationAvailable(
+        now: TimeInterval = ProcessInfo.processInfo.systemUptime
+    ) -> Bool {
+        let tool = settings.onboardingVoiceTool
+        guard tool.applicationBundleIdentifier != nil else { return true }
+        guard voiceToolAvailabilityChecker(tool) == .notInstalled else { return true }
+        presentUnavailableVoiceToolPromptIfNeeded(
+            for: tool,
+            reason: .applicationUnavailable,
+            now: now
+        )
+        AppLogger.shared.write("VOICE KEY rejected reason=voice_tool_not_installed tool=\(tool.rawValue)")
+        return false
+    }
+
+    func handleInputSourcePreparationFailure(
+        for tool: OnboardingVoiceTool,
+        result: OnboardingInputSourceSwitchResult,
+        now: TimeInterval = ProcessInfo.processInfo.systemUptime
+    ) {
+        let reason: VoiceToolUnavailablePrompt.Reason
+        switch result {
+        case .unavailable:
+            reason = .unavailable
+        case .failed:
+            reason = .switchFailed
+        case .selected, .notSelected, .notApplicable:
+            return
+        }
+        presentUnavailableVoiceToolPromptIfNeeded(for: tool, reason: reason, now: now)
+    }
+
+    func presentUnavailableVoiceToolPromptIfNeeded(
+        for tool: OnboardingVoiceTool,
+        reason: VoiceToolUnavailablePrompt.Reason = .unavailable,
+        now: TimeInterval = ProcessInfo.processInfo.systemUptime
+    ) {
+        // Throttle repeats per tool (even across reason changes) so key presses stay quiet.
+        if let last = lastUnavailableVoiceToolPrompt,
+           last.tool == tool,
+           now - last.uptime < 10 {
+            return
+        }
+        lastUnavailableVoiceToolPrompt = (tool, now)
+        unavailableVoiceToolPrompt = VoiceToolUnavailablePrompt(tool: tool, reason: reason)
+    }
     lazy var voiceInputDestinationCoordinator = VoiceInputDestinationCoordinator(
         onStateChange: { [weak self] state in
             self?.handleVoiceInputDestinationState(state)
@@ -122,7 +194,6 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
     private var applicationIntegrationCancellable: AnyCancellable?
     private var remoteDiscoverySettingsCancellable: AnyCancellable?
     var remoteDiscoveryRequests = Set<UUID>()
-    var testToneGeneration = 0
     var voiceKeyLatch = VoiceKeyLatch()
     var voiceKeyReleaseRetry: ScheduledOperation?
     var voiceKeyReleaseRetryGeneration: UInt64 = 0
@@ -303,11 +374,28 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
     }
 
     isolated deinit {
+        if let terminationObserver {
+            NotificationCenter.default.removeObserver(terminationObserver)
+        }
         applicationIntegrationStatusExpiry?.cancel()
         voiceKeyReleaseRetry?.cancel()
     }
 
     private(set) var isTerminating = false
+
+    func setG9N9NInputMode(_ mode: G9N9NInputMode, for profileID: UUID? = nil) {
+        guard !settings.isOnboardingComplete,
+              settings.onboardingPurpose != .integration,
+              let targetID = profileID ?? settings.selectedRemoteProfileID,
+              settings.remoteDeviceProfiles.contains(where: { $0.id == targetID && $0.model.isChromecastRemote })
+        else { return }
+        settings.setG9N9NInputMode(mode, for: targetID)
+        for monitor in Array(hidMonitors.values) + (discoveryHIDMonitor.map { [$0] } ?? [])
+        where monitor.profileID == nil || monitor.profileID == targetID {
+            monitor.clearTransientInputStateForCompatibility()
+        }
+        AppLogger.shared.write("REMOTE HID g9n9n_mode=\(mode.rawValue) profile=\(targetID.uuidString)")
+    }
 
     func prepareForTermination() {
         isTerminating = true
@@ -332,10 +420,6 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
         cancelHIDFilterRetry()
         audio.invalidatePendingWork()
         stopObservingAudioHardware()
-        cancelTestToneIfNeeded(
-            statusMessage: LocalizedMessage("app.status.stopped"),
-            logReason: "app_stop"
-        )
         stopLongRecording(reason: "app_stop")
         finishRC003VoiceExtensionTest(reason: "app_stop")
         voiceInputDestinationCoordinator.shutdown()

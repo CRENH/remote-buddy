@@ -6,7 +6,7 @@ final class AppSettings: ObservableObject {
     static let currentOnboardingVersion = 1
 
     enum Keys {
-        static let enabledApplicationIntegrations = "enabledApplicationIntegrations"
+        static let disabledApplicationIntegrations = "disabledApplicationIntegrations"
         static let gainDB = "gainDB"
         static let customMappingEnabled = "customMappingEnabled"
         static let buttonBindings = "buttonBindings"
@@ -30,7 +30,6 @@ final class AppSettings: ObservableObject {
         static let onboardingStep = "onboarding.step"
         static let onboardingControlSource = "onboarding.controlSource"
         static let onboardingDevice = "onboarding.device"
-        static let onboardingAppleRemoteGeneration = "onboarding.appleRemoteGeneration"
         static let onboardingVoiceTool = "onboarding.voiceTool"
         static let onboardingPreferredGesture = "onboarding.preferredGesture"
         static let onboardingVerifiedVoiceBinding = "onboarding.verifiedVoiceBinding"
@@ -41,8 +40,15 @@ final class AppSettings: ObservableObject {
         static let firstUseLastSignature = "onboarding.diagnostics.lastSignature"
     }
 
+    private static var allApplicationIntegrationIdentifiers: Set<String> {
+        Set(ApplicationIntegration.allCases.map(\.rawValue))
+    }
+
     @Published var enabledApplicationIntegrations: Set<String> {
-        didSet { defaults.set(enabledApplicationIntegrations.sorted(), forKey: Keys.enabledApplicationIntegrations) }
+        didSet {
+            let disabled = Self.allApplicationIntegrationIdentifiers.subtracting(enabledApplicationIntegrations)
+            defaults.set(disabled.sorted(), forKey: Keys.disabledApplicationIntegrations)
+        }
     }
 
     let defaults: UserDefaults
@@ -65,31 +71,15 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(customMappingEnabled, forKey: Keys.customMappingEnabled) }
     }
 
-    @Published var unifiedBaseBindings: [UnifiedButtonBinding] = [] {
-        didSet {
-            guard !isResettingBindings else { return }
-            do {
-                let data = try JSONEncoder().encode(unifiedBaseBindings)
-                defaults.set(data, forKey: "unifiedBaseBindings")
-            } catch {
-                AppLogger.shared.write("SETTINGS ERROR encode unifiedBaseBindings failed: \(Self.describeEncodingError(error))")
-            }
-        }
-    }
-
     func setBaseBinding(_ configured: ConfiguredButtonAction, for button: RemoteButton,
                         trigger: ButtonTrigger, profileID: UUID?) {
-        var bindings = unifiedBaseBindings
-        bindings.removeAll { $0.remoteProfileID == profileID && $0.button == button && $0.trigger == trigger }
-        bindings.append(UnifiedButtonBinding(remoteProfileID: profileID, button: button,
-                                            trigger: trigger, configured: configured))
-        unifiedBaseBindings = bindings
+        guard allowsMappingEdits(for: profileID) else { return }
         AppLogger.shared.write(
             "SETTINGS MAPPING updated button=\(button.rawValue) trigger=\(trigger.rawValue) " +
                 "action=\(configured.action.rawValue) profile_scoped=\(profileID != nil)"
         )
 
-        if let profileID {
+        if let profileID, profileID != selectedRemoteProfileID {
             if let index = remoteDeviceProfiles.firstIndex(where: { $0.id == profileID }) {
                 let mappings = remoteDeviceProfiles[index].mappings
                 var parsedBindings = mappings.parsedButtonBindings
@@ -274,15 +264,6 @@ final class AppSettings: ObservableObject {
         }
     }
 
-    @Published var onboardingAppleRemoteGeneration: OnboardingAppleRemoteGeneration? {
-        didSet {
-            defaults.set(
-                onboardingAppleRemoteGeneration?.rawValue,
-                forKey: Keys.onboardingAppleRemoteGeneration
-            )
-        }
-    }
-
     @Published var onboardingVoiceTool: OnboardingVoiceTool {
         didSet { defaults.set(onboardingVoiceTool.rawValue, forKey: Keys.onboardingVoiceTool) }
     }
@@ -398,8 +379,9 @@ final class AppSettings: ObservableObject {
     }
 
     init(defaults: UserDefaults = .standard) {
-        enabledApplicationIntegrations = Set(defaults.stringArray(forKey: Keys.enabledApplicationIntegrations) ?? [])
-            .intersection(ApplicationIntegration.allCases.map(\.rawValue))
+        let disabled = Set(defaults.stringArray(forKey: Keys.disabledApplicationIntegrations) ?? [])
+            .intersection(Self.allApplicationIntegrationIdentifiers)
+        enabledApplicationIntegrations = Self.allApplicationIntegrationIdentifiers.subtracting(disabled)
         var corruptedKeys: [String] = []
         self.defaults = defaults
         Self.discardInterruptedOnboardingTrial(in: defaults)
@@ -515,9 +497,6 @@ final class AppSettings: ObservableObject {
         onboardingDevice = defaults.string(forKey: Keys.onboardingDevice)
             .flatMap(RemoteSetupDevice.init(rawValue:))
             ?? RemoteSetupDevice.device(for: persistedControlSource)
-        onboardingAppleRemoteGeneration = defaults.string(
-            forKey: Keys.onboardingAppleRemoteGeneration
-        ).flatMap(OnboardingAppleRemoteGeneration.init(rawValue:))
         onboardingRemoteAvailability = persistedControlSource == .unselected ? .unselected : .hasRemote
         onboardingVoiceTool = defaults.string(forKey: Keys.onboardingVoiceTool)
             .flatMap(OnboardingVoiceTool.init(rawValue:)) ?? .unselected
@@ -559,7 +538,7 @@ final class AppSettings: ObservableObject {
             if let selectedRemoteProfileID,
                let selected = decoded.first(where: { $0.id == selectedRemoteProfileID }) {
                 if let storedGain = selected.gainDB, storedGain.isFinite, (0...24).contains(storedGain) { gainDB = storedGain }
-                buttonBindings = Self.defaultBindings.merging(selected.mappings.parsedButtonBindings) {
+                buttonBindings = Self.defaultMappings(for: selected.model).parsedButtonBindings.merging(selected.mappings.parsedButtonBindings) {
                     _, saved in saved
                 }
                 buttonShortcuts = selected.mappings.parsedButtonShortcuts
@@ -567,10 +546,6 @@ final class AppSettings: ObservableObject {
                 secondaryButtonBindings = selected.mappings.parsedSecondaryButtonBindings
             }
         }
-        unifiedBaseBindings = Self.decodeSetting(
-            [UnifiedButtonBinding].self, forKey: "unifiedBaseBindings",
-            from: defaults, corrupted: &corruptedKeys
-        ) ?? []
         corruptedSettingKeys = corruptedKeys
         if shouldSeedSecondaryBindings { saveSecondaryBindings() }
     }

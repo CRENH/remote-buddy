@@ -105,14 +105,20 @@ for name in sorted(names):
     files.append(light)
     dark = image_path(name, 'dark')
     # New local captures are light only; the view falls back to that real capture.
-    if dark is not None or name not in {'doubao-input-microphone', 'weixin-input-microphone', 'voicebuddy-setting-fn', 'voicebuddy-setting-mic', 'macos-dictation-enable', 'macos-dictation-shortcut', 'macos-dictation-microphone'}:
+    if dark is not None or name not in {
+        'doubao-menu', 'doubao-settings', 'doubao-input-microphone',
+        'weixin-input-menu', 'weixin-input-settings', 'weixin-input-microphone',
+        'voicebuddy-setting-fn', 'voicebuddy-setting-mic',
+        'chatterfly-settings', 'chatterfly-input-microphone',
+        'macos-dictation-enable', 'macos-dictation-shortcut', 'macos-dictation-microphone',
+    }:
         assert dark is not None, f'Missing dark screenshot: {name}'
         files.append(dark)
 # Product catalog and button-mapping resources are required even while adapters remain planned.
 catalog = (app_sources / 'Devices/RemoteSetupDevice.swift').read_text()
 device_catalog = (app_sources / 'Devices/XiaomiRemoteCatalog.swift').read_text()
-illustrations = set(re.findall(r'return "(\w+Illustration)"', catalog))
-illustrations.update(re.findall(r'"(\w+Illustration)"', device_catalog))
+illustrations = set(re.findall(r'return "(\w+(?:Illustration|Photo))"', catalog))
+illustrations.update(re.findall(r'"(\w+(?:Illustration|Photo))"', device_catalog))
 assert illustrations, 'No product catalog illustrations found'
 files.extend(resources / f'{name}.png' for name in sorted(illustrations))
 for path in files:

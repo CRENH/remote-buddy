@@ -2,6 +2,7 @@ import AppKit
 import CoreGraphics
 import Foundation
 import Testing
+import SwiftUI
 @testable import RemoteBuddy
 
 @Suite("Voice shortcut configuration")
@@ -219,6 +220,74 @@ struct VoiceTriggerConfigurationTests {
         }
     }
 
+    @Test(arguments: [OnboardingVoiceToolAvailability.notInstalled, .available])
+    func chatterflyHoldBannerFollowsInstallationPriority(availability: OnboardingVoiceToolAvailability) async throws {
+        let name = "chatterfly-hold-banner-" + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        let settings = AppSettings(defaults: defaults)
+        settings.voiceFnTapModeEnabled = true
+        settings.setOnboardingControlSource(.xiaomiRemote)
+        settings.setOnboardingVoiceTool(.chatterfly)
+        settings.selectOnboardingFnTapMode(true)
+        settings.setOnboardingStep(.voiceTool)
+        let probe = OnboardingInteractionProbe(openURL: { _ in })
+        let view = OnboardingView(
+            model: BridgeAppModel(settings: settings, initialAudioDevices: []),
+            allowsInputSourceSwitching: false,
+            allowsHardwareMonitoring: false,
+            systemFunctionKeyAvailableOverride: true,
+            voiceToolAvailabilityOverride: [.chatterfly: availability],
+            interactionProbe: probe,
+            permissionOverrides: .allGranted
+        )
+        #expect(view.voiceToolBlockingHintKey == (availability == .available
+            ? "onboarding.voice_tool.hold_required" : "onboarding.voice_tool.install_required"))
+        let controller = NSHostingController(rootView: view
+            .environmentObject(LocalizationStore(settings: settings)))
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1100, height: 850),
+            styleMask: [.titled], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.contentViewController = controller
+        defer { window.close() }
+        window.contentView?.layoutSubtreeIfNeeded()
+        try await waitForTestCondition("voice tool page registers controls") {
+            probe.actions["continue"] != nil && probe.actions["voice-tool.chatterfly.website"] != nil
+        }
+        #expect((probe.actions["voice-tool.enable-hold"] != nil) == (availability == .available))
+        if availability == .notInstalled {
+            probe.invoke("voice-tool.enable-hold")
+            #expect(settings.selectedVoiceTrigger.voiceFnTapModeEnabled)
+            #expect(settings.voiceFnTapModeEnabled)
+            #expect(view.proposedPairingPlan == nil)
+        }
+    }
+
+    @Test func chatterflyRequiresExplicitHoldModeAndShowsSetupGuide() throws {
+        try withSettings { settings, _ in
+            settings.setOnboardingControlSource(.xiaomiRemote)
+            settings.setOnboardingVoiceTool(.chatterfly)
+            settings.selectOnboardingFnTapMode(true)
+            settings.selectOnboardingVoiceTrigger(.suggestedShortcut)
+            let view = OnboardingView(model: BridgeAppModel(settings: settings, initialAudioDevices: []),
+                voiceToolAvailabilityOverride: [.chatterfly: .available])
+            #expect(view.voiceToolRequiresHoldConfirmation)
+            #expect(view.voiceToolBlockingHintKey == "onboarding.voice_tool.hold_required")
+            #expect(view.proposedPairingPlan == nil)
+            #expect(settings.selectedVoiceTrigger.voiceFnTapModeEnabled)
+            settings.selectOnboardingFnTapMode(false)
+            #expect(!view.voiceToolRequiresHoldConfirmation)
+            let plan = try #require(view.proposedPairingPlan)
+            #expect(plan.binding.gestureMode == .hold)
+            #expect(plan.binding.shortcut == .suggestedShortcut)
+            #expect(!plan.fnTapModeEnabled)
+            #expect(view.voiceToolBlockingHintKey == "onboarding.voice_tool.guide.continue_hint")
+            let steps = view.inputMethodGuideSteps(for: .chatterfly)
+            #expect(Set(steps.map(\.id)).count == steps.count)
+            #expect(steps.contains { if case .screenshot("chatterfly-settings") = $0.content { return true }; return false })
+        }
+    }
+
     @Test func selectingATapOnlyToolDoesNotSilentlyChangeTheSelectedMode() throws {
         try withSettings { settings, _ in
             settings.setOnboardingControlSource(.xiaomiRemote)
@@ -297,9 +366,24 @@ struct VoiceTriggerConfigurationTests {
 
     @Test func voiceShortcutPresetsMatchTheSupportedMenuChoices() {
         let expected: [NSEvent.ModifierFlags] = [[.control, .shift], [.control, .option], [.control, .command]]
-        #expect(VoiceKeyMode.shortcutPresets == expected.map {
-            .shortcut(CustomKeyboardShortcut(keyCode: 9, modifierFlags: $0, keyLabel: "V"))
-        })
+        let chords: [VoiceKeyMode] = [(UInt16(9), "V"), (UInt16(15), "R")].flatMap { keyCode, label in
+            expected.map { .shortcut(CustomKeyboardShortcut(keyCode: keyCode, modifierFlags: $0, keyLabel: label)) }
+        }
+        #expect(VoiceKeyMode.shortcutPresets == chords)
+        #expect(VoiceKeyMode.allCases == [.function, .rightOption, .rightCommand] + chords)
+        #expect(VoiceKeyMode.allCases.count == 9)
+        #expect(Set(VoiceKeyMode.allCases).count == 9)
+        #expect(!VoiceKeyMode.allCases.contains(.leftCommand))
+        #expect(!VoiceKeyMode.allCases.contains(.leftOption))
+        for preset in VoiceKeyMode.allCases {
+            #expect(VoiceTriggerPicker.menuChoices(for: preset) == VoiceKeyMode.allCases)
+        }
+        let custom = VoiceKeyMode.shortcut(CustomKeyboardShortcut(
+            keyCode: 40, modifierFlags: [.command, .option], keyLabel: "K"
+        ))
+        for nonPreset in [VoiceKeyMode.leftCommand, .leftOption, custom] {
+            #expect(VoiceTriggerPicker.menuChoices(for: nonPreset) == VoiceKeyMode.allCases + [nonPreset])
+        }
     }
 
     @Test func customTriggersRoundTripInSettingsAndBindings() throws {

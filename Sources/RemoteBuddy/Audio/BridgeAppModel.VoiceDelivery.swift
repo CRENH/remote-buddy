@@ -94,10 +94,6 @@ extension BridgeAppModel {
     func beginVoiceSessionIfNeeded() {
         guard !isTerminating, !isStreaming else { return }
 
-        cancelTestToneIfNeeded(
-            statusMessage: LocalizedMessage("audio.test_tone.blocked_voice_active"),
-            logReason: "voice_start"
-        )
         let source = currentVoiceSource
         let sessionID = UUID()
         voiceSession.voiceAudioDeliveryGeneration &+= 1
@@ -173,6 +169,9 @@ extension BridgeAppModel {
         if !streaming {
             voiceSession.pendingKeyRelease = nil
             applicationIntegrationController.cancelPending()
+        } else if !ensureVoiceToolApplicationAvailable() {
+            completion(false)
+            return false
         }
         // Tap conversion owns the full shortcut transaction; do not also hold its keys.
         if streaming && settings.effectiveVoiceFnTapModeEnabled {

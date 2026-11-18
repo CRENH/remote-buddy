@@ -11,15 +11,7 @@
 "app.status.stopped" = "The app has stopped";
 "audio.compatibility.device_missing" = "%1$@ was not found. Install the compatibility driver first.";
 "audio.compatibility.device_selected" = "Remote audio will be sent to %1$@";
-"audio.test_tone.cancelled_device_changed" = "The device changed; the test tone was canceled";
-"audio.test_tone.ready" = "Ready to send a test tone";
 "audio.output.none_or_unavailable" = "No audio output device is selected, or the device is unavailable";
-"audio.test_tone.blocked_voice_active" = "The remote microphone is in use. Finish speaking before playing a test tone.";
-"audio.test_tone.already_playing" = "A test tone is already playing";
-"audio.test_tone.device_not_ready" = "Failed to send the test tone: device is not ready";
-"audio.test_tone.playing" = "Playing a one-second test tone";
-"audio.test_tone.completed" = "Test tone complete";
-"audio.test_tone.cancelled" = "Test tone canceled";
 "voice_button.status.fn_enabled" = "The remote voice button acts as Fn";
 "voice_button.status.left_command_enabled" = "The remote voice button will hold Left Command";
 "voice_button.status.right_command_enabled" = "The remote voice button will hold Right Command";
@@ -302,7 +294,6 @@
 "audio.gain.help" = "0 dB keeps the original volume. Higher values make the voice louder and also amplify background noise. Start with 6–12 dB.";
 "audio.status.title" = "Audio status";
 "audio.action.refresh_devices" = "Refresh Devices";
-"audio.action.send_test_tone" = "Play Test Sound";
 "audio.output.privacy_help" = "Remote audio is sent only to the selected device. Disconnecting, stopping, quitting or reconfiguring Remote Buddy does not change the system default microphone or speakers. Select the same virtual microphone in your voice input tool.";
 "audio.compatibility.title" = "Compatible Audio Device";
 "audio.compatibility.section_title" = "Voice Input & Compatibility";
@@ -313,12 +304,9 @@
 "audio.compatibility.help_plain" = "If your voice typing app receives no audio, select the compatible microphone included with the installer. Existing audio devices are not replaced.";
 "button_mapping.page.title" = "Button Mapping";
 "button_mapping.page.subtitle" = "Click a button to change its settings";
-"button_mapping.google.subtitle" = "G9N9N supports OK + direction for Enter; single-button mapping is unavailable";
+"button_mapping.google.subtitle" = "G9N9N supports custom single-click, double-click, and long-press actions";
 "button_mapping.t1.subtitle" = "Click Back, Home, Menu, Mute, Volume, or Power to customize; press and release Voice to start talking, then press again to stop (OK, arrows, air mouse, and back keyboard keep default system input)";
 "t1.remote.keyboard_airmouse_note" = "Back, Home, Menu, Mute, Volume, and Power support single, double, and long-press mapping. OK, direction keys, air mouse movement, and the back QWERTY keyboard keep default system input (typing and cursor control).";
-"button_mapping.google.enter.title" = "OK + direction → Enter (fixed)";
-"button_mapping.google.enter.detail" = "When Custom Buttons is enabled and the app has captured remote input, briefly press OK + any direction to send Enter. This fixed combination is not affected by the individual settings below.";
-"button_mapping.google.enter.limit" = "Because G9N9N Bluetooth HID key reports do not follow macOS standards, single-key and release events are ignored by the system, making individual button mappings unavailable on this device. Only OK + direction sends Enter; holding may repeat input.";
 "button_mapping.toggle.enabled" = "Custom Buttons";
 "button_mapping.permission_prompt.title" = "Button Permissions Required";
 "button_mapping.permission_prompt.message" = "Custom button controls require Input Monitoring and Accessibility. Open the Permissions page to finish setup.";
@@ -432,6 +420,13 @@
 "settings.overview.integration" = "Input integration";
 "settings.overview.disconnected" = "Disconnected";
 "settings.overview.not_configured" = "Not configured";
+"settings.overview.integration_unavailable" = "%@ unavailable";
+"voice_tool.unavailable.alert.title" = "%@ Is Unavailable";
+"voice_tool.unavailable.alert.message" = "Remote Buddy could not switch to “%@” because this input method is not installed or enabled. Open Integration settings to select or reconfigure your voice tool.";
+"voice_tool.application_unavailable.alert.message" = "“%@” is not installed, so voice input could not start. Open Integration settings to select or reconfigure your voice tool.";
+"voice_tool.switch_failed.alert.title" = "Failed to Switch to %@";
+"voice_tool.switch_failed.alert.message" = "Remote Buddy could not complete switching to “%@”, so voice input could not start. Please try again or open Integration settings to check or change your voice tool.";
+"voice_tool.unavailable.alert.open_settings" = "Open Integration";
 "settings.general.display_group" = "App display";
 "settings.general.language_group" = "Language";
 "settings.overview.ready" = "Permissions and microphone ready";
@@ -537,7 +532,7 @@
 "onboarding.action.open_app" = "Open Remote Buddy";
 "onboarding.voice_tool.title" = "Which app do you use for voice typing?";
 "onboarding.voice_tool.detail" = "Choose an input tool and follow the setup steps on the right.";
-"onboarding.voice_tool.none_detected" = "No supported voice typing app was detected. You can still choose Other Voice App, but please install and open a supported voice tool before testing.";
+"onboarding.voice_tool.none_detected" = "No installed WeType, Doubao, Tencent Chatterfly, Voice Buddy, NetEase Bageshuo, or Typeless was found. You can still choose Other Voice App after installing and starting a voice input tool.";
 "onboarding.voice_tool.unselected.title" = "Not Selected";
 "onboarding.voice_tool.unselected.detail" = "No voice app selected yet.";
 "onboarding.voice_tool.doubao.title" = "Doubao";
@@ -614,8 +609,6 @@
 "onboarding.control_source.t1_remote.detail" = "Physical voice button: press and release to start speaking, then press again to stop. Back QWERTY keyboard types directly.";
 "onboarding.control_source.siri_remote.title" = "Apple Remote (6th / 7th Generation)";
 "onboarding.control_source.siri_remote.detail" = "Use the physical voice button: hold to speak and release to stop.";
-"onboarding.control_source.apple_remote.generation_6.title" = "Apple Remote (6th Generation)";
-"onboarding.control_source.apple_remote.generation_7.title" = "Apple Remote (7th Generation)";
 "onboarding.control_source.chromecast_remote.title" = "Chromecast Voice Remote";
 "onboarding.control_source.chromecast_remote.detail" = "Choose hold-to-talk or tap once to start and again to stop.";
 "onboarding.gesture.hold" = "Hold to Talk";
@@ -635,7 +628,7 @@
 "onboarding.remote.siri_pairing.first" = "Open System Settings → Bluetooth and keep the Apple Remote near your Mac.";
 "onboarding.remote.siri_pairing.second" = "Hold Back and Volume Up together for about 5 seconds, then connect when the remote appears.";
 "onboarding.remote.siri_pairing.third" = "Its Bluetooth name may not say “Apple Remote.” After resetting it, look for the newly appearing device instead of relying on the name.";
-"onboarding.remote.chromecast_pairing.title" = "Pair a Google remote (G9N9N / GY3LE)";
+"onboarding.remote.chromecast_pairing.title" = "Pair a Google remote (G9N9N)";
 "onboarding.remote.chromecast_pairing.first" = "Open System Settings → Bluetooth and keep the remote near your Mac.";
 "onboarding.remote.chromecast_pairing.second" = "Hold Back + Home together for about 3 seconds until the indicator starts flashing.";
 "onboarding.remote.t1_pairing.title" = "Pair a T1-Remote (or compatible clone)";
@@ -650,9 +643,6 @@
 "onboarding.remote.searching_detail" = "Keep the remote near your Mac. For a first connection, follow the steps above; if already paired, press any button to wake it.";
 "onboarding.remote.button_waiting" = "Waiting for a control button";
 "onboarding.remote.button_waiting_detail" = "Press the center OK button or an arrow button. Do not press the microphone/voice button.";
-"onboarding.remote.g9n9n.button_waiting_detail" = "Due to macOS compatibility limits on G9N9N single-key HID reports, press OK + Up together, then release both (do not press Voice).";
-"onboarding.remote.g9n9n.button_detail" = "Button input detected. Continue with voice setup.";
-"onboarding.remote.g9n9n_pairing.third" = "Connect the remote in Mac Bluetooth settings, then press OK + Up together for button detection.";
 "onboarding.remote.button_received" = "Button Press Detected";
 "onboarding.remote.button_detail" = "Press any button except the voice button.";
 "onboarding.remote.voice_button_mistake.title" = "That was the voice button";
@@ -694,9 +684,6 @@
 "onboarding.controls.siri.detail" = "Press three different control buttons on the Apple Remote, such as an arrow, center, Back, TV, Play, or volume.";
 "onboarding.controls.chromecast.detail" = "Press three different control buttons on Chromecast Voice Remote, such as an arrow, OK, Back, Home, Mute, or volume.";
 "onboarding.controls.t1.detail" = "Press three different customizable buttons on the front of T1-Remote, such as Back, Home, Menu, Mute, Volume, or Power.";
-"onboarding.controls.g9n9n.detail" = "Test these two combinations in order. Release each before trying the next.";
-"onboarding.side.g9n9n_test_enabled" = "Button test enabled";
-"onboarding.complete.g9n9n.voice_only" = "G9N9N supports voice input and OK + direction for Enter (single-button mapping unsupported)";
 "onboarding.controls.mobile_slot" = "Control %@";
 "onboarding.controls.ready" = "Button detection passed";
 "onboarding.secure_input.title" = "System security may be blocking remote buttons";
@@ -704,8 +691,6 @@
 "onboarding.secure_input.recheck" = "Check again";
 "onboarding.secure_input.help" = "If it still does not work, lock your Mac, unlock it with your password, and check again.";
 "onboarding.complete.title" = "Remote Buddy is ready";
-"onboarding.complete.runtime_changed" = "Your current setup has changed";
-"onboarding.complete.runtime_changed_detail" = "Go back and check permissions, your connection, or the audio output device. Continue after resolving the issue.";
 "onboarding.illustration.tagline" = "Speak wirelessly. Control instantly.";
 "onboarding.complete.illustration" = "Start using Remote Buddy";
 
@@ -805,9 +790,6 @@
 "onboarding.recovery.controls.not_confirmed.title" = "Try three different control buttons";
 "onboarding.recovery.controls.not_confirmed.detail" = "Reconnect if needed, then press three different control buttons.";
 "onboarding.recovery.controls.not_confirmed.action" = "Retry Button Detection";
-"onboarding.recovery.complete.runtime_regressed.title" = "One setup item changed";
-"onboarding.recovery.complete.runtime_regressed.detail" = "Return directly to the affected setup page and restore it before opening Remote Buddy.";
-"onboarding.recovery.complete.runtime_regressed.action" = "Fix the Affected Item";
 "about.preferences.restart_onboarding" = "Run Setup Guide Again";
 "about.preferences.restart_onboarding_help" = "Recheck permissions, your remote, audio output device, and voice input without clearing existing connections, button mappings, or other settings.";
 "about.preferences.restart_onboarding_action" = "Run Again";
@@ -855,7 +837,7 @@
 "common_phrases.assign_only" = "Assignments only. No text is inserted.";
 "common_phrases.import_hint" = "Import replaces your current phrases and button assignments.";
 "common_phrases.local_storage" = "Saved on this Mac and retained after restarting. Phrase content stays the same when you change the interface language.";
-"common_phrases.panel_hint" = "Press a button to insert its phrase\nPress Back to close the panel";
+"common_phrases.panel_hint" = "Press a button to insert its phrase\nPress Back, Voice, or Power to close";
 "common_phrases.close" = "Close Common Phrases";
 "common_phrases.settings_hint" = "Assign Open Common Phrases to a remote button. Phrases stay on this Mac. Some editors use a temporary clipboard paste; the app attempts to restore previous contents and keeps any detected new copy.";
 "common_phrases.assign_hint" = "Button Assignments";
@@ -866,6 +848,10 @@
 "common_phrases.key.right" = "Right";
 "common_phrases.key.home" = "Home";
 "common_phrases.key.mute" = "Mute";
+"common_phrases.key.menu" = "Menu";
+"common_phrases.key.tv" = "TV";
+"common_phrases.key.volume_up" = "Volume +";
+"common_phrases.key.volume_down" = "Volume −";
 "common_phrases.key.youtube" = "YouTube";
 "common_phrases.key.netflix" = "Netflix";
 "common_phrases.key.power" = "Power";
@@ -899,7 +885,7 @@
 "onboarding.voice_tool.guide.screenshot.doubao_menu" = "In the input menu, choose Doubao (豆包输入法), then Settings (设置).";
 "onboarding.voice_tool.guide.screenshot.doubao_settings" = "In Voice Input, set the shortcut for the selected mode to “%@”. Enable global voice activation and select the Remote Buddy virtual microphone.";
 "onboarding.voice_tool.guide.screenshot.weixin_input_menu" = "In the input menu, choose WeType (微信输入法), then Settings (设置).";
-"onboarding.voice_tool.guide.screenshot.weixin_input_settings" = "In Voice Input, set the shortcut to “%@” and match the recording mode in the current pairing plan.";
+"onboarding.voice_tool.guide.screenshot.weixin_input_settings" = "In Voice Input, set the shortcut to “%@”, match the recording mode in the current pairing plan, and enable global shortcut activation.";
 "onboarding.voice_tool.guide.screenshot.weixin_app_shortcuts" = "The WeChat app’s global voice shortcut can conflict with any voice tool. Check whether it uses “%@” and clear only the conflicting shortcut.";
 "onboarding.voice_tool.guide.screenshot.bageshuo_menu" = "In the menu bar, click the NetEase Bageshuo icon, then select Settings.";
 "onboarding.voice_tool.guide.screenshot.bageshuo_settings" = "In Settings → Shortcuts, set the voice shortcut to “%@” and use press-to-start/stop mode.";
@@ -921,11 +907,12 @@
 "settings.driver.missing" = "Compatible microphone not detected";
 "settings.driver.reload_help" = "If Remote Buddy Mic is still missing after installation, restart your Mac or follow the installation guide.";
 "settings.integration.title" = "Input Method & Voice Tool Integration";
-"settings.integration.introduction" = "Choose an input tool, then follow the wizard to set it up and test voice input.";
+"settings.integration.introduction" = "View your active voice trigger and input tool. Use the guide to switch tools or test voice input.";
 "settings.integration.current" = "Current Input Tool";
 "settings.integration.other_title" = "Other Tools";
-"settings.integration.configure" = "Configure & Test with Guide";
-"settings.integration.select_tool" = "Choose an input tool";
+"settings.integration.configure" = "Change Voice Key & Input Tool in Guide";
+"settings.integration.supported_tools" = "Supported Voice Tools";
+"settings.integration.active_badge" = "Current";
 "settings.integration.shortcut_title" = "Voice trigger";
 
 "remote.device.illustration" = "Remote control illustration";
@@ -1041,7 +1028,6 @@
 "t1.remote.microphone_refused" = "The T1 remote refused to open its microphone. Pair it again in Bluetooth settings and retry.";
 "google.remote.microphone_refused" = "The remote refused to open its microphone. Pair it again and retry.";
 "google.remote.pairing_required" = "Bluetooth pairing authentication is incomplete. Remove and pair the remote again in macOS Bluetooth settings, then reconnect.";
-"google.remote.ir_controls" = "Power and input can be mapped when sent over Bluetooth. If the remote is set to use infrared for these keys (to control a TV), the Mac cannot receive them.";
 
 "connection.action.add_device" = "Add new device";
 "remote.hid_binding.title" = "Link remote button device";
@@ -1125,6 +1111,7 @@
 "application_integration.antigravity.detail" = "The Agent conversation input in the current window.";
 "application_integration.weChat.detail" = "The message box in the current conversation. Open a conversation first.";
 "application_integration.claude.detail" = "The input in the current chat or project. Open the relevant page first.";
+"application_integration.deepSeek.detail" = "The message box in the current session or task.";
 "application_integration.workBuddy.detail" = "The message box in the current conversation or new task.";
 "application_integration.accessibility_help" = "Voice input can continue if a text box cannot be found. If the text is not inserted automatically, press Command+V to paste it.";
 
@@ -1159,7 +1146,6 @@
 "onboarding.voice_trigger.title" = "Choose a Voice Shortcut";
 "settings.integration.tap_enabled" = "Tap mode: On";
 "settings.integration.tap_disabled" = "Tap mode: Off";
-"settings.integration.trigger_readonly" = "Change the trigger and tap mode only in the input-tool integration wizard. Changes take effect after the voice test passes.";
 "onboarding.audio.not_detected" = "Remote Buddy Mic was not detected. Install or check the virtual microphone.";
 "onboarding.side.microphone" = "Remote Buddy Mic";
 "onboarding.button_help.title" = "Buttons not responding?";
@@ -1175,8 +1161,6 @@
 "onboarding.button_help.expanded" = "Expanded";
 "onboarding.button_help.collapsed" = "Collapsed";
 "onboarding.controls.progress" = "Detected %@/3 different buttons";
-"onboarding.controls.g9n9n.first" = "Press OK + Up together, then release";
-"onboarding.controls.g9n9n.second" = "Press Back + Up together, then release";
 "onboarding.voice_tool.choose_required" = "Choose an input tool.";
 "onboarding.voice_tool.install_required" = "Install and enable the selected input tool, then return here.";
 "onboarding.voice_tool.tap_required" = "This tool requires tap mode: change the current hold mode to automatic start/stop shortcut taps. The change takes effect only after the voice test passes.";
@@ -1219,3 +1203,66 @@
 
 "onboarding.voice_test.trial_missing" = "The voice test configuration is no longer active. Return to input tool setup before testing again.";
 "onboarding.voice_test.reconfigure" = "Return to Input Tool Setup";
+
+"button_mapping.google.version_notice" = "G9N9N replacements use different hardware versions with varying features. Choose carefully; see the";
+"button_mapping.google.device_guide" = "device guide ↗";
+
+"connection.empty.title" = "No remotes added";
+"connection.empty.detail" = "Click Add Device in the top-right corner to connect your remote.";
+"connection.action.device_comparison" = "Compare & Buy Remotes ↗";
+
+"onboarding.remote.chromecast.combo_needs_opt_in.title" = "Two-key combo detected — confirm Partial Support mode";
+"onboarding.remote.chromecast.combo_needs_opt_in.detail" = "A two-key combination arrived without a single-key report. Check Partial Support below if single presses never register, or release and press OK alone for Full Support.";
+"onboarding.remote.chromecast.compat_waiting_detail" = "Partial support (compatibility) mode enabled. Hold Up + OK (or any arrow + OK) together to confirm input.";
+"onboarding.remote.chromecast.compat_ready_detail" = "Two-key input confirmed (Partial support: Voice key works; only Arrow + OK emits Enter).";
+"onboarding.remote.chromecast.single_waiting_detail" = "Press OK on its own first for Full Support. If single presses never register, see the two-mode instructions below.";
+"onboarding.remote.chromecast.full_ready_detail" = "Single-key report received: Full Support active (Voice key and all 14 buttons work).";
+"onboarding.remote.chromecast.compat_prompt_highlighted" = "Two modes: Full (single key) vs. Partial (two-key only). Check below if single presses never respond:";
+"onboarding.remote.chromecast.compat_prompt" = "Two modes: press OK alone for Full Support, or hold Up + OK and check below if single keys fail:";
+"onboarding.remote.chromecast.compat_checkbox" = "Use Partial Support mode (single keys undetectable; two-key e.g. Up + OK works)";
+"onboarding.remote.chromecast.compat_scope_summary" = "Partial support limits: 1. Hold-to-talk Voice works normally; 2. Only Arrow + OK emits Enter; individual single buttons are unsupported.";
+
+"onboarding.controls.chromecast.compat.title" = "Confirm Two-Key Enter Combination";
+"onboarding.controls.chromecast.compat.detail" = "This G9N9N is in Partial Support (two-key compatibility) mode. Single-key presses are dropped by macOS, so confirm the Enter chord works.";
+"onboarding.controls.chromecast.compat.waiting_title" = "Hold Up + OK (or any Arrow + OK) together";
+"onboarding.controls.chromecast.compat.waiting_detail" = "Once recognized, setup can continue without testing single buttons.";
+"onboarding.controls.chromecast.compat.confirmed_title" = "Confirmed Arrow + OK combination";
+"onboarding.controls.chromecast.compat.confirmed_detail" = "In daily use, pressing Up + OK (or any Arrow + OK) together sends Return/Enter.";
+"onboarding.controls.chromecast.compat.limit_voice" = "Voice button: press and hold to speak, release to stop";
+"onboarding.controls.chromecast.compat.limit_enter" = "Only supported key action: Arrow + OK -> Return/Enter";
+"onboarding.controls.chromecast.compat.limit_others" = "All 14 individual single buttons, double-click/long-press, and phrase hotkeys are unavailable";
+"onboarding.controls.chromecast.compat.switch_to_full" = "My remote works with single presses; re-check full mode";
+"onboarding.side.compatible_chord" = "Arrow + OK confirmed";
+
+"onboarding.summary.g9n9n_mode" = "G9N9N Support Mode";
+"onboarding.summary.g9n9n_partial_mode" = "Partially Supported Hardware (Two-Key Compatibility)";
+"onboarding.summary.partial_buttons_passed" = "Voice works; Arrow + OK sends Enter";
+
+"button_mapping.google.partial_subtitle" = "Partial support (two-key compatibility): Voice works; only Arrow + OK emits Return/Enter";
+"button_mapping.google.partial.card_title" = "Partial Support Mode (Two-Key Compatibility)";
+"button_mapping.google.partial.card_detail" = "This G9N9N hardware/firmware revision sends 1-byte single-key reports that macOS drops before IOHID. Limited support is active:";
+"button_mapping.google.partial.voice_rule" = "1. Voice button (Google Assistant): hold to speak and release to stop";
+"button_mapping.google.partial.enter_rule" = "2. Arrow + OK (e.g. Up + OK): sends Return/Enter once when pressed together (requires mapping enabled above)";
+"button_mapping.google.partial.unsupported_rule" = "3. Modifying any button mapping, individual buttons, double-click/long-press, and phrase assignments are disabled in this mode";
+"button_mapping.google.partial.setup_only_hint" = "Compatibility mode is locked during initial or Add Device setup and is read-only here. If you replace the hardware unit, remove it in Connection and run Add Device again.";
+"remote.device.full_support_badge" = "Fully Supported Hardware";
+"remote.device.partial_support_badge" = "Partially Supported Hardware";
+"connection.g9n9n.full_support_notice" = "Voice button and all 14 standard buttons work and can be customized.";
+"connection.g9n9n.partial_support_notice" = "Voice works; only Arrow + OK emits Return/Enter and mappings cannot be modified. Since functionality is heavily limited, replacing with a verified fully supported remote or hardware revision is recommended; after replacing, remove this device and run Add Device.";
+"connection.g9n9n.compatibility_doc_link" = "Read G9N9N Compatibility Docs ↗";
+"button_mapping.voice.settings_button" = "Open Voice Integration";
+"common_phrases.g9n9n_partial_notice" = "The selected G9N9N is in Partial Support (two-key compatibility) mode, which only supports Voice and Arrow + OK for Enter; single-key common phrases are unavailable.";
+"onboarding.chromecast.replace_hardware_advice" = "Partial Support mode omits most button features and is intended only as a fallback. Replace with a verified macOS-compatible remote unit for full support.";
+"onboarding.chromecast.replace_hardware_link" = "See verified devices & buying guide ↗";
+
+// Tencent Chatterfly hold-to-talk integration
+"onboarding.voice_tool.chatterfly.title" = "Tencent Chatterfly";
+"onboarding.voice_tool.chatterfly.detail" = "Hold to talk and release to finish in Tencent Chatterfly using its global voice shortcut.";
+"onboarding.voice_tool.chatterfly.website" = "Explore Tencent Chatterfly and request early access ↗";
+"onboarding.voice_tool.hold_required" = "Tencent Chatterfly integration requires hold-to-talk. Turn off tap mode to continue.";
+"onboarding.voice_tool.enable_hold" = "Use hold-to-talk";
+"onboarding.voice_tool.guide.open_chatterfly" = "Open Tencent Chatterfly";
+"onboarding.voice_tool.guide.open_chatterfly.detail" = "Install and start Tencent Chatterfly, leave it running in the background, then open Settings.";
+"onboarding.voice_tool.guide.configure_chatterfly" = "Configure the global voice shortcut";
+"onboarding.voice_tool.guide.screenshot.chatterfly_settings" = "In Tencent Chatterfly → Settings → Voice Settings, set the Voice Input shortcut to “%@” and enable the global shortcut option. Hold to talk and release to finish. The screenshot shortcut is an example; use your selected shortcut.";
+"onboarding.voice_tool.guide.screenshot.chatterfly_input_microphone" = "In Tencent Chatterfly → Settings → Audio Settings → Microphone, select Remote Buddy Mic.";

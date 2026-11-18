@@ -4,15 +4,15 @@ import CoreBluetooth
 import SwiftUI
 
 extension OnboardingView {
-    var usesG9N9NButtonTestWorkaround: Bool {
-        settings.onboardingControlSource == .chromecastRemote &&
-            (settings.onboardingDevice ?? .chromecastG9N9N) == .chromecastG9N9N
-    }
 
     var controlsContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            onboardingTitle("onboarding.controls.title")
-            Text(verbatim: localization.text(controlsDetailKey))
+            onboardingTitle(isChromecastTwoKeyCompatible
+                ? "onboarding.controls.chromecast.compat.title"
+                : "onboarding.controls.title")
+            Text(verbatim: localization.text(isChromecastTwoKeyCompatible
+                ? "onboarding.controls.chromecast.compat.detail"
+                : controlsDetailKey))
                 .font(.system(size: 14))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -21,12 +21,8 @@ extension OnboardingView {
                 secureInputWarningCard
             }
 
-            if usesG9N9NButtonTestWorkaround {
-                VStack(alignment: .leading, spacing: 12) {
-                    Label(localization.text("onboarding.controls.g9n9n.first"), systemImage: "1.circle")
-                    Label(localization.text("onboarding.controls.g9n9n.second"), systemImage: "2.circle")
-                }
-                .font(.callout)
+            if isChromecastTwoKeyCompatible {
+                chromecastCompatibilityControlsCard
             } else if let buttons = displayedControlButtons {
                 LazyVGrid(
                     columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3),
@@ -76,19 +72,97 @@ extension OnboardingView {
                 }
             }
 
-            HStack(spacing: 8) {
-                ForEach(0..<3, id: \.self) { index in
-                    Image(systemName: testedControlButtons.count > index ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 18))
-                        .foregroundStyle(testedControlButtons.count > index ? Color.green : Color.secondary)
+            if !isChromecastTwoKeyCompatible {
+                HStack(spacing: 8) {
+                    ForEach(0..<3, id: \.self) { index in
+                        Image(systemName: testedControlButtons.count > index ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 18))
+                            .foregroundStyle(testedControlButtons.count > index ? Color.green : Color.secondary)
+                    }
+                    Text(testedControlButtons.count >= 3
+                        ? localization.text("onboarding.controls.ready")
+                        : LocalizedMessage("onboarding.controls.progress", arguments: [String(min(3, testedControlButtons.count))]).text(using: localization))
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.secondary)
                 }
-                Text(testedControlButtons.count >= 3
-                    ? localization.text("onboarding.controls.ready")
-                    : LocalizedMessage("onboarding.controls.progress", arguments: [String(min(3, testedControlButtons.count))]).text(using: localization))
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.secondary)
+                .padding(.top, 4)
             }
-            .padding(.top, 4)
+        }
+    }
+
+    private var chromecastCompatibilityControlsCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: compatibleChordConfirmed ? "checkmark.circle.fill" : "keyboard")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(compatibleChordConfirmed ? Color.green : Color.orange)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(localization.text(
+                        compatibleChordConfirmed
+                            ? "onboarding.controls.chromecast.compat.confirmed_title"
+                            : "onboarding.controls.chromecast.compat.waiting_title"
+                    ))
+                    .font(.system(size: 13, weight: .semibold))
+                    Text(localization.text(
+                        compatibleChordConfirmed
+                            ? "onboarding.controls.chromecast.compat.confirmed_detail"
+                            : "onboarding.controls.chromecast.compat.waiting_detail"
+                    ))
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                    Text(localization.text("onboarding.controls.chromecast.compat.limit_voice"))
+                }
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                    Text(localization.text("onboarding.controls.chromecast.compat.limit_enter"))
+                }
+                HStack(spacing: 8) {
+                    Image(systemName: "xmark.circle")
+                        .foregroundStyle(.secondary)
+                    Text(localization.text("onboarding.controls.chromecast.compat.limit_others"))
+                        .foregroundStyle(.secondary)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                        Text(localization.text("onboarding.chromecast.replace_hardware_advice"))
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Link(localization.text("onboarding.chromecast.replace_hardware_link"),
+                         destination: AppLinks.devices(for: localization.locale))
+                }
+            }
+            .font(.system(size: 12))
+
+            Button(localization.text("onboarding.controls.chromecast.compat.switch_to_full")) {
+                setChromecastPartialSupportMode(false)
+                settings.setOnboardingStep(.remote)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            compatibleChordConfirmed ? Color.green.opacity(0.08) : Color.orange.opacity(0.06),
+            in: RoundedRectangle(cornerRadius: 12)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 12)
+                .stroke((compatibleChordConfirmed ? Color.green : Color.orange).opacity(0.28), lineWidth: 1)
         }
     }
 
@@ -98,9 +172,7 @@ extension OnboardingView {
         secondStep: String,
         thirdStep: String?
     ) {
-        let keys = Self.physicalRemotePairingKeys(for: settings.onboardingControlSource)
-        return (keys.title, keys.firstStep, keys.secondStep,
-            usesG9N9NButtonTestWorkaround ? "onboarding.remote.g9n9n_pairing.third" : keys.thirdStep)
+        Self.physicalRemotePairingKeys(for: settings.onboardingControlSource)
     }
 
     static func physicalRemotePairingKeys(
@@ -139,9 +211,7 @@ extension OnboardingView {
     }
 
     var controlsDetailKey: String {
-        usesG9N9NButtonTestWorkaround
-            ? "onboarding.controls.g9n9n.detail"
-            : Self.controlsDetailKey(for: settings.onboardingControlSource)
+        Self.controlsDetailKey(for: settings.onboardingControlSource)
     }
 
     static func controlsDetailKey(for source: OnboardingControlSource) -> String {
@@ -206,31 +276,52 @@ extension OnboardingView {
         let lastButtonEvent = settings.firstUseEvents.last { event in
             event.step == .controls && [.entered, .passed, .blocked, .retry].contains(event.kind)
         }
+        let controlsPassed = isChromecastTwoKeyCompatible
+            ? (compatibleChordConfirmed || lastButtonEvent?.kind == .passed)
+            : (testedControlButtons.count >= 3 || lastButtonEvent?.kind == .passed)
         return OnboardingCompletionSummary(purpose: settings.onboardingPurpose,
-            remoteName: name, buttonsVerified: testedControlButtons.count >= 3 || lastButtonEvent?.kind == .passed,
+            remoteName: name, buttonsVerified: controlsPassed,
             microphoneReady: onboardingAudioReady, voiceKeyMode: settings.voiceKeyMode,
             tapModeEnabled: settings.voiceFnTapModeEnabled, voiceTool: settings.onboardingVoiceTool,
-            binding: settings.verifiedVoiceToolBinding)
+            binding: settings.verifiedVoiceToolBinding,
+            isPartialSupportG9N9N: isChromecastTwoKeyCompatible)
     }
 
     var completeContent: some View {
         let summary = completionSummary
         return VStack(alignment: .leading, spacing: 18) {
-            Image(systemName: canContinue ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+            Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 46))
-                .foregroundStyle(canContinue ? Color.green : Color.orange)
-            onboardingTitle(canContinue ? completionTitleKey : "onboarding.complete.runtime_changed")
-            Text(localization.text(canContinue ? "onboarding.summary.detail" : "onboarding.complete.runtime_changed_detail"))
+                .foregroundStyle(Color.green)
+            onboardingTitle(completionTitleKey)
+            Text(localization.text("onboarding.summary.detail"))
                 .font(.system(size: 14))
-                .foregroundStyle(canContinue ? Color.secondary : Color.orange)
+                .foregroundStyle(Color.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             VStack(alignment: .leading, spacing: 12) {
                 if let name = summary.remoteName {
                     completionSummaryLine("appletvremote.gen4", "onboarding.summary.remote", value: name)
                 }
+                if summary.isPartialSupportG9N9N {
+                    HStack(alignment: .center, spacing: 10) {
+                        Image(systemName: "exclamationmark.circle")
+                            .foregroundStyle(Color.accentColor)
+                            .frame(width: 22)
+                        Text(localization.text("onboarding.summary.g9n9n_mode"))
+                            .foregroundStyle(.secondary)
+                        Spacer(minLength: 12)
+                        G9N9NSupportBadge(mode: .twoKeyCompatibility)
+                    }
+                    .accessibilityElement(children: .combine)
+                }
                 if let verified = summary.buttonsVerified {
+                    let valueKey = if summary.isPartialSupportG9N9N {
+                        verified ? "onboarding.summary.partial_buttons_passed" : "onboarding.summary.not_tested"
+                    } else {
+                        verified ? "onboarding.summary.passed" : "onboarding.summary.not_tested"
+                    }
                     completionSummaryLine("button.programmable", "onboarding.summary.buttons",
-                        value: localization.text(verified ? "onboarding.summary.passed" : "onboarding.summary.not_tested"))
+                        value: localization.text(valueKey))
                 }
                 if let ready = summary.microphoneReady {
                     completionSummaryLine("mic.fill", "onboarding.side.microphone",
@@ -250,10 +341,30 @@ extension OnboardingView {
                     completionSummaryLine("checkmark.bubble", "onboarding.step.voiceTest",
                         value: localization.text(verified ? "onboarding.summary.passed" : "onboarding.summary.not_tested"))
                 }
-                if usesG9N9NButtonTestWorkaround && settings.onboardingPurpose != .integration {
-                    Text(localization.text("onboarding.complete.g9n9n.voice_only"))
-                        .font(.caption).foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+            }
+            if summary.isPartialSupportG9N9N {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                        Text(localization.text("onboarding.chromecast.replace_hardware_advice"))
+                            .font(.system(size: 12, weight: .medium))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    HStack(spacing: 12) {
+                        Link(localization.text("connection.g9n9n.compatibility_doc_link"),
+                             destination: AppLinks.g9n9nCompatibilityGuide)
+                        Link(localization.text("onboarding.chromecast.replace_hardware_link"),
+                             destination: AppLinks.devices(for: localization.locale))
+                    }
+                    .font(.system(size: 12))
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color.orange.opacity(0.25), lineWidth: 1)
                 }
             }
         }
@@ -411,13 +522,6 @@ extension OnboardingView {
     }
 
     private func recoveryDetailKey(for failure: FirstUseFailureReason) -> String {
-        if usesG9N9NButtonTestWorkaround {
-            switch failure {
-            case .remoteButtonNotReady: return "onboarding.remote.g9n9n.button_waiting_detail"
-            case .controlsNotConfirmed: return "onboarding.controls.g9n9n.detail"
-            default: break
-            }
-        }
         if failure == .permissionDesynced {
             return canOfferPermissionRelaunch
                 ? "onboarding.recovery.permission.desynced.detail.with_restart"

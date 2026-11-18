@@ -10,12 +10,15 @@ struct ProductBoundaryTests {
             .deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Resources")
         let bundle = try #require(Bundle(path: resources.path))
         let paired = [
-            "doubao-menu", "doubao-settings",
-            "weixin-input-menu", "weixin-input-settings",
             "bageshuo-menu", "bageshuo-settings", "bageshuo-input-microphone",
         ]
-        let microphone = ["doubao-input-microphone", "weixin-input-microphone", "voicebuddy-setting-fn", "voicebuddy-setting-mic"]
-        for name in paired + microphone {
+        let lightOnly = [
+            "doubao-menu", "doubao-settings", "doubao-input-microphone",
+            "weixin-input-menu", "weixin-input-settings", "weixin-input-microphone",
+            "voicebuddy-setting-fn", "voicebuddy-setting-mic",
+            "chatterfly-settings", "chatterfly-input-microphone",
+        ]
+        for name in paired + lightOnly {
             let url = try #require(RemoteBuddyResourceBundle.onboardingImageURL(named: name, isDark: false, in: bundle))
             #expect(url.lastPathComponent == "\(name)-light.jpg")
             let image = try #require(NSImage(contentsOf: url))
@@ -247,10 +250,89 @@ struct ProductBoundaryTests {
         #expect(chromecastTogglePlan?.fnTapModeEnabled == true)
     }
 
+    @Test func chatterflyUsesGlobalHoldToTalkWithoutSwitchingInputSources() throws {
+        let tool = OnboardingVoiceTool.chatterfly
+        #expect(tool.applicationBundleIdentifier == "com.tencent.inputmethod.chatterfly")
+        #expect(tool.preferredInputSourceID == nil)
+        #expect(tool.supportsHoldVoiceRecording)
+        let profile = VoiceToolAdapterProfile.profile(for: tool)
+        #expect(profile.supportedModes == [.hold])
+        #expect(profile.installationProbe == .applicationBundle)
+        #expect(profile.evidenceState == .pending)
+        #expect(AppLinks.chatterflyWebsite.absoluteString == "https://chatterfly.tencent.com/")
+        for source in [OnboardingControlSource.xiaomiRemote, .t1Remote, .chromecastRemote] {
+            let plan = try #require(OnboardingVoicePairingPlan.resolve(tool: tool, controlSource: source))
+            #expect(plan.binding.gestureMode == .hold)
+            #expect(plan.binding.shortcut == .suggestedShortcut)
+            #expect(!plan.fnTapModeEnabled)
+        }
+        let toggle = VoiceToolUserBinding(tool: tool, shortcut: .suggestedShortcut,
+            gestureMode: .toggle, source: .manuallyConfirmed, validationState: .staged,
+            verifiedToolVersion: nil, verifiedAt: nil)
+        #expect(OnboardingVoicePairingPlan.resolve(tool: tool, controlSource: .xiaomiRemote,
+            userBinding: toggle) == nil)
+        var probedApplication = false
+        #expect(OnboardingInputSourceSwitcher.integrationAvailability(for: tool,
+            hasInputSource: { _, _ in Issue.record("Global voice must not probe input sources"); return true },
+            hasApplication: { identifier in
+                probedApplication = true
+                return identifier == "com.tencent.inputmethod.chatterfly"
+            }) == .available)
+        #expect(probedApplication)
+        #expect(OnboardingInputSourceSwitcher.integrationAvailability(for: tool,
+            hasApplication: { _ in false }) == .notInstalled)
+        #expect(OnboardingInputSourceSwitcher.validApplicationURL(
+            forBundleIdentifier: "com.tencent.inputmethod.chatterfly",
+            lookup: { _ in URL(fileURLWithPath: "/Users/example/.Trash/Chatterfly.app") },
+            fileExists: { _ in true }
+        ) == nil)
+        #expect(OnboardingInputSourceSwitcher.validApplicationURL(
+            forBundleIdentifier: "com.tencent.inputmethod.chatterfly",
+            lookup: { _ in URL(fileURLWithPath: "/Applications/Chatterfly.app") },
+            fileExists: { _ in false }
+        ) == nil)
+        #expect(OnboardingInputSourceSwitcher.validApplicationURL(
+            forBundleIdentifier: "com.tencent.inputmethod.chatterfly",
+            lookup: { _ in URL(fileURLWithPath: "/Applications/Chatterfly.app") },
+            fileExists: { $0 == "/Applications/Chatterfly.app" }
+        )?.path == "/Applications/Chatterfly.app")
+    }
+
+    @Test func globalVoiceDiagnosticsIncludeChatterflyAndDoubaoOnly() {
+        for tool in OnboardingVoiceTool.allCases {
+            #expect(OnboardingVoiceTestConfigurationPolicy.requiresGlobalVoiceConfirmation(for: tool)
+                == (tool == .doubao || tool == .chatterfly))
+        }
+    }
+
     @Test func integrationCatalogIncludesUninstalledToolsInConsistentOrder() {
         #expect(OnboardingVoiceToolVisibilityPolicy.tools == [
-            .weixin, .doubao, .voiceBuddy, .bageshuo, .typeless, .macosDictation, .other,
+            .weixin, .doubao, .chatterfly, .voiceBuddy, .bageshuo, .typeless, .macosDictation, .other,
         ])
+    }
+
+    @Test @MainActor func integrationPageReadOnlyCopyExistsInBothLanguages() throws {
+        let suite = "remote-buddy.tests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let localization = LocalizationStore(settings: AppSettings(defaults: defaults))
+        let keys = [
+            "settings.integration.title",
+            "settings.integration.introduction",
+            "settings.integration.current",
+            "settings.integration.configure",
+            "settings.integration.supported_tools",
+            "settings.integration.active_badge",
+            "settings.integration.shortcut_title",
+            "onboarding.voice_tool.voice_buddy.website",
+        ]
+        for language in [AppLanguage.english, .simplifiedChinese] {
+            localization.select(language)
+            for key in keys {
+                let text = localization.text(key)
+                #expect(!text.isEmpty && text != key)
+            }
+        }
     }
 
     @Test @MainActor func firstRunLanguageFollowsSystemAndExplicitChoicePersists() throws {
@@ -287,7 +369,7 @@ struct ProductBoundaryTests {
         #expect(RemoteSetupDevice.chromecastG9N9N.googleHardwareModelNumber == "G9N9N")
         #expect(RemoteSetupDevice.googleStreamerGY3LE.googleHardwareModelNumber == "GY3LE")
         #expect(RemoteSetupDevice.allCases.filter(\.canStartSetup) == [
-            .xiaomi, .t1Remote, .chromecastG9N9N, .googleStreamerGY3LE,
+            .xiaomi, .t1Remote, .chromecastG9N9N,
         ])
         // Listing non-Xiaomi devices must not admit them through the Xiaomi hardware bridge.
         #expect(XiaomiRemoteCatalog.entry(matchingDISModelNumber: "G9N9N") == nil)
@@ -324,7 +406,7 @@ struct ProductBoundaryTests {
         #expect(AppSettings(defaults: defaults).onboardingControlSource == .chromecastRemote)
         #expect(!model.isOnboardingControlSourceConnected(.chromecastRemote))
         #expect(OnboardingRemotePhotoKind.resolve(source: .chromecastRemote, selectedModel: .rc003)
-            == .bundled(resourceName: "ChromecastG9N9NIllustration"))
+            == .bundled(resourceName: "ChromecastG9N9NPhoto"))
         #expect(RemoteSetupDevice.chromecastG9N9N.canStartSetup)
     }
 
@@ -358,7 +440,7 @@ struct ProductBoundaryTests {
     }
 
     @Test @MainActor func googleSelectionKeepsItsOwnIllustrationAndConnectionValidation() throws {
-        for device in [RemoteSetupDevice.chromecastG9N9N, .googleStreamerGY3LE] {
+        for device in [RemoteSetupDevice.chromecastG9N9N] {
             let suite = "google-selection-" + UUID().uuidString
             let defaults = try #require(UserDefaults(suiteName: suite))
             defer { defaults.removePersistentDomain(forName: suite) }
@@ -377,16 +459,18 @@ struct ProductBoundaryTests {
             #expect(!OnboardingFlowPolicy.canContinue(from: .remote, voiceTool: .doubao,
                 selectedDevice: device, capabilities: .init(bluetoothGranted: true,
                     inputMonitoringGranted: true, accessibilityGranted: true)))
-            #expect(view.usesG9N9NButtonTestWorkaround == (device == .chromecastG9N9N))
-            #expect(view.physicalRemotePairingKeys.thirdStep == (device == .chromecastG9N9N
-                ? "onboarding.remote.g9n9n_pairing.third" : "onboarding.remote.chromecast_pairing.third"))
-            #expect(view.controlsDetailKey == (device == .chromecastG9N9N
-                ? "onboarding.controls.g9n9n.detail" : "onboarding.controls.chromecast.detail"))
+            #expect(view.physicalRemotePairingKeys.thirdStep == "onboarding.remote.chromecast_pairing.third")
+            #expect(view.controlsDetailKey == "onboarding.controls.chromecast.detail")
         }
-        #expect(RemoteSetupDevice.googleStreamerGY3LE.canStartSetup)
+        #expect(!RemoteSetupDevice.googleStreamerGY3LE.canStartSetup)
+        #expect(RemoteSetupDevice.googleStreamerGY3LE.onboardingSource == nil)
         #expect(OnboardingRemotePhotoKind.resolve(source: .chromecastRemote,
             selectedModel: .rc003, selectedDevice: .xiaomi)
             == .bundled(resourceName: RemoteSetupDevice.chromecastG9N9N.illustrationResource))
+        #expect(AppLinks.devices(for: Locale(identifier: "zh_CN")).absoluteString
+            == "https://remote.zfdang.com/device.html")
+        #expect(AppLinks.devices(for: Locale(identifier: "en_US")).absoluteString
+            == "https://remote.zfdang.com/device_en.html")
     }
 
     @Test func wizardRequiresEachPermissionAndKeepsRemoteControl() {
@@ -437,7 +521,7 @@ struct ProductBoundaryTests {
         #expect(!OnboardingFlowPolicy.canContinue(
             from: .voiceTool, voiceTool: .unselected, capabilities: passed
         ))
-        for tool in [OnboardingVoiceTool.weixin, .doubao, .voiceBuddy, .bageshuo, .typeless, .other] {
+        for tool in [OnboardingVoiceTool.weixin, .doubao, .chatterfly, .voiceBuddy, .bageshuo, .typeless, .other] {
             #expect(!OnboardingFlowPolicy.canContinue(
                 from: .voiceTool, voiceTool: tool, capabilities: OnboardingCapabilities()
             ))

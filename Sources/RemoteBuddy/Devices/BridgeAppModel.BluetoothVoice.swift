@@ -43,7 +43,7 @@ extension BridgeAppModel {
             AppLogger.shared.write("ATVV STREAM rejected_busy reason=pending_start")
             return
         }
-        let outputReadyAtStart = audio.output.isReadyForTestTone
+        let outputReadyAtStart = audio.output.isReadyForVoicePlayback
         if !outputReadyAtStart {
             let shouldStartConfiguration = voiceSession.pendingStart.identifier == nil
             if shouldStartConfiguration {
@@ -71,10 +71,12 @@ extension BridgeAppModel {
         let profileID = activateRemoteProfile(for: bridge)
         let currentPermissionSnapshot = permissionSnapshotProvider()
         let neutralizeVoiceKey = shouldNeutralizeNativeVoiceKey
+        let requiresT1VoiceKeySuppression = bridge.identifiedModel?.isT1Remote == true
         let currentServicesMatchDesiredMapping = voiceFunctionMapper
             .refreshAppliedMappingsValidity(
                 expectedPowerKeySuppression: settings.customMappingEnabled,
-                expectedVoiceKeyNeutralization: neutralizeVoiceKey
+                expectedVoiceKeyNeutralization: neutralizeVoiceKey,
+                requiresT1VoiceKeySuppression: requiresT1VoiceKeySuppression
             )
         let reapplyMappings = Self.shouldReapplyHIDSettingsBeforeVoiceStart(
             customMappingEnabled: settings.customMappingEnabled,
@@ -89,7 +91,8 @@ extension BridgeAppModel {
             monitoringInterrupted: hidMonitoringInterrupted,
             monitoringConfigurationApplied: appliedHIDMonitoringConfiguration != nil,
             appliedPermissionSnapshot: appliedHIDPermissionSnapshot,
-            currentPermissionSnapshot: currentPermissionSnapshot
+            currentPermissionSnapshot: currentPermissionSnapshot,
+            requiresT1VoiceKeySuppression: requiresT1VoiceKeySuppression
         )
         AppLogger.shared.write("VOICE START mapping_check current_matches=\(currentServicesMatchDesiredMapping) " +
             "matching_services_present=\(voiceFunctionMapper.hasMatchingServices) neutralized=\(voiceFunctionMapper.isVoiceKeyNeutralized) " +
@@ -97,7 +100,7 @@ extension BridgeAppModel {
         if reapplyMappings {
             applyHIDSettings(allowVoiceKeyModeFallback: false)
         } else if !voiceFunctionMapper.hasMatchingServices,
-                  settings.customMappingEnabled || neutralizeVoiceKey {
+                  settings.customMappingEnabled || neutralizeVoiceKey || requiresT1VoiceKeySuppression {
             scheduleHIDMappingRecoveryIfNeeded()
         }
         guard Self.canStartBluetoothVoice(
@@ -106,7 +109,12 @@ extension BridgeAppModel {
             isVoiceKeyNeutralized: voiceFunctionMapper.isVoiceKeyNeutralized,
             hasHardwareVoiceKey: !(bridge.identifiedModel?.isATVVRemote == true),
             accessibilityGranted: currentPermissionSnapshot.accessibilityGranted,
-            requiresOrderedFn: requiresOrderedVoiceFn
+            requiresOrderedFn: requiresOrderedVoiceFn,
+            nativeVoiceMappingIsValid: !requiresT1VoiceKeySuppression || voiceFunctionMapper.refreshAppliedMappingsValidity(
+                expectedPowerKeySuppression: settings.customMappingEnabled,
+                expectedVoiceKeyNeutralization: neutralizeVoiceKey,
+                requiresT1VoiceKeySuppression: true
+            )
         ) else {
             _ = bridge.requestMicrophoneClose()
             cancelPendingBluetoothVoiceStart(for: identifier)
@@ -330,11 +338,12 @@ extension BridgeAppModel {
         )
         AppLogger.shared.write(
             "ATVV STREAM summary trace=\(traceID) model=\(voiceSession.bluetoothVoiceTraceModel.rawValue) " +
+                "stop_reason=\(bridge.lastVoiceStopReason?.rawValue ?? "unknown") " +
                 "duration_ms=\(durationMilliseconds) batches=\(voiceSession.bluetoothVoiceDecodedBatchCount) " +
                 "samples=\(voiceSession.bluetoothVoiceDecodedSampleCount) " +
                 "enqueue_failures=\(voiceSession.bluetoothVoiceEnqueueFailureCount) " +
                 "route=\(voiceSession.bluetoothVoiceTraceRoute) pending_buffers=\(pendingBuffers) " +
-                "flush=\(shouldFlushAudio) audio_ready=\(audio.output.isReadyForTestTone) " +
+                "flush=\(shouldFlushAudio) audio_ready=\(audio.output.isReadyForVoicePlayback) " +
                 "audio_state={\(audio.output.diagnosticState())}"
         )
         AppLogger.shared.write(
@@ -566,7 +575,8 @@ extension BridgeAppModel {
         batteryLevels: [UUID: Int],
         powerStates: [UUID: RemotePowerState]
     ) {
-        guard ProcessInfo.processInfo.environment["REMOTE_BUDDY_SETTINGS_SCREENSHOT_DIR"] != nil else {
+        guard ProcessInfo.processInfo.environment["REMOTE_BUDDY_SETTINGS_SCREENSHOT_DIR"] != nil ||
+                ProcessInfo.processInfo.environment["REMOTE_BUDDY_ONBOARDING_SCREENSHOT_DIR"] != nil else {
             return
         }
         connectedRemoteProfileIDs = profileIDs

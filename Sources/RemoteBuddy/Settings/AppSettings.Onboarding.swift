@@ -8,7 +8,6 @@ private struct OnboardingReturnConfiguration: Codable {
     let controlSource: OnboardingControlSource
     let device: String?
     let remoteAvailability: OnboardingRemoteAvailability
-    let appleRemoteGeneration: OnboardingAppleRemoteGeneration?
     let preferredGesture: VoiceGestureMode?
     let verifiedBinding: VoiceToolUserBinding?
     let voiceKeyMode: VoiceKeyMode
@@ -16,6 +15,7 @@ private struct OnboardingReturnConfiguration: Codable {
     let customMappingEnabled: Bool
     let selectedRemoteProfileID: UUID?
     let initialRemoteProfileIDs: [UUID]
+    let initialG9N9NInputModes: [UUID: G9N9NInputMode]?
 }
 
 extension AppSettings {
@@ -41,14 +41,18 @@ extension AppSettings {
             controlSource: onboardingControlSource,
             device: onboardingDevice?.rawValue,
             remoteAvailability: onboardingRemoteAvailability,
-            appleRemoteGeneration: onboardingAppleRemoteGeneration,
             preferredGesture: onboardingPreferredGesture,
             verifiedBinding: verifiedVoiceToolBinding,
             voiceKeyMode: voiceKeyMode,
             fnTapModeEnabled: voiceFnTapModeEnabled,
             customMappingEnabled: customMappingEnabled,
             selectedRemoteProfileID: selectedRemoteProfileID,
-            initialRemoteProfileIDs: remoteDeviceProfiles.map(\.id)
+            initialRemoteProfileIDs: remoteDeviceProfiles.map(\.id),
+            initialG9N9NInputModes: Dictionary(
+                uniqueKeysWithValues: remoteDeviceProfiles
+                    .filter { $0.model.isChromecastRemote }
+                    .map { ($0.id, $0.effectiveG9N9NInputMode) }
+            )
         )
         if let data = try? JSONEncoder().encode(configuration) {
             defaults.set(data, forKey: Self.onboardingReturnConfigurationKey)
@@ -93,12 +97,17 @@ extension AppSettings {
         for profileID in uncommittedOnboardingRemoteProfileIDs() {
             _ = removeRemoteProfile(profileID)
         }
+        if let initialModes = configuration.initialG9N9NInputModes {
+            for index in remoteDeviceProfiles.indices where remoteDeviceProfiles[index].model.isChromecastRemote {
+                guard let savedMode = initialModes[remoteDeviceProfiles[index].id] else { continue }
+                remoteDeviceProfiles[index].g9n9nInputMode = savedMode == .full ? nil : savedMode
+            }
+        }
         discardOnboardingVoiceTrial()
         onboardingVoiceTool = configuration.voiceTool
         onboardingControlSource = configuration.controlSource
         onboardingDevice = configuration.device.flatMap(RemoteSetupDevice.init(rawValue:))
         onboardingRemoteAvailability = configuration.remoteAvailability
-        onboardingAppleRemoteGeneration = configuration.appleRemoteGeneration
         onboardingPreferredGesture = configuration.preferredGesture
         verifiedVoiceToolBinding = configuration.verifiedBinding
         voiceKeyMode = configuration.voiceKeyMode
@@ -227,12 +236,6 @@ extension AppSettings {
         discardOnboardingVoiceTrial()
     }
 
-    func setOnboardingAppleRemoteGeneration(_ generation: OnboardingAppleRemoteGeneration?) {
-        onboardingAppleRemoteGeneration = generation
-        if generation != nil, onboardingControlSource != .siriRemote {
-            setOnboardingControlSource(.siriRemote)
-        }
-    }
 
     func beginOnboardingVoiceTrial(_ plan: OnboardingVoicePairingPlan) {
         onboardingVoiceTrigger = VoiceTriggerConfiguration(voiceKeyMode: plan.binding.shortcut,
@@ -317,7 +320,6 @@ extension AppSettings {
         onboardingRemoteAvailability = .unselected
         onboardingControlSource = .unselected
         onboardingDevice = nil
-        onboardingAppleRemoteGeneration = nil
         onboardingPreferredGesture = nil
         onboardingStep = .permissions
         onboardingCompletedVersion = 0

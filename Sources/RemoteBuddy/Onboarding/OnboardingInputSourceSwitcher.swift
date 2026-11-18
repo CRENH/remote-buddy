@@ -26,13 +26,24 @@ enum OnboardingSystemFunctionKeyUsage: Equatable {
 }
 
 enum OnboardingInputSourceSwitcher {
+    static func validApplicationURL(
+        forBundleIdentifier bundleIdentifier: String,
+        lookup: (String) -> URL? = { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) },
+        fileExists: (String) -> Bool = { FileManager.default.fileExists(atPath: $0) }
+    ) -> URL? {
+        guard let url = lookup(bundleIdentifier),
+              !url.pathComponents.contains(".Trash"),
+              fileExists(url.path) else {
+            return nil
+        }
+        return url
+    }
+
     static func applicationURL(for voiceTool: OnboardingVoiceTool) -> URL? {
         guard let bundleIdentifier = voiceTool.applicationBundleIdentifier else {
             return nil
         }
-        return NSWorkspace.shared.urlForApplication(
-            withBundleIdentifier: bundleIdentifier
-        )
+        return validApplicationURL(forBundleIdentifier: bundleIdentifier)
     }
 
     static func runtimeState(
@@ -97,12 +108,32 @@ enum OnboardingInputSourceSwitcher {
         }
 
         if let bundleIdentifier = voiceTool.applicationBundleIdentifier {
-            return NSWorkspace.shared.urlForApplication(
-                withBundleIdentifier: bundleIdentifier
-            ) == nil ? .notInstalled : .available
+            return validApplicationURL(forBundleIdentifier: bundleIdentifier) == nil
+                ? .notInstalled
+                : .available
         }
 
         return profile.installationProbe == .none ? .unknown : .available
+    }
+
+    /// Checks whether the configured voice tool is ready for live voice sessions (including
+    /// being enabled in Keyboard Input Sources for input-method tools such as Doubao or WeType).
+    static func integrationAvailability(
+        for voiceTool: OnboardingVoiceTool,
+        hasInputSource: (_ id: String, _ includeAllInstalled: Bool) -> Bool = { id, includeAllInstalled in
+            inputSource(withID: id, includeAllInstalled: includeAllInstalled) != nil
+        },
+        hasApplication: (_ bundleIdentifier: String) -> Bool = { bundleIdentifier in
+            validApplicationURL(forBundleIdentifier: bundleIdentifier) != nil
+        }
+    ) -> OnboardingVoiceToolAvailability {
+        if let targetID = voiceTool.preferredInputSourceID {
+            return hasInputSource(targetID, false) ? .available : .notInstalled
+        }
+        if let bundleIdentifier = voiceTool.applicationBundleIdentifier {
+            return hasApplication(bundleIdentifier) ? .available : .notInstalled
+        }
+        return availability(for: voiceTool)
     }
 
     static func selectIfNeeded(

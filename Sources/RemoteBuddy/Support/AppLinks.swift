@@ -4,6 +4,10 @@ enum AppLinks {
     static let githubRepository = URL(
         string: "https://github.com/CRENH/remote-buddy"
     )!
+    // The guide is maintained upstream; the fork's own main branch is not kept current.
+    static let g9n9nCompatibilityGuide = URL(
+        string: "https://github.com/zfdang/remote-buddy/blob/main/docs/g9n9n-compatibility.md"
+    )!
     static let githubReleases = URL(string: "https://github.com/CRENH/remote-buddy/releases")!
     static let githubReleasesLatest = URL(string: "https://github.com/CRENH/remote-buddy/releases/latest")!
     static let chineseDownloads = URL(string: "https://remote.zfdang.com/downloads/")!
@@ -22,11 +26,18 @@ enum AppLinks {
     static let doubaoInputMethod = URL(
         string: "https://shurufa.doubao.com/"
     )!
+    static let chatterflyWebsite = URL(string: "https://chatterfly.tencent.com/")!
     static let bageshuoWebsite = URL(string: "https://bug.youdao.com/")!
     static let voiceBuddyChineseWebsite = URL(string: "https://myvoicebuddy.com/")!
     static let voiceBuddyEnglishWebsite = URL(
         string: "https://myvoicebuddy.com/en.html"
     )!
+
+    static func devices(for locale: Locale) -> URL {
+        URL(string: locale.identifier.lowercased().hasPrefix("zh")
+            ? "https://remote.zfdang.com/device.html"
+            : "https://remote.zfdang.com/device_en.html")!
+    }
 
     static func website(for locale: Locale) -> URL {
         locale.identifier.lowercased().hasPrefix("zh")
