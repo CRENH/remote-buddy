@@ -194,6 +194,8 @@ extension BluetoothRemoteBridge {
         cancelledMicrophoneOpenAt = nil
         sessionID = 0
         activeStreamSessionID = nil
+        lastVoiceStartAt = nil
+        lastVoiceStopAt = nil
     }
 
     static func controlWriteType(for properties: CBCharacteristicProperties) -> CBCharacteristicWriteType? {
@@ -302,14 +304,25 @@ extension BluetoothRemoteBridge {
             finishInitializationIfReady(generation: generation)
         case 0x08:
             guard lifecycle.acceptsProtocolData(generation: generation) else { return }
+            let toggleStopRequested = delegate?.bluetoothBridgeShouldCloseStreamingOnRemoteOpenRequest(self) ?? false
             if ATVVSessionGate.shouldCloseStreamingOnRemoteOpenRequest(
                 isT1Candidate: t1Candidate,
-                isStreaming: streaming
+                isStreaming: streaming,
+                allowsToggleStop: toggleStopRequested
             ) {
+                if toggleStopRequested {
+                    if delegate?.bluetoothBridgeIsClosingToggleVoice(self) == true,
+                       streamStopWatchdog != nil || microphoneClosePending || !microphoneOpened {
+                        AppLogger.shared.write("ATVV MIC_OPEN toggle_close_already_pending")
+                        return
+                    }
+                    delegate?.bluetoothBridgeDidRequestStopToggleVoice(self)
+                }
                 if requestMicrophoneClose() {
-                    AppLogger.shared.write("ATVV MIC_CLOSE requested reason=t1_second_press")
+                    let reason = t1Candidate ? "t1_second_press" : "toggle_second_press"
+                    AppLogger.shared.write("ATVV MIC_CLOSE requested reason=\(reason)")
                 } else {
-                    AppLogger.shared.write("ATVV MIC_OPEN t1_close_already_pending")
+                    AppLogger.shared.write("ATVV MIC_OPEN toggle_close_already_pending")
                 }
                 return
             }
@@ -350,6 +363,7 @@ extension BluetoothRemoteBridge {
                 return
             }
             deviceInformation.capabilities = capabilities
+            let incomingInteraction: UInt8? = bytes.count >= 2 ? bytes[1] : nil
             let explicitSessionID: UInt8? = bytes.count >= 4 ? bytes[3] : nil
             let receivedSessionID = explicitSessionID ?? sessionID
             if ATVVSessionGate.shouldIgnoreStreamAfterCancelledOpen(
@@ -365,6 +379,37 @@ extension BluetoothRemoteBridge {
                 return
             }
             cancelledMicrophoneOpenAt = nil
+            if delegate?.bluetoothBridgeShouldStopToggleVoiceOnRemoteAudioStart(
+                self,
+                interaction: incomingInteraction,
+                incomingSessionID: explicitSessionID
+            ) == true {
+                let alreadyClosing = delegate?.bluetoothBridgeIsClosingToggleVoice(self) == true
+                if alreadyClosing,
+                   explicitSessionID == nil || explicitSessionID == sessionID,
+                   streamStopWatchdog != nil || microphoneClosePending || !microphoneOpened {
+                    AppLogger.shared.write(
+                        "ATVV STREAM_START ignored_closing session=\(receivedSessionID)"
+                    )
+                    return
+                }
+                if alreadyClosing, explicitSessionID != nil, explicitSessionID != sessionID {
+                    // Re-arm the close watchdog when the remote bumps sessionID mid-close.
+                    cancelStreamStopWatchdog()
+                }
+                sessionID = receivedSessionID
+                if let explicitSessionID { activeStreamSessionID = explicitSessionID }
+                delegate?.bluetoothBridgeDidRequestStopToggleVoice(self)
+                let didClose = requestMicrophoneClose()
+                if !streaming {
+                    cancelledMicrophoneOpenAt = nowUptime()
+                }
+                AppLogger.shared.write(
+                    "ATVV MIC_CLOSE requested reason=toggle_second_press_audio_start " +
+                        "session=\(receivedSessionID) written=\(didClose)"
+                )
+                return
+            }
             if ATVVStreamStartPolicy.shouldReplaceStream(
                 isStreaming: streaming,
                 activeSessionID: activeStreamSessionID,
@@ -462,11 +507,14 @@ extension BluetoothRemoteBridge {
                     "streaming_before=\(streaming) partial_frame_bytes=\(partialFrameBytes)"
             )
         }
+        let capturedStartAt = nowUptime()
         guard audioDecoder.beginStream(onStart: { [weak self] in
             guard let self else { return }
             self.voiceStartNotified = true
             self.delegate?.bluetoothBridgeDidStartVoice(self)
         }) else { return }
+        lastVoiceStartAt = capturedStartAt
+        lastVoiceStopAt = nil
         lastStopAt = nil
         microphoneOpened = true
         scheduleMicrophoneKeepalive()
@@ -476,6 +524,9 @@ extension BluetoothRemoteBridge {
     func recordStreamStop(reason: BluetoothVoiceStopReason) {
         guard streaming || voiceStartNotified, !streamStopRecorded else { return }
         streamStopRecorded = true
+        if lastVoiceStopAt == nil {
+            lastVoiceStopAt = nowUptime()
+        }
         lastVoiceStopReason = reason
         voiceDiagnosticLogger(
             "ATVV STREAM STOP session=\(sessionID) reason=\(reason.rawValue) " +
