@@ -207,42 +207,33 @@ extension SettingsView {
                             .font(.system(.body, design: .monospaced)).frame(width: 54, alignment: .trailing)
                     }
                     Text(localization.text("audio.gain.help")).font(.caption).foregroundStyle(.secondary)
-                    Text(localization.text("audio.gain.per_device_help")).font(.caption).foregroundStyle(.secondary)
-                    if settings.selectedRemoteProfileID == profile.id {
-                        connectionStatusLine(symbol: "mic.fill", text: model.voiceShortcutStatus.text(using: localization), tint: .blue)
+                    let hardwareInformation = profile.bluetoothIdentifier.flatMap { identifier in
+                        let info = model.remoteDeviceInformation[identifier]
+                        return (info != nil && info != RemoteDeviceInformation()) ? info : nil
                     }
-                    if let identifier = profile.bluetoothIdentifier,
-                       let information = model.remoteDeviceInformation[identifier],
-                       information != RemoteDeviceInformation() {
-                        connectionDeviceInformation(information)
+                    if let hardwareInformation {
+                        connectionDeviceInformation(hardwareInformation)
                     }
                     if profile.model.isChromecastRemote {
                         let mode = profile.effectiveG9N9NInputMode
                         let voiceMode = profile.effectiveG9N9NVoiceButtonMode
+                        if hardwareInformation == nil {
+                            Divider()
+                        }
+                        g9n9nHardwareSupportSection(for: mode)
                         Divider()
-                        VStack(alignment: .leading, spacing: 10) {
+                        VStack(alignment: .leading, spacing: 12) {
                             VStack(alignment: .leading, spacing: 6) {
-                                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                HStack(alignment: .center, spacing: 8) {
                                     Text(localization.text("connection.g9n9n.voice_button_mode.title"))
                                         .font(.headline)
                                     Spacer(minLength: 12)
-                                    Picker(
-                                        localization.text("connection.g9n9n.voice_button_mode.title"),
-                                        selection: Binding(
-                                            get: { settings.g9n9nVoiceButtonMode(for: profile.id) },
-                                            set: { settings.setG9N9NVoiceButtonMode($0, for: profile.id) }
-                                        )
-                                    ) {
-                                        Text(localization.text("connection.g9n9n.voice_button_mode.smart_toggle"))
-                                            .tag(G9N9NVoiceButtonMode.smartToggle)
-                                        Text(localization.text("connection.g9n9n.voice_button_mode.hold"))
-                                            .tag(G9N9NVoiceButtonMode.holdToTalk)
+                                    G9N9NVoiceButtonModeSelector(
+                                        selection: settings.g9n9nVoiceButtonMode(for: profile.id),
+                                        isDisabled: model.isVoiceConfigurationBusy
+                                    ) { selectedMode in
+                                        settings.setG9N9NVoiceButtonMode(selectedMode, for: profile.id)
                                     }
-                                    .labelsHidden()
-                                    .pickerStyle(.segmented)
-                                    .frame(maxWidth: 260)
-                                    .disabled(model.isVoiceConfigurationBusy)
-                                    .accessibilityIdentifier("g9n9n-voice-button-mode-picker")
                                 }
                                 Text(localization.text(
                                     voiceMode == .smartToggle
@@ -253,35 +244,12 @@ extension SettingsView {
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
                             }
-                            Divider()
-                            VStack(alignment: .leading, spacing: 6) {
-                                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                    g9n9nSupportBadge(for: mode)
-                                        .fixedSize()
-                                    Text(localization.text(
-                                        mode == .twoKeyCompatibility
-                                            ? "connection.g9n9n.partial_support_notice"
-                                            : "connection.g9n9n.full_support_notice"
-                                    ))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                }
-                                if mode == .twoKeyCompatibility {
-                                    HStack(spacing: 12) {
-                                        Link(
-                                            localization.text("connection.g9n9n.compatibility_doc_link"),
-                                            destination: AppLinks.g9n9nCompatibilityGuide
-                                        )
-                                        Link(
-                                            localization.text("onboarding.chromecast.replace_hardware_link"),
-                                            destination: AppLinks.devices(for: localization.locale)
-                                        )
-                                    }
-                                    .font(.caption)
-                                }
+                            if let usageGuide = ConnectionDeviceUsageGuide.make(for: profile) {
+                                ConnectionDeviceUsageSection(guide: usageGuide, showsTopDivider: false)
                             }
                         }
+                    } else if let usageGuide = ConnectionDeviceUsageGuide.make(for: profile) {
+                        ConnectionDeviceUsageSection(guide: usageGuide)
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading).padding(.top, 10)
             }
@@ -323,6 +291,36 @@ extension SettingsView {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    private func g9n9nHardwareSupportSection(for mode: G9N9NInputMode) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                g9n9nSupportBadge(for: mode)
+                    .fixedSize()
+                Text(localization.text(
+                    mode == .twoKeyCompatibility
+                        ? "connection.g9n9n.partial_support_notice"
+                        : "connection.g9n9n.full_support_notice"
+                ))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            if mode == .twoKeyCompatibility {
+                HStack(spacing: 12) {
+                    Link(
+                        localization.text("connection.g9n9n.compatibility_doc_link"),
+                        destination: AppLinks.g9n9nCompatibilityGuide
+                    )
+                    Link(
+                        localization.text("onboarding.chromecast.replace_hardware_link"),
+                        destination: AppLinks.devices(for: localization.locale)
+                    )
+                }
+                .font(.caption)
+            }
+        }
+    }
+
     @ViewBuilder
     private func connectionRemotePhoto(_ profile: RemoteDeviceProfile) -> some View {
         if let resource = XiaomiRemoteCatalog.photoResource(for: profile.model) {
@@ -330,19 +328,6 @@ extension SettingsView {
         } else {
             UnrecognizedRemotePhoto().frame(width: 82, height: 166)
         }
-    }
-
-    private func connectionStatusLine(symbol: String, text: String, tint: Color) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Image(systemName: symbol)
-                .foregroundStyle(tint)
-                .frame(width: 18)
-            Text(text)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
 }
