@@ -53,25 +53,6 @@ extension SettingsView {
                         integrationToolCard(tool)
                     }
                 }
-                if settings.onboardingVoiceTool == .voiceBuddy {
-                    GlassPanel {
-                        HStack(alignment: .top, spacing: 10) {
-                            Image(systemName: "waveform.circle.fill")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundStyle(Color.accentColor)
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(localization.text("onboarding.voice_tool.voice_buddy.intro"))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                Link(destination: AppLinks.voiceBuddyWebsite(for: localization.locale)) {
-                                    Text(localization.text("onboarding.voice_tool.voice_buddy.website"))
-                                        .font(.caption.weight(.semibold))
-                                }
-                            }
-                        }
-                    }
-                }
 
                 if let warning = model.voiceKeyCompatibilityWarning {
                     voiceKeyCompatibilityWarningPanel(warning)
