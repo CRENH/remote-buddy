@@ -417,8 +417,12 @@ extension OnboardingView {
                     }
                     diagnosticCopyFeedback
                     if settings.onboardingStep == .remote,
-                       let profile = settings.selectedRemoteProfile, selectedControlConnected,
-                       BridgeAppModel.canLearnHIDIdentity(model: profile.model, source: settings.onboardingControlSource) {
+                       let profile = settings.selectedRemoteProfile,
+                       selectedControlConnected,
+                       BridgeAppModel.showsManualCompatibleHIDPicker(
+                           model: profile.model,
+                           source: settings.onboardingControlSource
+                       ) {
                         Button(localization.text("remote.hid_binding.open")) { hidBindingProfile = profile }
                             .buttonStyle(.bordered)
                     }
