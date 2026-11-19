@@ -437,6 +437,7 @@ extension BridgeAppModel {
         // Detach the blocking event tap before any synchronous IOKit close.
         cancelHIDFilterRetry()
         appliedHIDMonitoringConfiguration = nil
+        appSwitcherCoordinator.cancelAll()
         hidEventSuppressor.stop()
         hidMonitors.values.forEach { $0.stop() }
         discoveryHIDMonitor?.stop()
@@ -571,7 +572,8 @@ extension BridgeAppModel {
             permissionSnapshot: permissionSnapshotProvider,
             actionPerformer: { [weak self] _, _, configured in
                 self?.performExternalConfiguredAction(configured) ?? false
-            }
+            },
+            appSwitcherCoordinator: appSwitcherCoordinator
         )
         monitor.onboardingWindowIsActive = { [weak self] in
             self?.onboardingWindowIsActive() ?? true

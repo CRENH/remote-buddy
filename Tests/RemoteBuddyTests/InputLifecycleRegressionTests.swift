@@ -468,4 +468,211 @@ struct InputLifecycleRegressionTests {
         try await waitForTestCondition("cancelled timer releases captured probe") { secondObserved == nil }
         #expect(secondObserved == nil)
     }
+
+    @Test func sharedAppSwitcherCoordinatesAcrossRemotesAndSuppressesNativeArrows() throws {
+        struct PostedKeyEvent: Equatable {
+            let code: CGKeyCode
+            let down: Bool
+            let command: Bool
+        }
+        let (values, name) = defaults()
+        defer { values.removePersistentDomain(forName: name) }
+        let settings = AppSettings(defaults: values)
+        settings.customMappingEnabled = true
+        let remoteAProfile = settings.registerBluetoothRemote(identifier: UUID(), model: .chromecastVoiceRemote)
+        let remoteBProfile = settings.registerBluetoothRemote(identifier: UUID(), model: .rc003)
+        settings.setBaseBinding(
+            .init(action: .appSwitcher, shortcut: nil),
+            for: .home,
+            trigger: .singleClick,
+            profileID: remoteAProfile
+        )
+        settings.setBaseBinding(
+            .init(action: .arrowRight, shortcut: nil),
+            for: .right,
+            trigger: .singleClick,
+            profileID: remoteBProfile
+        )
+        settings.setBaseBinding(
+            .init(action: .arrowLeft, shortcut: nil),
+            for: .left,
+            trigger: .singleClick,
+            profileID: remoteBProfile
+        )
+
+        let clock = ControlledTestScheduler()
+        let filter = KeyboardEventSuppressor(uptime: { 0 })
+        var postedEvents: [PostedKeyEvent] = []
+        var logs: [String] = []
+        let session = KeyboardInjector.AppSwitcherSession(
+            hardwareFlags: { [] },
+            keyStatePoster: { code, down, flags, _ in
+                postedEvents.append(PostedKeyEvent(code: code, down: down, command: flags.contains(.maskCommand)))
+                return true
+            }
+        )
+        let coordinator = HIDAppSwitcherCoordinator(
+            session: session,
+            scheduler: clock,
+            frontmostBundleIdentifier: { "test.editor" },
+            diagnosticLogger: { logs.append($0) }
+        )
+        let monitorA = HIDRemoteMonitor(
+            settings: settings,
+            allowsG9N9N: true,
+            profileID: remoteAProfile,
+            eventSuppressor: filter,
+            ownsEventSuppressor: false,
+            scheduler: clock,
+            runtimePermissions: { true },
+            nativeSuppressionAvailable: { true },
+            frontmostBundleIdentifier: { "test.editor" },
+            diagnosticLogger: { logs.append($0) },
+            appSwitcherCoordinator: coordinator
+        )
+        let monitorB = HIDRemoteMonitor(
+            settings: settings,
+            profileID: remoteBProfile,
+            eventSuppressor: filter,
+            ownsEventSuppressor: false,
+            scheduler: clock,
+            runtimePermissions: { true },
+            nativeSuppressionAvailable: { true },
+            frontmostBundleIdentifier: { "test.editor" },
+            diagnosticLogger: { logs.append($0) },
+            appSwitcherCoordinator: coordinator
+        )
+        monitorA.connectSimulatedDevice(fingerprint: "remote-a", profileID: remoteAProfile, isSeized: true)
+        monitorB.connectSimulatedDevice(fingerprint: "remote-b", profileID: remoteBProfile, isSeized: false)
+        defer {
+            monitorA.disconnectSimulatedDevice()
+            monitorB.disconnectSimulatedDevice()
+        }
+
+        func send(_ monitor: HIDRemoteMonitor, _ button: RemoteButton?) {
+            let usage = button?.hidUsage ?? 0
+            monitor.handleSimulatedReport(reportID: 1, data: Data([UInt8(usage & 255), UInt8(usage >> 8)]))
+        }
+
+        // Remote A opens the app switcher.
+        send(monitorA, .home)
+        send(monitorA, nil)
+        #expect(coordinator.isActive)
+
+        // Advance near the initial timeout, then navigate with Remote B; B must own native arrows
+        // (no passthrough) and refresh the shared timeout.
+        clock.advance(to: HIDRemoteTiming.appSwitcherTimeoutMilliseconds - 1_000)
+        #expect(coordinator.isActive)
+
+        postedEvents.removeAll()
+        send(monitorB, .right)
+        let rightDown = try #require(CGEvent(keyboardEventSource: nil, virtualKey: 124, keyDown: true))
+        #expect(filter.handle(type: .keyDown, event: rightDown))
+        send(monitorB, nil)
+        let rightUp = try #require(CGEvent(keyboardEventSource: nil, virtualKey: 124, keyDown: false))
+        #expect(filter.handle(type: .keyUp, event: rightUp))
+
+        // Initial deadline passes; shared timeout was refreshed by Remote B's navigation.
+        clock.advance(to: HIDRemoteTiming.appSwitcherTimeoutMilliseconds + 1_000)
+        #expect(coordinator.isActive)
+
+        send(monitorB, .left)
+        let leftDown = try #require(CGEvent(keyboardEventSource: nil, virtualKey: 123, keyDown: true))
+        #expect(filter.handle(type: .keyDown, event: leftDown))
+        send(monitorB, nil)
+        let leftUp = try #require(CGEvent(keyboardEventSource: nil, virtualKey: 123, keyDown: false))
+        #expect(filter.handle(type: .keyUp, event: leftUp))
+
+        #expect(postedEvents == [
+            PostedKeyEvent(code: 124, down: true, command: true),
+            PostedKeyEvent(code: 124, down: false, command: true),
+            PostedKeyEvent(code: 123, down: true, command: true),
+            PostedKeyEvent(code: 123, down: false, command: true),
+        ])
+        #expect(!logs.contains { $0.contains("HID NATIVE PASSTHROUGH") })
+
+        // Remote B confirms the switcher; Command is released and subsequent arrows return to passthrough.
+        postedEvents.removeAll()
+        send(monitorB, .ok)
+        send(monitorB, nil)
+        #expect(!coordinator.isActive)
+        #expect(postedEvents.last == PostedKeyEvent(code: 55, down: false, command: false))
+
+        send(monitorB, .right)
+        send(monitorB, nil)
+        #expect(logs.contains { $0.contains("HID NATIVE PASSTHROUGH button=right action=arrowRight") })
+    }
+
+    @Test func nonOwnerMonitorResetDoesNotCancelActiveAppSwitcher() {
+        let (values, name) = defaults()
+        defer { values.removePersistentDomain(forName: name) }
+        let settings = AppSettings(defaults: values)
+        settings.customMappingEnabled = true
+        let remoteAProfile = settings.registerBluetoothRemote(identifier: UUID(), model: .chromecastVoiceRemote)
+        let remoteBProfile = settings.registerBluetoothRemote(identifier: UUID(), model: .rc003)
+        settings.setBaseBinding(
+            .init(action: .appSwitcher, shortcut: nil),
+            for: .home,
+            trigger: .singleClick,
+            profileID: remoteAProfile
+        )
+
+        let clock = ControlledTestScheduler()
+        let coordinator = HIDAppSwitcherCoordinator(
+            session: KeyboardInjector.AppSwitcherSession(
+                hardwareFlags: { [] },
+                keyStatePoster: { _, _, _, _ in true }
+            ),
+            scheduler: clock,
+            frontmostBundleIdentifier: { "test.editor" },
+            diagnosticLogger: { _ in }
+        )
+        let monitorA = HIDRemoteMonitor(
+            settings: settings,
+            allowsG9N9N: true,
+            profileID: remoteAProfile,
+            scheduler: clock,
+            runtimePermissions: { true },
+            frontmostBundleIdentifier: { "test.editor" },
+            diagnosticLogger: { _ in },
+            appSwitcherCoordinator: coordinator
+        )
+        let monitorB = HIDRemoteMonitor(
+            settings: settings,
+            profileID: remoteBProfile,
+            scheduler: clock,
+            runtimePermissions: { true },
+            frontmostBundleIdentifier: { "test.editor" },
+            diagnosticLogger: { _ in },
+            appSwitcherCoordinator: coordinator
+        )
+        monitorA.connectSimulatedDevice(fingerprint: "remote-a", profileID: remoteAProfile, isSeized: true)
+        monitorB.connectSimulatedDevice(fingerprint: "remote-b", profileID: remoteBProfile, isSeized: false)
+
+        let homeUsage = RemoteButton.home.hidUsage
+        monitorA.handleSimulatedReport(reportID: 1, data: Data([UInt8(homeUsage & 255), UInt8(homeUsage >> 8)]))
+        monitorA.handleSimulatedReport(reportID: 1, data: Data([0, 0]))
+        #expect(coordinator.isActive)
+
+        // Disconnecting or resetting the idle second remote leaves Remote A's switcher active.
+        monitorB.disconnectSimulatedDevice()
+        #expect(coordinator.isActive)
+
+        // Disconnecting the owning remote cleans up the active switcher.
+        monitorA.disconnectSimulatedDevice()
+        #expect(!coordinator.isActive)
+    }
+
+    @Test @MainActor func bridgeAppModelSharesAppSwitcherCoordinatorAcrossHIDMonitors() throws {
+        let (values, name) = defaults()
+        defer { values.removePersistentDomain(forName: name) }
+        let settings = AppSettings(defaults: values)
+        let model = BridgeAppModel(settings: settings, initialAudioDevices: [])
+        let xiaomiID = settings.registerBluetoothRemote(identifier: UUID(), model: .rc003)
+        let googleID = settings.registerBluetoothRemote(identifier: UUID(), model: .chromecastVoiceRemote)
+        let monitorA = model.makeHIDMonitor(profileID: xiaomiID, targetFingerprint: "fp-a")
+        let monitorB = model.makeHIDMonitor(profileID: googleID, targetFingerprint: "fp-b")
+        #expect(monitorA.appSwitcherCoordinator === model.appSwitcherCoordinator)
+        #expect(monitorB.appSwitcherCoordinator === model.appSwitcherCoordinator)
+    }
 }
