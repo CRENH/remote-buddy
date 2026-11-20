@@ -39,6 +39,7 @@ struct ConfiguredButtonAction: Codable, Equatable {
 
 
 enum ButtonActionCategory: String, CaseIterable, Identifiable {
+    case directPassthrough
     case basicKeys
     case systemAndMedia
     case applications
@@ -49,6 +50,7 @@ enum ButtonActionCategory: String, CaseIterable, Identifiable {
 
     var localizationKey: String {
         switch self {
+        case .directPassthrough: return "action.direct_passthrough"
         case .basicKeys: return "button_mapping.action_group.basic_keys"
         case .systemAndMedia: return "button_mapping.action_group.system_and_media"
         case .applications: return "button_mapping.action_group.applications"
@@ -110,6 +112,7 @@ enum ButtonAction: String, CaseIterable, Codable, Identifiable {
     case openZed
     case customShortcut
     case repeatSingleClick
+    case directPassthrough = "direct_passthrough"
 
     var id: String { rawValue }
 
@@ -137,6 +140,7 @@ enum ButtonAction: String, CaseIterable, Codable, Identifiable {
         case .arrowDown: return localization.text("action.arrow_down")
         case .arrowLeft: return localization.text("action.arrow_left")
         case .arrowRight: return localization.text("action.arrow_right")
+        case .directPassthrough: return localization.text("action.direct_passthrough")
         case .scrollUp: return localization.text("action.scroll_up")
         case .scrollDown: return localization.text("action.scroll_down")
         case .deleteBackward: return localization.text("action.delete_backspace")
@@ -192,6 +196,8 @@ enum ButtonAction: String, CaseIterable, Codable, Identifiable {
     var category: ButtonActionCategory {
         if presetApplication != nil { return .applications }
         switch self {
+        case .directPassthrough:
+            return .directPassthrough
         case .disabled, .escape, .returnKey, .commandReturn, .shiftReturn, .commandCopy,
              .commandPaste, .commandClose, .commandQuit, .commandCut, .commandSelectAll,
              .commandUndo, .commandRedo, .commandFind, .commandSave, .commandDelete,
@@ -220,9 +226,17 @@ enum ButtonAction: String, CaseIterable, Codable, Identifiable {
 
     static func pickerActions(
         installedBundleIdentifiers: Set<String>,
-        current: ButtonAction
+        current: ButtonAction,
+        button: RemoteButton? = nil,
+        trigger: ButtonTrigger? = nil
     ) -> [ButtonAction] {
         let actions = allCases.filter { action in
+            if action == .directPassthrough {
+                guard let button, button.isDirectional, trigger == nil || trigger == .singleClick else {
+                    return action == current
+                }
+                return true
+            }
             guard let application = action.presetApplication else { return true }
             return installedBundleIdentifiers.contains(application.bundleIdentifier) || action == current
         }
