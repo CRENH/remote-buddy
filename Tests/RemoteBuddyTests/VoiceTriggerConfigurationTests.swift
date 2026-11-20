@@ -160,7 +160,7 @@ struct VoiceTriggerConfigurationTests {
             }
             view.continueFlow()
             #expect(settings.onboardingStep == .voiceTool)
-            #expect(settings.voiceKeyMode == .function)
+            #expect(settings.voiceKeyMode == .suggestedShortcut)
             // Switching to Fn adds its system-conflict instruction to the required views.
             settings.selectOnboardingVoiceTrigger(.function)
             #expect(!view.hasViewedInputMethodGuideSteps(ids))
@@ -366,9 +366,12 @@ struct VoiceTriggerConfigurationTests {
 
     @Test func voiceShortcutPresetsMatchTheSupportedMenuChoices() {
         let expected: [NSEvent.ModifierFlags] = [[.control, .shift], [.control, .option], [.control, .command]]
-        let chords: [VoiceKeyMode] = [(UInt16(9), "V"), (UInt16(15), "R")].flatMap { keyCode, label in
+        let chords: [VoiceKeyMode] = [(UInt16(15), "R"), (UInt16(9), "V")].flatMap { keyCode, label in
             expected.map { .shortcut(CustomKeyboardShortcut(keyCode: keyCode, modifierFlags: $0, keyLabel: label)) }
         }
+        #expect(VoiceKeyMode.suggestedShortcut == .shortcut(CustomKeyboardShortcut(
+            keyCode: 15, modifierFlags: [.control, .shift], keyLabel: "R"
+        )))
         #expect(VoiceKeyMode.shortcutPresets == chords)
         #expect(VoiceKeyMode.allCases == [.function, .rightOption, .rightCommand] + chords)
         #expect(VoiceKeyMode.allCases.count == 9)
@@ -408,6 +411,17 @@ struct VoiceTriggerConfigurationTests {
             #expect(!settings.voiceFnTapModeEnabled)
             #expect(OnboardingPurpose.integration.previousStep(before: .voiceTrigger) == nil)
             #expect(OnboardingPurpose.integration.nextStep(after: .voiceTrigger) == .voiceTool)
+        }
+    }
+
+    @Test func freshSettingsDefaultToCtrlShiftRInsteadOfFn() throws {
+        try withSettings { settings, _ in
+            let expected = VoiceKeyMode.shortcut(CustomKeyboardShortcut(
+                keyCode: 15, modifierFlags: [.control, .shift], keyLabel: "R"
+            ))
+            #expect(VoiceKeyMode.suggestedShortcut == expected)
+            #expect(settings.voiceKeyMode == expected)
+            #expect(settings.selectedVoiceTrigger.voiceKeyMode == expected)
         }
     }
 }
@@ -630,6 +644,60 @@ struct HeldVoiceShortcutTests {
         #expect(trigger.setPressed(true))
         #expect(posted.last?.0 == .rightOption)
         #expect(trigger.setPressed(false))
+    }
+
+    @Test func consecutiveVoiceSessionsStillSendEveryModifierWhenHIDSnapshotLags() {
+        let session = HeldVoiceShortcut()
+        let chord = CustomKeyboardShortcut(keyCode: 9, modifierFlags: [.control, .command], keyLabel: "V")
+        var observed: CGEventFlags = []
+        var sequences: [[(UInt16, Bool)]] = []
+        var current: [(UInt16, Bool)] = []
+        var now: TimeInterval = 100
+        let post: KeyboardInjector.KeyStatePoster = { code, down, flags in
+            current.append((code, down))
+            if down { observed = flags }
+            return true
+        }
+        for _ in 0..<4 {
+            current = []
+            #expect(session.setPressed(true, shortcut: chord, post: post,
+                hardwareFlags: { observed }, uptime: { now }))
+            #expect(session.setPressed(false, shortcut: chord, post: post))
+            sequences.append(current)
+            now += 2
+        }
+        let expected: [(UInt16, Bool)] = [(59, true), (55, true), (9, true), (9, false), (55, false), (59, false)]
+        for seq in sequences {
+            #expect(seq.map(\.0) == expected.map(\.0))
+            #expect(seq.map(\.1) == expected.map(\.1))
+        }
+    }
+
+    @Test func voiceShortcutPolicyClearsStaleHIDModifiersWithoutPhysicalKeysAndStripsInternalBits() {
+        let polluted = CGEventFlags(rawValue: 0x2014_0109) // 0x20000000 | Control | Command | 0x100 | 0x0001 | 0x0008
+        #expect(KeyboardHardwareModifierPolicy.voiceShortcutNormalized(polluted, heldKeys: []) == [])
+        let shiftOnly = KeyboardHardwareModifierPolicy.voiceShortcutNormalized(
+            polluted.union(.maskShift), heldKeys: [60]
+        )
+        #expect(shiftOnly == .maskShift)
+    }
+
+    @Test func voiceKeyEventsStripNonCoalescedAndQuartzInternalFlags() throws {
+        let polluted = CGEventFlags(rawValue: 0x2000_0100)
+        for mode in [VoiceKeyMode.function, .rightOption] {
+            let down = try #require(KeyboardInjector.makeMarkedKeyEvent(
+                code: mode.keyCode, isDown: true, flags: mode.eventFlags,
+                marker: KeyboardInjector.orderedVoiceEventMarker,
+                hardwareFlags: { polluted }
+            ))
+            #expect(down.flags == mode.eventFlags)
+            let up = try #require(KeyboardInjector.makeMarkedKeyEvent(
+                code: mode.keyCode, isDown: false, flags: [],
+                marker: KeyboardInjector.orderedVoiceEventMarker,
+                hardwareFlags: { polluted.union(ShortcutEventSequence.modifierFlags(for: mode.keyCode)) }
+            ))
+            #expect(up.flags == [])
+        }
     }
 
 }

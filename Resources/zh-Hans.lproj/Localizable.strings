@@ -274,15 +274,16 @@
 "connection.status.voice_active" = "语音中";
 "common.status.ready" = "已就绪";
 "connection.status.voice_trigger" = "语音触发";
-"connection.voice_fn_tap.enabled" = "点按模式";
-"connection.voice_fn_tap.hint_short" = "开启：自动点按热键开始和结束；关闭：收音期间持续按住热键。";
+"connection.voice_fn_tap.enabled" = "点按热键模式（仅限点按型输入工具）";
+"connection.voice_fn_tap.hint_short" = "• 默认保持关闭（推荐）：只要输入工具支持「按住说话」（如豆包输入法、微信输入法、Voice Buddy、Chatterfly），请不要勾选此项，并在输入工具中选长按模式。\n• 无需因遥控器支持单按而开启：无论遥控器是长按还是点按免提，遥控搭子都会统一转换成「按住热键」发给输入工具。\n• 仅以下情况需要勾选：遥控器需一直按住才发送语音，而您使用的输入工具不支持长按、只支持「点按一次开始、再按一次结束」（如 Typeless、网易叭哥说、macOS 听写），开启后会改为在开始与结束时各自动点按一次热键。";
 "connection.voice_key_mode.title" = "语音热键";
 "connection.voice_key.mode.fn" = "Fn/地球键";
 "connection.voice_key.mode.left_command" = "左 Command (⌘)";
 "connection.voice_key.mode.right_command" = "右 Command (⌘)";
 "connection.voice_key.mode.left_option" = "左 Option (⌥)";
 "connection.voice_key.mode.right_option" = "右 Option (⌥)";
-"connection.voice_key_mode.help" = "下一步请在输入工具中设置相同语音热键和录音方式。";
+"connection.voice_key_mode.help" = "下一步请在输入工具中设置相同语音热键和录音方式（建议尽量不要选用 Fn 键，容易被 macOS 系统地球键、微信等应用占用冲突）。";
+"connection.voice_key_mode.fn_caution_help" = "建议尽量不要选用 Fn 键（除 macOS 系统听写外）：Fn 键极易被 macOS 系统、微信等各类应用占用冲突，推荐改用 Ctrl (⌃) + Shift (⇧) + R。";
 "onboarding.voice_trigger.save_hint" = "通过后续语音测试后，新设置才会生效。";
 "connection.voice_key_mode.command_permission" = "修饰键模式需要辅助功能权限";
 "connection.action.reconnect" = "立即重新连接";
@@ -882,9 +883,9 @@
 "custom_application.accessibility.test" = "测试输入框";
 
 "onboarding.voice_tool.guide.screenshot.doubao_menu" = "在输入法菜单中选择豆包输入法，再打开设置。";
-"onboarding.voice_tool.guide.screenshot.doubao_settings" = "在语音输入中，将对应模式的快捷键设为“%@”。开启全局唤起语音，并选择遥控搭子的虚拟麦克风。";
+"onboarding.voice_tool.guide.screenshot.doubao_settings" = "在语音输入中选择「按住说话」（不要选免按模式；点按免提转换由遥控搭子自动完成），将快捷键设为“%@”，开启全局唤起语音，并选择遥控搭子的虚拟麦克风。";
 "onboarding.voice_tool.guide.screenshot.weixin_input_menu" = "在输入法菜单中选择微信输入法，再打开设置。";
-"onboarding.voice_tool.guide.screenshot.weixin_input_settings" = "在语音输入中将快捷键设为“%@”，让录音触发模式与当前方案一致，并开启“快捷键全局生效”。";
+"onboarding.voice_tool.guide.screenshot.weixin_input_settings" = "在语音输入中将快捷键设为“%@”，录音触发方式优先选择「按住说话」（遥控器点按转换由遥控搭子自动处理），并开启“快捷键全局生效”。";
 "onboarding.voice_tool.guide.screenshot.weixin_app_shortcuts" = "微信 App 的全局语音快捷键可能与其他语音工具冲突。请检查是否占用了“%@”；如有冲突，仅清除对应快捷键。";
 "onboarding.voice_tool.guide.screenshot.bageshuo_menu" = "在菜单栏点击网易叭哥说图标，选择设置。";
 "onboarding.voice_tool.guide.screenshot.bageshuo_settings" = "在设置 → 快捷键中，将“语音润色快捷键”设为“%@”，使用按一下开始、再按一下结束模式。";
@@ -1197,7 +1198,7 @@
 
 "shortcut.keyboard.main_key_required" = "请再选择一个普通按键，或只保留一个修饰键。";
 
-"connection.voice_key.chord_help" = "输入工具须支持此组合键和所选录音方式。请设置一致，并避开其他应用已用的快捷键。";
+"connection.voice_key.chord_help" = "下一步请在输入工具中设置相同组合键和所选录音方式，并避开其他应用已用的快捷键（推荐尽量不要用 Fn 键，Fn 容易被系统、微信等各类软件占用冲突）。";
 
 "shortcut.keyboard.help" = "点击修饰键和普通按键来组合快捷键，也可以直接录入。左右按键分别设置。";
 "shortcut.keyboard.use_shortcut" = "使用此快捷键";
