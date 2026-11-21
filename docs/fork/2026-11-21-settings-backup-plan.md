@@ -163,7 +163,7 @@ CI 失败（编译错误）就在同一任务内修，修到绿再勾选；同�
 - [x] **Step 4：push，CI 绿。**
 - [x] **Step 5：勾选 T4，commit** `feat(settings): add backup and restore to the general page`；把 draft PR 转为正式（`gh pr ready`）。
 
-- [ ] **T5 — 全分支审查** [needs-human: 看审查结论] depends: T4
+- [x] **T5 — 全分支审查** [needs-human: 看审查结论] depends: T4
   - 派 1 个 reviewer（`model: opus`），审 `upstream/main...feat/settings-backup` 全部改动，对照 spec 和本计划的 Review Focus。
   - 修完审查意见再 push，CI 绿。
   - Acceptance：审查无未处理的严重问题；PR 的 `test` 检查为 pass。
@@ -197,5 +197,10 @@ CI 失败（编译错误）就在同一任务内修，修到绿再勾选；同�
   - `aboutSection` / `preferenceRow` 是 `private`，新分组只能在 `SettingsView.Preferences.swift` 的 `generalPage` 里调用。
   - 删除远程分支、`reset --hard` 这类命令会被权限拦截，换不破坏性的做法或交给 Eric。
 - Open questions：无。
-- Next step：T5（派 1 个 `opus` reviewer 审 `upstream/main...feat/settings-backup`，对照 spec、Review Focus 和上面「与计划不同的地方」），需 Eric 确认后开始。
-- Resume prompt：`读 ~/Documents/GitHub/Remote-Buddy/docs/fork/2026-11-21-settings-backup-plan.md，从 T5 继续`
+- T5 结果（2026-11-21）：`opus` 审查结论「修完可合并」，无严重问题；5 个 Review Focus 都已覆盖。已在 `dccaf7c` 修复，CI 绿（959 个测试）：
+  - 导入后「自定义映射」开关不生效：`onImported` 加 `setCustomMappingEnabled`（会刷新权限并 `applyHIDSettings`）。
+  - 认不出的按键 / 手势 key 被静默丢弃：`RemoteDeviceMappings` 解码时记录这些 key（数据保留），启动时因此写 `.corrupt`、导入时列在报告里。代价：未编辑过的档案每次启动都会出现「部分设置无法读取」提示，直到改过一次映射。
+  - 小问题：数组里的 `null` 元素、超出范围的增益（报告列出）、`exportedAt` / `appVersion` 不再报告、`SettingsBackupSection` 不再订阅 settings、英文完成提示的单复数；补了通用设置往返、未知语言、未知型号字符串、未知按键、长按手势的 App 引用换算等测试。
+  - 未处理（记为后续）：启动时 App / 快捷键引用断掉后动作留空（上游原有行为）；「部分设置无法读取」提示文案写的是「已重置为默认」，部分读入时不够准确（上游文件的文案）；自定义 App 列表启动时仍是整份解码（spec 范围外）。
+- Next step：T6——Eric 合并 [CRENH/remote-buddy#7](https://github.com/CRENH/remote-buddy/pull/7)（建议 squash），打包后在 M2 上做硬件验收；通过后同一分支向上游开 PR。
+- Resume prompt：`读 ~/Documents/GitHub/Remote-Buddy/docs/fork/2026-11-21-settings-backup-plan.md，从 T6 继续`
