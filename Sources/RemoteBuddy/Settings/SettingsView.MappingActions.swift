@@ -157,7 +157,8 @@ extension SettingsView {
     }
 
     func mappingActionSummary(for button: RemoteButton, trigger: ButtonTrigger,
-                                      configuredAction: ConfiguredButtonAction? = nil) -> String {
+                              configuredAction: ConfiguredButtonAction? = nil,
+                              detailed: Bool = false) -> String {
         if trigger != .singleClick && mappingConfiguration(for: button, trigger: .singleClick).action == .directPassthrough {
             return "-"
         }
@@ -182,6 +183,9 @@ extension SettingsView {
             return settings.customApplicationProfile(id: configured.applicationProfileID)?.displayName
                 ?? localization.text("custom_application.not_configured")
         }
+        if detailed {
+            return configured.action.detailedDisplayName(using: localization)
+        }
         switch configured.action {
         case .arrowUp: return "↑"
         case .arrowDown: return "↓"
@@ -191,6 +195,8 @@ extension SettingsView {
         case .volumeUp: return localization.text("action.system_volume_up_short")
         case .volumeDown: return localization.text("action.system_volume_down_short")
         case .volumeMute: return localization.text("action.system_volume_mute_short")
+        case .brightnessUp: return localization.text("action.brightness_up_short")
+        case .brightnessDown: return localization.text("action.brightness_down_short")
         default: break
         }
         return configured.action.displayName(using: localization)
