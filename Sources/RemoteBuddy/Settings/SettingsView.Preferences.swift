@@ -122,6 +122,14 @@ extension SettingsView {
                         .frame(width: 300)
                     }
                 }
+
+                aboutSection(titleKey: "settings.general.backup_group") {
+                    SettingsBackupSection(settings: settings, localization: localization) {
+                        localization.select(settings.applicationLanguage)
+                        setDockIconVisible(settings.showDockIcon)
+                        setStatusBarIconVisible(settings.showStatusBarIcon)
+                    }
+                }
             }
 
         }
