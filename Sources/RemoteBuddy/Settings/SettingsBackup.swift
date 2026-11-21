@@ -170,8 +170,9 @@ struct SettingsBackupDocument: Codable {
         else { throw SettingsBackupError.notASettingsFile }
         self.format = format
         self.formatVersion = formatVersion
-        exportedAt = container.decodeLossyIfPresent(Date.self, forKey: .exportedAt)
-        appVersion = container.decodeLossyIfPresent(String.self, forKey: .appVersion)
+        // Informational only, so an unreadable value is not worth reporting.
+        exportedAt = try? container.decodeIfPresent(Date.self, forKey: .exportedAt)
+        appVersion = try? container.decodeIfPresent(String.self, forKey: .appVersion)
         general = container.decodeLossyIfPresent(General.self, forKey: .general) ?? General()
         customApplications = container.decodeLossyIfPresent(
             LossyArray<CustomApplicationProfile>.self, forKey: .customApplications)?.elements ?? []

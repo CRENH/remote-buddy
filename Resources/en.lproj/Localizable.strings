@@ -492,7 +492,7 @@
 "settings.backup.import.confirm_title" = "Import Settings?";
 "settings.backup.import.confirm_message" = "Importing replaces the current button mappings and settings. Consider exporting a backup first.";
 "settings.backup.import.result_title" = "Import Finished";
-"settings.backup.import.done" = "Imported settings for %d remotes.";
+"settings.backup.import.done" = "Settings imported. Remotes updated: %d.";
 "settings.backup.import.skipped_header" = "These items were skipped:";
 "settings.backup.import.item" = "• %1$@: %2$@";
 "settings.backup.import.reason.unrecognized_value" = "not recognized by this version";

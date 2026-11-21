@@ -155,7 +155,13 @@ extension AppSettings {
             } else {
                 report.skip([model], .mappingLockedByCompatibilityMode)
             }
-            if let gain = source.gainDB { setGainDB(gain, for: profile.id) }
+            if let gain = source.gainDB {
+                if gain.isFinite, (0...24).contains(gain) {
+                    setGainDB(gain, for: profile.id)
+                } else {
+                    report.skip([model, "gainDB"], .unrecognizedValue)
+                }
+            }
             if let mode = source.g9n9nVoiceButtonMode { setG9N9NVoiceButtonMode(mode, for: profile.id) }
         }
         let localModels = Set(remoteDeviceProfiles.map(\.model))

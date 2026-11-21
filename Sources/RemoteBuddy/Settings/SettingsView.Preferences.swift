@@ -128,6 +128,7 @@ extension SettingsView {
                         localization.select(settings.applicationLanguage)
                         setDockIconVisible(settings.showDockIcon)
                         setStatusBarIconVisible(settings.showStatusBarIcon)
+                        setCustomMappingEnabled(settings.customMappingEnabled)
                     }
                 }
             }

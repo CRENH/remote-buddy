@@ -111,6 +111,100 @@ struct SettingsBackupTests {
         #expect(report.importedRemoteCount == 2)
     }
 
+    /// Edits the first remote of a backup the way a newer build or a person might have.
+    private func rewritingFirstRemote(of data: Data, _ change: (inout [String: Any]) -> Void) throws -> Data {
+        var object = try jsonObject(data)
+        var remotes = try #require(object["remotes"] as? [[String: Any]])
+        change(&remotes[0])
+        object["remotes"] = remotes
+        return try JSONSerialization.data(withJSONObject: object)
+    }
+
+    @Test func roundTripRestoresGeneralSettings() throws {
+        let fixture = try fixture()
+        defer { fixture.tearDown() }
+        let settings = fixture.settings
+        let integration = try #require(ApplicationIntegration.allCases.first)
+        settings.applicationLanguage = .english
+        settings.showDockIcon = true
+        settings.openMainWindowAtLaunch = false
+        settings.customMappingEnabled = true
+        settings.enabledApplicationIntegrations.remove(integration.rawValue)
+        let exported = try settings.settingsBackupData(appVersion: "1.0")
+
+        settings.applicationLanguage = .simplifiedChinese
+        settings.showDockIcon = false
+        settings.openMainWindowAtLaunch = true
+        settings.customMappingEnabled = false
+        settings.enabledApplicationIntegrations.insert(integration.rawValue)
+
+        let report = try importBackup(exported, into: settings)
+        #expect(settings.applicationLanguage == .english)
+        #expect(settings.showDockIcon)
+        #expect(!settings.openMainWindowAtLaunch)
+        #expect(settings.customMappingEnabled)
+        #expect(!settings.enabledApplicationIntegrations.contains(integration.rawValue))
+        #expect(report.isClean)
+    }
+
+    @Test func unknownGeneralValueIsReported() throws {
+        let fixture = try fixture()
+        defer { fixture.tearDown() }
+        let data = Data(#"{"format":"remote-buddy-settings","formatVersion":1,"general":{"applicationLanguage":"tlh","showDockIcon":"yes"}}"#.utf8)
+        let before = fixture.settings.applicationLanguage
+        let report = try importBackup(data, into: fixture.settings)
+        #expect(fixture.settings.applicationLanguage == before)
+        #expect(report.skippedItems.contains(.init(location: ["general", "applicationLanguage"], reason: .unrecognizedValue)))
+        #expect(report.skippedItems.contains(.init(location: ["general", "showDockIcon"], reason: .unrecognizedValue)))
+    }
+
+    @Test func unknownModelStringIsReportedByName() throws {
+        let fixture = try fixture()
+        defer { fixture.tearDown() }
+        let data = try rewritingFirstRemote(of: try backup([remote(.t1Remote)])) { $0["model"] = "future_remote" }
+        let report = try importBackup(data, into: fixture.settings)
+        #expect(report.skippedItems == [.init(location: ["future_remote"], reason: .unrecognizedValue)])
+    }
+
+    @Test func unknownButtonInFileIsReported() throws {
+        let fixture = try fixture()
+        defer { fixture.tearDown() }
+        let data = try backup([remote(.chromecastVoiceRemote) { $0.buttonBindings["future_button"] = .escape }])
+        let report = try importBackup(data, into: fixture.settings)
+        #expect(report.skippedItems.contains(
+            .init(location: ["chromecast_voice_remote", "future_button"], reason: .unrecognizedValue)))
+        #expect(!report.isClean)
+    }
+
+    @Test func outOfRangeGainIsReported() throws {
+        let fixture = try fixture()
+        defer { fixture.tearDown() }
+        fixture.settings.setGainDB(6, for: fixture.google)
+        let report = try importBackup(try backup([remote(.chromecastVoiceRemote, gainDB: 99)]), into: fixture.settings)
+        #expect(fixture.settings.gainDB(for: fixture.google) == 6)
+        #expect(report.skippedItems.contains(
+            .init(location: ["chromecast_voice_remote", "gainDB"], reason: .unrecognizedValue)))
+    }
+
+    @Test func secondaryGestureApplicationReferenceIsRemapped() throws {
+        let fixture = try fixture()
+        defer { fixture.tearDown() }
+        let settings = fixture.settings
+        let localID = settings.addCustomApplicationProfile(.init(
+            displayName: "Example", bundleIdentifier: "com.example.app", applicationPath: "/Applications/Example.app"))
+        let fileApplication = CustomApplicationProfile(
+            displayName: "Example", bundleIdentifier: "com.example.app", applicationPath: "/Applications/Example.app")
+        let data = try backup([remote(.chromecastVoiceRemote) {
+            $0.secondaryButtonBindings["home"] = ["longPress": .init(
+                action: .openCustomApplication, shortcut: nil, applicationProfileID: fileApplication.id)]
+        }], applications: [fileApplication])
+
+        let report = try importBackup(data, into: settings)
+        let configured = settings.configuredBaseAction(for: .home, trigger: .longPress, profileID: fixture.google)
+        #expect(configured.applicationProfileID == localID)
+        #expect(report.isClean)
+    }
+
     @Test func remoteModelMissingOnThisMacIsSkipped() throws {
         let fixture = try fixture()
         defer { fixture.tearDown() }

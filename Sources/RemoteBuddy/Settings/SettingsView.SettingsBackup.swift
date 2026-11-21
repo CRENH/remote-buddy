@@ -80,7 +80,7 @@ enum SettingsBackupMessage {
 
 /// The Backup & Restore rows of the General page.
 struct SettingsBackupSection: View {
-    @ObservedObject var settings: AppSettings
+    let settings: AppSettings
     let localization: LocalizationStore
     /// Applies the imported preferences that live outside `AppSettings`, such as the Dock icon.
     let onImported: () -> Void

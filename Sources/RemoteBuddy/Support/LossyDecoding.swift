@@ -70,7 +70,7 @@ struct LossyArray<Element: Decodable>: Decodable {
             do {
                 elements.append(try container.decode(Element.self))
             } catch {
-                _ = try container.decode(SkippedElement.self)
+                if try !container.decodeNil() { _ = try container.decode(SkippedElement.self) }
                 decoder.lossyDecodingLog?.record(path)
             }
         }
