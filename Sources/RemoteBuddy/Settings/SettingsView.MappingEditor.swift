@@ -10,81 +10,101 @@ extension SettingsView {
         trigger: ButtonTrigger
     ) -> some View {
         let configured = mappingConfiguration(for: button, trigger: trigger)
+        let isDirectPassthroughActive = mappingConfiguration(for: button, trigger: .singleClick).action == .directPassthrough
         let installedBundleIdentifiers = PresetApplication.installedBundleIdentifiers
+        let visibleFilters = MappingActionFilter.visibleCases(for: button, trigger: trigger)
+        let activeFilter = visibleFilters.contains(mappingActionFilter) ? mappingActionFilter : (visibleFilters.first ?? .basicKeys)
         let actions = ButtonAction.pickerActions(
             installedBundleIdentifiers: installedBundleIdentifiers,
-            current: configured.action
+            current: configured.action,
+            button: button,
+            trigger: trigger
         ).filter { $0 != .disabled && $0 != .repeatSingleClick }
         return VStack(alignment: .leading, spacing: 16) {
-            if trigger == .longPress {
-                let isHoldRepeatSelected = configured.action == .repeatSingleClick
-                Button {
-                    setMappingAction(.repeatSingleClick, for: button, trigger: .longPress)
-                    shortcutCaptureTarget = nil
-                    applicationShortcutCaptureProfileID = nil
-                } label: {
-                    Label(localization.text("action.repeat_single_click"), systemImage:
-                        isHoldRepeatSelected ? "checkmark.circle.fill" : "circle")
-                        .frame(maxWidth: .infinity, alignment: .leading)
+            if trigger != .singleClick && isDirectPassthroughActive {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundStyle(.blue)
+                        .font(.system(size: 16))
+                    Text(localization.text("button_mapping.direct_passthrough.active_note"))
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .buttonStyle(.bordered)
-                .accessibilityIdentifier("button-mapping.hold-repeat")
-                .accessibilityAddTraits(isHoldRepeatSelected ? .isSelected : [])
-                Text(localization.text("button_mapping.hold_repeat.help"))
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-            }
-
-            mappingActionFilterControl
-
-            let currentCategory = mappingActionFilter.category
-            let groupedActions = actions.filter { $0.category == currentCategory }
-            if !groupedActions.isEmpty {
-                mappingActionGroup(
-                    category: currentCategory,
-                    actions: groupedActions,
-                    selectedAction: configured.action,
-                    installedBundleIdentifiers: installedBundleIdentifiers,
-                    onSelect: { action in
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.blue.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+            } else {
+                if trigger == .longPress {
+                    let isHoldRepeatSelected = configured.action == .repeatSingleClick
+                    Button {
+                        setMappingAction(.repeatSingleClick, for: button, trigger: .longPress)
+                        shortcutCaptureTarget = nil
                         applicationShortcutCaptureProfileID = nil
-                        if action == .customShortcut {
-                            shortcutCaptureTarget = ShortcutEditingTarget(button: button, trigger: trigger)
-                        } else {
-                            setMappingAction(action, for: button, trigger: trigger)
-                            shortcutCaptureTarget = nil
-                        }
+                    } label: {
+                        Label(localization.text("action.repeat_single_click"), systemImage:
+                            isHoldRepeatSelected ? "checkmark.circle.fill" : "circle")
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                )
-
-                if currentCategory == .applications, configured.action == .openCustomApplication {
-                    customApplicationEditor(
-                        button: button,
-                        trigger: trigger,
-                        configured: configured
-                    )
+                    .buttonStyle(.bordered)
+                    .accessibilityIdentifier("button-mapping.hold-repeat")
+                    .accessibilityAddTraits(isHoldRepeatSelected ? .isSelected : [])
+                    Text(localization.text("button_mapping.hold_repeat.help"))
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
                 }
 
-                if currentCategory == .custom, configured.action == .customShortcut {
-                    inlineShortcutEditor(
-                        button: button,
-                        trigger: trigger,
-                        configured: configured
-                    )
-                }
-            }
+                mappingActionFilterControl(filters: visibleFilters, activeFilter: activeFilter)
 
-            if trigger == .doubleClick && configured.action != .disabled {
-                Text(localization.text("button_mapping.double_click.effect"))
-                    .font(.system(size: 12))
-                    .foregroundStyle(.orange)
-            } else if trigger == .longPress && configured.action != .disabled && configured.action != .repeatSingleClick {
-                Text(localization.text("button_mapping.long_press.effect"))
-                    .font(.system(size: 12))
-                    .foregroundStyle(.orange)
-            } else if trigger == .singleClick {
-                Text(localization.text("button_mapping.single_click.help"))
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
+                let currentCategory = activeFilter.category
+                let groupedActions = actions.filter { $0.category == currentCategory }
+                if !groupedActions.isEmpty {
+                    mappingActionGroup(
+                        category: currentCategory,
+                        actions: groupedActions,
+                        selectedAction: configured.action,
+                        installedBundleIdentifiers: installedBundleIdentifiers,
+                        onSelect: { action in
+                            applicationShortcutCaptureProfileID = nil
+                            if action == .customShortcut {
+                                shortcutCaptureTarget = ShortcutEditingTarget(button: button, trigger: trigger)
+                            } else {
+                                setMappingAction(action, for: button, trigger: trigger)
+                                shortcutCaptureTarget = nil
+                            }
+                        }
+                    )
+
+                    if currentCategory == .applications, configured.action == .openCustomApplication {
+                        customApplicationEditor(
+                            button: button,
+                            trigger: trigger,
+                            configured: configured
+                        )
+                    }
+
+                    if currentCategory == .custom, configured.action == .customShortcut {
+                        inlineShortcutEditor(
+                            button: button,
+                            trigger: trigger,
+                            configured: configured
+                        )
+                    }
+                }
+
+                if trigger == .doubleClick && configured.action != .disabled {
+                    Text(localization.text("button_mapping.double_click.effect"))
+                        .font(.system(size: 12))
+                        .foregroundStyle(.orange)
+                } else if trigger == .longPress && configured.action != .disabled && configured.action != .repeatSingleClick {
+                    Text(localization.text("button_mapping.long_press.effect"))
+                        .font(.system(size: 12))
+                        .foregroundStyle(.orange)
+                } else if trigger == .singleClick {
+                    Text(localization.text("button_mapping.single_click.help"))
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .sheet(isPresented: Binding(
@@ -98,10 +118,10 @@ extension SettingsView {
         }
     }
 
-    private var mappingActionFilterControl: some View {
+    private func mappingActionFilterControl(filters: [MappingActionFilter], activeFilter: MappingActionFilter) -> some View {
         HStack(spacing: 8) {
-            ForEach(MappingActionFilter.visibleCases) { filter in
-                let isSelected = mappingActionFilter == filter
+            ForEach(filters) { filter in
+                let isSelected = activeFilter == filter
                 Button {
                     guard mappingActionFilter != filter else { return }
                     mappingActionFilter = filter
@@ -144,7 +164,7 @@ extension SettingsView {
         installedBundleIdentifiers: Set<String>,
         onSelect: @escaping (ButtonAction) -> Void
     ) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             Text(localization.text(category.localizationKey))
                 .font(.system(size: 14, weight: .semibold))
 
@@ -154,6 +174,21 @@ extension SettingsView {
                 installedBundleIdentifiers: installedBundleIdentifiers,
                 onSelect: onSelect
             )
+
+            if category == .directPassthrough {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundStyle(Color.accentColor)
+                        .font(.system(size: 16))
+                    Text(localization.text("action.direct_passthrough.help"))
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+            }
         }
     }
 
@@ -165,13 +200,13 @@ extension SettingsView {
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 148), spacing: 8)],
+                columns: [GridItem(.adaptive(minimum: 164), spacing: 8)],
                 alignment: .leading,
                 spacing: 8
             ) {
                 ForEach(actions) { action in
                     let unavailableApplication = action.presetApplication.map {
-                        !installedBundleIdentifiers.contains($0.bundleIdentifier)
+                        !$0.isInstalled(in: installedBundleIdentifiers)
                     } ?? false
                     Button {
                         onSelect(action)
@@ -181,6 +216,7 @@ extension SettingsView {
                                 (unavailableApplication
                                     ? localization.text("common.suffix.not_installed")
                                     : ""),
+                            shortcutLabel: action.shortcutDisplayLabel,
                             isSelected: selectedAction == action,
                             systemImage: selectedAction == action ? "checkmark.circle.fill" : "circle"
                         )
@@ -206,12 +242,29 @@ extension SettingsView {
         }
     }
 
-    private func mappingActionLabel(title: String, isSelected: Bool, systemImage: String) -> some View {
+    private func mappingActionLabel(
+        title: String,
+        shortcutLabel: String? = nil,
+        isSelected: Bool,
+        systemImage: String
+    ) -> some View {
         HStack(spacing: 7) {
             Image(systemName: systemImage)
                 .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
             Text(title).lineLimit(2).truncationMode(.tail)
-            Spacer(minLength: 0)
+            Spacer(minLength: 4)
+            if let shortcutLabel {
+                Text(shortcutLabel)
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(
+                        isSelected ? Color.accentColor.opacity(0.14) : Color.primary.opacity(0.06),
+                        in: RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    )
+                    .fixedSize()
+            }
         }
         .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
         .padding(.horizontal, 10)

@@ -148,10 +148,14 @@ extension OnboardingView {
         pendingColor: Color?
     ) {
         if selectedControlConnected {
+            let baseDetail = localization.text("onboarding.remote.connected_detail")
+            let hardwareDetail = settings.selectedRemoteProfile?.bluetoothIdentifier
+                .flatMap { model.remoteDeviceInformation[$0] }?
+                .conciseHardwareSummary(using: localization)
             return (
                 "checkmark.circle.fill",
                 localization.text("onboarding.remote.connected"),
-                localization.text("onboarding.remote.connected_detail"),
+                hardwareDetail.map { "\(baseDetail)\n\($0)" } ?? baseDetail,
                 nil
             )
         }
@@ -272,6 +276,12 @@ extension OnboardingView {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+
+            Link(
+                localization.text("connection.g9n9n.compatibility_doc_link"),
+                destination: AppLinks.g9n9nCompatibilityGuide(for: localization.locale)
+            )
+            .font(.system(size: 12))
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)

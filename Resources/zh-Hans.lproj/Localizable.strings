@@ -156,17 +156,50 @@
 "app.name" = "遥控搭子";
 "application.wechat" = "微信";
 "application.wecom" = "企业微信";
+"application.feishu" = "飞书";
+"application.dingtalk" = "钉钉";
 "application.netease_music" = "网易云音乐";
+"application.apple_music" = "音乐";
+"application.terminal" = "终端";
+"application.finder" = "访达";
 "action.disabled" = "禁用";
+"action.return_key" = "回车";
+"action.shift_return" = "换行";
+"action.command_return" = "发送";
+"action.escape" = "取消";
+"action.space" = "空格";
+"action.tab" = "切换焦点";
 "action.arrow_up" = "方向上";
 "action.arrow_down" = "方向下";
 "action.arrow_left" = "方向左";
 "action.arrow_right" = "方向右";
+"action.direct_passthrough" = "按键直通";
+"action.direct_passthrough.tag" = "直通";
+"action.direct_passthrough.help" = "按下时立即发送按键，松开时立即结束。适合观看视频时按住开启倍速播放，不支持双击与长按手势。";
+"button_mapping.direct_passthrough.active_note" = "当前按键已设置为「按键直通」，按下时立即发送按键、松开时立即结束，不支持双击与长按手势。";
 "action.scroll_up" = "向上滚动";
 "action.scroll_down" = "向下滚动";
-"action.delete_backspace" = "Delete（退格）";
-"action.command_delete" = "Command-Delete";
+"action.delete_backspace" = "退格";
+"action.command_delete" = "删除整行";
+"action.command_copy" = "复制";
+"action.command_paste" = "粘贴";
+"action.command_cut" = "剪切";
+"action.command_select_all" = "全选";
+"action.command_undo" = "撤销";
+"action.command_redo" = "重做";
+"action.command_find" = "查找";
+"action.command_save" = "保存";
+"action.command_close" = "关闭窗口";
+"action.command_quit" = "退出应用";
+"action.app_switcher" = "切换应用";
+"action.mission_control" = "调度中心";
 "action.show_desktop" = "显示桌面";
+"action.notification_center" = "通知中心";
+"action.spotlight" = "聚焦搜索";
+"action.space_left" = "上一桌面";
+"action.space_right" = "下一桌面";
+"action.lock_screen" = "锁定屏幕";
+"action.screenshot" = "截屏";
 "action.context_menu" = "上下文菜单";
 "action.system_volume_up" = "系统音量 +";
 "action.system_volume_down" = "系统音量 -";
@@ -174,9 +207,13 @@
 "action.system_volume_down_short" = "Vol-";
 "action.system_volume_mute_short" = "静音";
 "action.system_mute" = "系统静音";
+"action.brightness_up" = "屏幕亮度 +";
+"action.brightness_down" = "屏幕亮度 -";
+"action.brightness_up_short" = "亮度+";
+"action.brightness_down_short" = "亮度-";
 "action.play_pause" = "播放 / 暂停";
-"action.previous_command_left" = "上一首（系统媒体）";
-"action.next_command_right" = "下一首（系统媒体）";
+"action.previous_command_left" = "上一曲";
+"action.next_command_right" = "下一曲";
 "action.custom_shortcut" = "自定义快捷键";
 "action.focus_input" = "聚焦输入框";
 "action.open_custom_application" = "打开自定义 APP";
@@ -184,13 +221,25 @@
 "action.open_remote_mic" = "打开遥控搭子";
 "action.open_codex" = "打开 Codex";
 "action.open_claude" = "打开 Claude";
+"action.open_chatgpt" = "打开 ChatGPT";
+"action.open_deepseek_harness" = "打开 DeepSeek Harness";
+"action.open_workbuddy" = "打开 WorkBuddy";
 "action.open_cmux" = "打开 cmux";
 "action.open_wechat" = "打开微信";
 "action.open_cursor" = "打开 Cursor";
+"action.open_vscode" = "打开 VS Code";
 "action.open_xcode" = "打开 Xcode";
+"action.open_ghostty" = "打开 Ghostty";
+"action.open_iterm2" = "打开 iTerm2";
+"action.open_terminal" = "打开终端";
 "action.open_slack" = "打开 Slack";
 "action.open_wecom" = "打开企业微信";
+"action.open_feishu" = "打开飞书";
+"action.open_dingtalk" = "打开钉钉";
 "action.open_netease_music" = "打开网易云音乐";
+"action.open_apple_music" = "打开音乐";
+"action.open_spotify" = "打开 Spotify";
+"action.open_finder" = "打开访达";
 "action.open_chrome" = "打开 Chrome";
 "action.open_safari" = "打开 Safari";
 "action.open_zed" = "打开 Zed";
@@ -243,7 +292,7 @@
 "remote.device.model.apple_siri_remote_a2854" = "苹果遥控器第 7 代";
 "remote.device.model.apple_siri_remote_a2540" = "苹果遥控器第 6 代";
 "remote.device.model.chromecast_voice_remote" = "Chromecast 遥控器";
-"remote.device.model.unknown" = "小米遥控器";
+"remote.device.model.unknown" = "未识别的遥控器";
 "remote.device.custom_name" = "自定义名称";
 "remote.device.bind_button" = "绑定普通按键";
 "remote.device.binding_waiting" = "请按这只遥控器的任意普通键";
@@ -274,15 +323,16 @@
 "connection.status.voice_active" = "语音中";
 "common.status.ready" = "已就绪";
 "connection.status.voice_trigger" = "语音触发";
-"connection.voice_fn_tap.enabled" = "点按模式";
-"connection.voice_fn_tap.hint_short" = "开启：自动点按热键开始和结束；关闭：收音期间持续按住热键。";
+"connection.voice_fn_tap.enabled" = "点按热键模式（仅限点按型输入工具）";
+"connection.voice_fn_tap.hint_short" = "• 默认保持关闭（推荐）：只要输入工具支持「按住说话」（如豆包输入法、微信输入法、Voice Buddy、Chatterfly），请不要勾选此项，并在输入工具中选长按模式。\n• 无需因遥控器支持单按而开启：无论遥控器是长按还是点按免提，遥控搭子都会统一转换成「按住热键」发给输入工具。\n• 仅以下情况需要勾选：遥控器需一直按住才发送语音，而您使用的输入工具不支持长按、只支持「点按一次开始、再按一次结束」（如 Typeless、网易叭哥说、macOS 听写），开启后会改为在开始与结束时各自动点按一次热键。";
 "connection.voice_key_mode.title" = "语音热键";
 "connection.voice_key.mode.fn" = "Fn/地球键";
 "connection.voice_key.mode.left_command" = "左 Command (⌘)";
 "connection.voice_key.mode.right_command" = "右 Command (⌘)";
 "connection.voice_key.mode.left_option" = "左 Option (⌥)";
 "connection.voice_key.mode.right_option" = "右 Option (⌥)";
-"connection.voice_key_mode.help" = "下一步请在输入工具中设置相同语音热键和录音方式。";
+"connection.voice_key_mode.help" = "下一步请在输入工具中设置相同语音热键和录音方式（建议尽量不要选用 Fn 键，容易被 macOS 系统地球键、微信等应用占用冲突）。";
+"connection.voice_key_mode.fn_caution_help" = "建议尽量不要选用 Fn 键（除 macOS 系统听写外）：Fn 键极易被 macOS 系统、微信等各类应用占用冲突，推荐改用 Ctrl (⌃) + Shift (⇧) + R。";
 "onboarding.voice_trigger.save_hint" = "通过后续语音测试后，新设置才会生效。";
 "connection.voice_key_mode.command_permission" = "修饰键模式需要辅助功能权限";
 "connection.action.reconnect" = "立即重新连接";
@@ -349,6 +399,8 @@
 "permissions.upgrade_identity_help" = "如果升级后权限失效，请将遥控搭子保留在“应用程序”中，并重新授予缺失的权限。";
 "diagnostics.title" = "诊断";
 "diagnostics.logs.title" = "应用日志";
+"diagnostics.logs.enabled.title" = "启用排错日志";
+"diagnostics.logs.enabled.detail" = "仅在需要排查问题时开启；平时可关闭以停止写入本地日志文件。";
 "diagnostics.logs.privacy" = "诊断日志仅保存在本机，永不上传。";
 "diagnostics.logs.last_entry" = "打开本地文本日志，或复制环境与诊断信息用于排障反馈。";
 "diagnostics.logs.show_in_finder" = "在 Finder 中显示日志";
@@ -782,7 +834,7 @@
 "onboarding.recovery.voice.audio_delivery_failed.detail" = "遥控搭子已收到遥控器声音，但未能将音频完整输送到虚拟麦克风（Remote Buddy Mic）。请重试音频设置后再说一次。";
 "onboarding.recovery.voice.audio_delivery_failed.action" = "重试音频输出";
 "onboarding.recovery.voice.external_tool_no_commit.title" = "遥控器声音传输正常，但语音工具没有写入文字";
-"onboarding.recovery.voice.external_tool_no_commit.detail" = "遥控搭子已收到并输出声音，输入框也已准备好。请确认所选工具支持语音输入，并在工具自己的设置中选择当前语音输出设备作为麦克风，然后重试。";
+"onboarding.recovery.voice.external_tool_no_commit.detail" = "已正常听到声音，但%1$@未写入文字。请重点检查%1$@设置：1. 麦克风是否已选择“%2$@”；2. 语音快捷键是否已手动录制为“%3$@”且启用了全局生效。";
 "onboarding.recovery.voice.external_tool_no_commit.action" = "检查后重新测试";
 "onboarding.recovery.controls.not_confirmed.title" = "请试三个不同的普通按键";
 "onboarding.recovery.controls.not_confirmed.detail" = "如有需要先重新连接，然后按三个不同的普通按键。";
@@ -880,9 +932,9 @@
 "custom_application.accessibility.test" = "测试输入框";
 
 "onboarding.voice_tool.guide.screenshot.doubao_menu" = "在输入法菜单中选择豆包输入法，再打开设置。";
-"onboarding.voice_tool.guide.screenshot.doubao_settings" = "在语音输入中，将对应模式的快捷键设为“%@”。开启全局唤起语音，并选择遥控搭子的虚拟麦克风。";
+"onboarding.voice_tool.guide.screenshot.doubao_settings" = "在语音输入中选择「按住说话」（不要选免按模式；点按免提转换由遥控搭子自动完成），将快捷键设为“%@”，开启全局唤起语音，并选择遥控搭子的虚拟麦克风。";
 "onboarding.voice_tool.guide.screenshot.weixin_input_menu" = "在输入法菜单中选择微信输入法，再打开设置。";
-"onboarding.voice_tool.guide.screenshot.weixin_input_settings" = "在语音输入中将快捷键设为“%@”，让录音触发模式与当前方案一致，并开启“快捷键全局生效”。";
+"onboarding.voice_tool.guide.screenshot.weixin_input_settings" = "在语音输入中将快捷键设为“%@”，录音触发方式优先选择「按住说话」（遥控器点按转换由遥控搭子自动处理），并开启“快捷键全局生效”。";
 "onboarding.voice_tool.guide.screenshot.weixin_app_shortcuts" = "微信 App 的全局语音快捷键可能与其他语音工具冲突。请检查是否占用了“%@”；如有冲突，仅清除对应快捷键。";
 "onboarding.voice_tool.guide.screenshot.bageshuo_menu" = "在菜单栏点击网易叭哥说图标，选择设置。";
 "onboarding.voice_tool.guide.screenshot.bageshuo_settings" = "在设置 → 快捷键中，将“语音润色快捷键”设为“%@”，使用按一下开始、再按一下结束模式。";
@@ -911,6 +963,12 @@
 "settings.integration.supported_tools" = "支持的语音工具";
 "settings.integration.active_badge" = "当前使用";
 "settings.integration.shortcut_title" = "语音触发方式";
+"settings.integration.bypass_switch_title" = "已开启“快捷键全局生效”";
+"settings.integration.bypass_switch_detail" = "开启后，遥控搭子将不再主动切换系统输入法，避免 Antigravity 等应用失去光标焦点。请确保已在输入法设置中开启全局语音快捷键。";
+"settings.integration.bypass_switch_title.weixin" = "已开启“快捷键全局生效”";
+"settings.integration.bypass_switch_detail.weixin" = "开启后，遥控搭子将不再主动切换系统输入法，避免 Antigravity 等应用失去光标焦点。请确保已在微信输入法设置中开启“快捷键全局生效”。";
+"settings.integration.bypass_switch_title.doubao" = "已开启“全局唤起语音”";
+"settings.integration.bypass_switch_detail.doubao" = "开启后，遥控搭子将不再主动切换系统输入法，避免 Antigravity 等应用失去光标焦点。请确保已在豆包输入法设置中开启“全局唤起语音”。";
 
 "remote.device.illustration" = "遥控器示意图";
 
@@ -948,6 +1006,8 @@
 
 "diagnostics.logs.open_failed" = "无法打开日志文件";
 "diagnostics.logs.open_failed.detail" = "请检查 Library/Logs/RemoteBuddy 目录是否可写，然后重试。";
+"diagnostics.logs.disabled_empty" = "暂无日志文件";
+"diagnostics.logs.disabled_empty.detail" = "当前已关闭排错日志，因此尚未生成日志文件。如需记录，请先开启“启用排错日志”。";
 
 "update.dialog.window" = "软件更新";
 "update.dialog.permission" = "自动检查更新";
@@ -1040,8 +1100,6 @@
 "remote.hid_binding.open" = "按键未识别？关联兼容遥控器";
 "onboarding.remote.choose_device" = "选择本次添加的遥控器";
 
-"audio.gain.per_device_help" = "增益单独保存，仅影响这台遥控器。";
-
 "settings.driver.fixed_output_help" = "所有设备共用此虚拟麦克风，程序会自动配置语音输出。";
 
 "onboarding.voice_prompt.t1.fn_tap" = "按一下 T1 语音键并松开开始说话，说完后再按一下结束（已自动开启点按转换）。";
@@ -1072,14 +1130,18 @@
 
 "button_mapping.action.clear" = "清除设置";
 
-"common_phrases.boundary_padding_hint" = "文本首尾含空格或 Tab，保存和输入时会自动移除。正文中间的空白和换行会保留。";
+"common_phrases.character_count" = "%d/%d 个字符";
+"common_phrases.character_count_single" = "%d/%d 个字符";
+"common_phrases.trailing_invisible_hint" = "末尾包含不可见字符（空格或制表符等，已保留原样输入）";
+"common_phrases.leading_invisible_hint" = "开头包含不可见字符（空格或制表符等，已保留原样输入）";
+"common_phrases.both_invisible_hint" = "首尾均包含不可见字符（空格或制表符等，已保留原样输入）";
 
 "connection.device.firmware" = "固件";
 "connection.device.model" = "型号";
 "connection.device.identity" = "厂商 / 产品 ID";
+"connection.device.hid_version" = "HID 版本";
 "connection.device.protocol" = "语音协议";
 "connection.device.audio" = "音频格式";
-"connection.device.frame" = "音频帧大小";
 "connection.device.frame_bytes" = "%@ 字节";
 "onboarding.remote.chromecast_pairing.third" = "在 Mac 的蓝牙列表中选择遥控器并连接。连接后按一个普通按键，确认电脑收到输入。重新配对时，可先在蓝牙设置中忽略设备。";
 
@@ -1195,7 +1257,7 @@
 
 "shortcut.keyboard.main_key_required" = "请再选择一个普通按键，或只保留一个修饰键。";
 
-"connection.voice_key.chord_help" = "输入工具须支持此组合键和所选录音方式。请设置一致，并避开其他应用已用的快捷键。";
+"connection.voice_key.chord_help" = "下一步请在输入工具中设置相同组合键和所选录音方式，并避开其他应用已用的快捷键（推荐尽量不要用 Fn 键，Fn 容易被系统、微信等各类软件占用冲突）。";
 
 "shortcut.keyboard.help" = "点击修饰键和普通按键来组合快捷键，也可以直接录入。左右按键分别设置。";
 "shortcut.keyboard.use_shortcut" = "使用此快捷键";
@@ -1252,6 +1314,11 @@
 "connection.g9n9n.full_support_notice" = "语音键与全部 14 颗普通按键均可正常使用与自定义。";
 "connection.g9n9n.partial_support_notice" = "仅语音键可用，普通操作仅「方向键 + OK」可发 Enter 键，不可修改映射。功能受限较大，建议更换为已验证完全支持的遥控器或硬件版本；更换后请移除此设备并通过「添加新设备」重新识别。";
 "connection.g9n9n.compatibility_doc_link" = "查看 G9N9N 兼容性文档 ↗";
+"connection.g9n9n.voice_button_mode.title" = "语音键触发方式";
+"connection.g9n9n.voice_button_mode.hold" = "按住说话";
+"connection.g9n9n.voice_button_mode.smart_toggle" = "智能切换";
+"connection.g9n9n.voice_button_mode.hold_help" = "按住 Google Assistant 语音键说话，松开后立即停止收音。";
+"connection.g9n9n.voice_button_mode.smart_toggle_help" = "短按并松开后保持免提收音，再按一次停止（松手瞬间约有 0.2 秒硬件重连间隔）；若按住超过 0.7 秒则松手即停。";
 "button_mapping.voice.settings_button" = "前往输入法整合设置";
 "common_phrases.g9n9n_partial_notice" = "当前选中的 G9N9N 处于部分支持（双键兼容）模式，仅支持语音键和「方向键 + OK」发 Enter，无法通过单键触发常用语。";
 "onboarding.chromecast.replace_hardware_advice" = "部分支持模式下功能缺失较多，仅作临时兼容；如需完整按键体验，建议更换为已验证支持 macOS 的遥控器硬件版本。";
@@ -1268,3 +1335,22 @@
 "onboarding.voice_tool.guide.configure_chatterfly" = "设置语音快捷键与全局可用";
 "onboarding.voice_tool.guide.screenshot.chatterfly_settings" = "在腾讯Chatterfly → 设置 → 语音设置中，将“语音输入”快捷键设为“%@”，并开启“快捷键全局可用”。使用按住说话、松开结束；截图中的快捷键仅为示例，请以本次选择为准。";
 "onboarding.voice_tool.guide.screenshot.chatterfly_input_microphone" = "在腾讯Chatterfly → 设置 → 音频设置 → 麦克风中，选择 Remote Buddy Mic。";
+
+// Per-device Connection usage tips
+"connection.device_guide.title" = "使用指南";
+"connection.device_guide.badge.xiaomi_hold_only" = "仅支持按住说话";
+"connection.device_guide.badge.t1_toggle" = "点按免提收音";
+"connection.device_guide.xiaomi.voice.title" = "仅支持按住说话（不支持点按免提）";
+"connection.device_guide.xiaomi.voice.detail" = "按住语音键说话、松开立即停麦；硬件固件会在松手瞬间停止推送音频，因此无法改为按一下开启或智能切换。";
+"connection.device_guide.xiaomi.limit.title" = "单次按住上限约 60 秒";
+"connection.device_guide.xiaomi.limit.detail" = "遥控器硬件会在连续按住约 60 秒时自动断流；如需连续口述更久，松手后重新按住即可继续。";
+"connection.device_guide.t1.voice.title" = "按一下开始、再按一次停止（约 5 分钟安全上限）";
+"connection.device_guide.t1.voice.detail" = "轻按语音键并松手即可免提说话，再按一次语音键停止；系统会在后台自动保活收音，最长约 5 分钟自动停麦以防忘记关麦耗电。";
+"connection.device_guide.t1.hold_compat.title" = "自动兼容按住说话类语音输入法";
+"connection.device_guide.t1.hold_compat.detail" = "收音期间遥控搭子会全程替您按住语音工具快捷键并在停麦时松开，无需持续按住遥控器。";
+"connection.device_guide.g9n9n.led.title" = "底部白灯常亮表示正在传输语音";
+"connection.device_guide.g9n9n.led.detail" = "无论智能切换还是长按说话，只要遥控器麦克风正在开启传输语音，底部白色指示灯就会亮起，停止后熄灭。";
+"connection.device_guide.g9n9n.limit.title" = "两种模式均突破 60 秒（单次上限约 5 分钟）";
+"connection.device_guide.g9n9n.limit.detail" = "已自动启用硬件保活，智能切换与按住说话均可连续说超 60 秒，并在约 5 分钟时自动停麦以防忘记关麦耗尽电量。";
+"connection.device_guide.g9n9n.other_key_stops.title" = "免提期间按其他键会结束收音";
+"connection.device_guide.g9n9n.other_key_stops.detail" = "智能切换免提收音时，若按下任意其他实体按键，硬件会直接停止音频流；请等说完再按其他按键。";

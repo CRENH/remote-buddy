@@ -758,4 +758,135 @@ struct VoiceInputActivationTests {
         #expect(openedSettings == 1)
         #expect(model.unavailableVoiceToolPrompt == nil)
     }
+
+    @Test func bypassInputSourceSwitchingSkipsPrepareAndActivation() throws {
+        let (_, defaults, suite) = try makeModel()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let source = "ABC"
+        var prepared = false
+        var activated = false
+        var logged: [String] = []
+
+        let monitor = PreferredInputSourceMonitor(
+            voiceTool: { .weixin },
+            bypassInputSourceSwitching: { true },
+            prepareInputSource: { _ in
+                prepared = true
+                return .selected
+            },
+            isInputSourceAvailable: { _ in true },
+            currentInputSourceID: { source },
+            restoreInputSource: { _ in .selected },
+            waitForInputSourceActivation: { _, _, _, done in
+                activated = true
+                done(true)
+            },
+            installMonitor: { _ in nil },
+            logger: { logged.append($0) }
+        )
+
+        var completed = false
+        monitor.beginVoiceSession { completed = $0 }
+        #expect(completed == true)
+        #expect(prepared == false)
+        #expect(activated == false)
+        #expect(source == "ABC")
+        #expect(logged.contains { $0.contains("result=bypassed managed=false") })
+    }
+
+    @Test func bypassInputSourceSwitchingSettingsLifecycle() throws {
+        let (model, defaults, suite) = try makeModel()
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        #expect(model.settings.bypassInputSourceSwitching == false)
+
+        model.settings.bypassInputSourceSwitching = true
+        #expect(model.settings.bypassInputSourceSwitching == true)
+
+        // Switching tool resets to false
+        model.settings.setOnboardingVoiceTool(.doubao)
+        #expect(model.settings.bypassInputSourceSwitching == false)
+
+        model.settings.bypassInputSourceSwitching = true
+        #expect(model.settings.bypassInputSourceSwitching == true)
+
+        // Completing onboarding resets to false
+        model.settings.completeOnboarding()
+        #expect(model.settings.bypassInputSourceSwitching == false)
+    }
+
+    @Test func bypassInputSourceSwitchingLocalizationKeys() throws {
+        let zh = LocalizationSnapshot(language: .simplifiedChinese)
+        #expect(zh.text("settings.integration.bypass_switch_title.weixin") == "已开启“快捷键全局生效”")
+        #expect(zh.text("settings.integration.bypass_switch_title.doubao") == "已开启“全局唤起语音”")
+        #expect(zh.text("settings.integration.bypass_switch_detail.weixin").contains("遥控搭子将不再主动切换系统输入法"))
+        #expect(zh.text("settings.integration.bypass_switch_detail.doubao").contains("遥控搭子将不再主动切换系统输入法"))
+
+        let en = LocalizationSnapshot(language: .english)
+        #expect(en.text("settings.integration.bypass_switch_title.weixin") == "\"Global Shortcut\" Enabled")
+        #expect(en.text("settings.integration.bypass_switch_title.doubao") == "\"Global Voice Activation\" Enabled")
+        #expect(en.text("settings.integration.bypass_switch_detail.weixin").contains("no longer proactively switch macOS input sources"))
+        #expect(en.text("settings.integration.bypass_switch_detail.doubao").contains("no longer proactively switch macOS input sources"))
+    }
+
+    @Test func bypassInputSourceSwitchingBlocksAndReportsUnavailableWhenToolMissing() throws {
+        let (model, defaults, suite) = try makeModel()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        model.settings.setOnboardingVoiceTool(.doubao)
+        model.settings.bypassInputSourceSwitching = true
+
+        var failures: [(OnboardingVoiceTool, OnboardingInputSourceSwitchResult)] = []
+        var logged: [String] = []
+        model.preferredInputSourceMonitor = PreferredInputSourceMonitor(
+            voiceTool: { .doubao },
+            bypassInputSourceSwitching: { true },
+            prepareInputSource: { _ in .selected },
+            isInputSourceAvailable: { _ in false },
+            currentInputSourceID: { "com.apple.keylayout.ABC" },
+            restoreInputSource: { _ in .selected },
+            waitForInputSourceActivation: { _, _, _, done in done(false) },
+            installMonitor: { _ in nil },
+            logger: { logged.append($0) },
+            onSourcePreparationFailure: { [weak model] tool, result in
+                failures.append((tool, result))
+                model?.handleInputSourcePreparationFailure(for: tool, result: result, now: 100)
+            }
+        )
+
+        var posted: [Bool] = []
+        let started = model.updateVoiceKeyState(
+            streaming: true,
+            forceSoftware: true,
+            owner: .bluetooth,
+            keySetter: { _, down in posted.append(down); return true }
+        )
+
+        #expect(!started)
+        #expect(posted.isEmpty)
+        #expect(failures.count == 1 && failures[0].0 == .doubao && failures[0].1 == .unavailable)
+        #expect(model.unavailableVoiceToolPrompt == BridgeAppModel.VoiceToolUnavailablePrompt(
+            tool: .doubao, reason: .unavailable))
+        #expect(logged.contains { $0.contains("result=unavailable managed=false") })
+    }
+
+    @Test func bypassInputSourceSwitchingUsesModelAvailabilityChecker() throws {
+        let (model, defaults, suite) = try makeModel()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        model.settings.setOnboardingVoiceTool(.doubao)
+        model.settings.bypassInputSourceSwitching = true
+        model.voiceToolAvailabilityChecker = { _ in .notInstalled }
+
+        var posted: [Bool] = []
+        let started = model.updateVoiceKeyState(
+            streaming: true,
+            forceSoftware: true,
+            owner: .bluetooth,
+            keySetter: { _, down in posted.append(down); return true }
+        )
+
+        #expect(!started)
+        #expect(posted.isEmpty)
+        #expect(model.unavailableVoiceToolPrompt == BridgeAppModel.VoiceToolUnavailablePrompt(
+            tool: .doubao, reason: .unavailable))
+    }
 }

@@ -3,7 +3,7 @@ import SwiftUI
 /// Trigger choices and the keyboard editor for the integration wizard.
 struct VoiceTriggerPicker: View {
     let selection: VoiceKeyMode
-    let onSelect: (VoiceKeyMode) -> Void
+    let onSelect: @MainActor @Sendable (VoiceKeyMode) -> Void
     @EnvironmentObject private var localization: LocalizationStore
     @State private var editing = false
 
@@ -30,9 +30,11 @@ struct VoiceTriggerPicker: View {
             }
             Text(localization.text({
                 if case .shortcut = selection { return "connection.voice_key.chord_help" }
+                if selection == .function { return "connection.voice_key_mode.fn_caution_help" }
                 return "connection.voice_key_mode.help"
             }()))
-                .font(.caption).foregroundStyle(.secondary)
+                .font(.caption)
+                .foregroundStyle(selection == .function ? Color.orange : .secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .sheet(isPresented: $editing) {

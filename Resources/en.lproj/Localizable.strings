@@ -156,17 +156,50 @@
 "app.name" = "Remote Buddy";
 "application.wechat" = "WeChat";
 "application.wecom" = "WeCom";
+"application.feishu" = "Feishu";
+"application.dingtalk" = "DingTalk";
 "application.netease_music" = "NetEase Cloud Music";
+"application.apple_music" = "Apple Music";
+"application.terminal" = "Terminal";
+"application.finder" = "Finder";
 "action.disabled" = "Disabled";
+"action.return_key" = "Return";
+"action.shift_return" = "New Line";
+"action.command_return" = "Send";
+"action.escape" = "Escape";
+"action.space" = "Space";
+"action.tab" = "Tab";
 "action.arrow_up" = "Up Arrow";
 "action.arrow_down" = "Down Arrow";
 "action.arrow_left" = "Left Arrow";
 "action.arrow_right" = "Right Arrow";
+"action.direct_passthrough" = "Direct Passthrough";
+"action.direct_passthrough.tag" = "Passthrough";
+"action.direct_passthrough.help" = "Emits key down on press and key up on release immediately. Ideal for holding to speed up video playback. Double-click and long-press gestures are bypassed.";
+"button_mapping.direct_passthrough.active_note" = "This button is configured for Direct Passthrough. Press sends key down and release sends key up immediately. Double-click and long-press gestures are bypassed.";
 "action.scroll_up" = "Scroll Up";
 "action.scroll_down" = "Scroll Down";
-"action.delete_backspace" = "Delete (Backspace)";
-"action.command_delete" = "Command-Delete";
+"action.delete_backspace" = "Backspace";
+"action.command_delete" = "Delete Line";
+"action.command_copy" = "Copy";
+"action.command_paste" = "Paste";
+"action.command_cut" = "Cut";
+"action.command_select_all" = "Select All";
+"action.command_undo" = "Undo";
+"action.command_redo" = "Redo";
+"action.command_find" = "Find";
+"action.command_save" = "Save";
+"action.command_close" = "Close Window";
+"action.command_quit" = "Quit App";
+"action.app_switcher" = "App Switcher";
+"action.mission_control" = "Mission Control";
 "action.show_desktop" = "Show Desktop";
+"action.notification_center" = "Notification Center";
+"action.spotlight" = "Spotlight";
+"action.space_left" = "Previous Space";
+"action.space_right" = "Next Space";
+"action.lock_screen" = "Lock Screen";
+"action.screenshot" = "Screenshot";
 "action.context_menu" = "Context Menu";
 "action.system_volume_up" = "Increase System Volume";
 "action.system_volume_down" = "Decrease System Volume";
@@ -174,9 +207,13 @@
 "action.system_volume_down_short" = "Vol-";
 "action.system_volume_mute_short" = "Mute";
 "action.system_mute" = "Mute System Audio";
+"action.brightness_up" = "Increase Brightness";
+"action.brightness_down" = "Decrease Brightness";
+"action.brightness_up_short" = "Bri+";
+"action.brightness_down_short" = "Bri-";
 "action.play_pause" = "Play/Pause";
-"action.previous_command_left" = "Previous Track (System Media)";
-"action.next_command_right" = "Next Track (System Media)";
+"action.previous_command_left" = "Previous Track";
+"action.next_command_right" = "Next Track";
 "action.custom_shortcut" = "Custom Shortcut";
 "action.focus_input" = "Focus Input Field";
 "action.open_custom_application" = "Open Custom App";
@@ -184,13 +221,25 @@
 "action.open_remote_mic" = "Open Remote Buddy";
 "action.open_codex" = "Open Codex";
 "action.open_claude" = "Open Claude";
+"action.open_chatgpt" = "Open ChatGPT";
+"action.open_deepseek_harness" = "Open DeepSeek Harness";
+"action.open_workbuddy" = "Open WorkBuddy";
 "action.open_cmux" = "Open cmux";
 "action.open_wechat" = "Open WeChat";
 "action.open_cursor" = "Open Cursor";
+"action.open_vscode" = "Open VS Code";
 "action.open_xcode" = "Open Xcode";
+"action.open_ghostty" = "Open Ghostty";
+"action.open_iterm2" = "Open iTerm2";
+"action.open_terminal" = "Open Terminal";
 "action.open_slack" = "Open Slack";
 "action.open_wecom" = "Open WeCom";
+"action.open_feishu" = "Open Feishu";
+"action.open_dingtalk" = "Open DingTalk";
 "action.open_netease_music" = "Open NetEase Cloud Music";
+"action.open_apple_music" = "Open Apple Music";
+"action.open_spotify" = "Open Spotify";
+"action.open_finder" = "Open Finder";
 "action.open_chrome" = "Open Chrome";
 "action.open_safari" = "Open Safari";
 "action.open_zed" = "Open Zed";
@@ -239,11 +288,11 @@
 "remote.device.model" = "Model";
 "remote.device.model.rc001" = "Xiaomi Bluetooth Remote 2";
 "remote.device.model.rc003" = "Xiaomi Bluetooth Remote 2 Pro";
-"remote.device.model.unrecognized" = "Unrecognized remote";
+"remote.device.model.unrecognized" = "Unrecognized Remote";
 "remote.device.model.apple_siri_remote_a2854" = "Apple Remote (7th Generation)";
 "remote.device.model.apple_siri_remote_a2540" = "Apple Remote (6th Generation)";
 "remote.device.model.chromecast_voice_remote" = "Chromecast Remote";
-"remote.device.model.unknown" = "Xiaomi Remote";
+"remote.device.model.unknown" = "Unrecognized Remote";
 "remote.device.custom_name" = "Custom name";
 "remote.device.bind_button" = "Set Up Button Controls";
 "remote.device.binding_waiting" = "Press any button except the voice button on this remote";
@@ -274,15 +323,16 @@
 "connection.status.voice_active" = "Microphone in Use";
 "common.status.ready" = "Ready";
 "connection.status.voice_trigger" = "Voice trigger";
-"connection.voice_fn_tap.enabled" = "Tap Mode";
-"connection.voice_fn_tap.hint_short" = "On: tap the shortcut to start and stop. Off: hold it throughout recording.";
+"connection.voice_fn_tap.enabled" = "Tap Hotkey Mode (only for tap-only input tools)";
+"connection.voice_fn_tap.hint_short" = "• Keep unchecked by default (recommended): whenever your input tool supports Hold-to-Talk (such as Doubao, WeType, Voice Buddy, or Chatterfly), leave this unchecked and choose Hold mode inside the input tool.\n• Remote taps are handled automatically: regardless of whether your remote uses hold or tap-to-toggle, Remote Buddy translates every remote voice session into a continuous held shortcut for your input tool.\n• When to check: enable this only when using a hold-to-talk remote with an input tool that cannot hold and only accepts start/stop taps (such as Typeless, NetEase Bageshuo, or macOS Dictation).";
 "connection.voice_key_mode.title" = "Voice Shortcut";
 "connection.voice_key.mode.fn" = "Fn/Globe";
 "connection.voice_key.mode.left_command" = "Left Command (⌘)";
 "connection.voice_key.mode.right_command" = "Right Command (⌘)";
 "connection.voice_key.mode.left_option" = "Left Option (⌥)";
 "connection.voice_key.mode.right_option" = "Right Option (⌥)";
-"connection.voice_key_mode.help" = "Set the same voice shortcut and recording mode in your input tool in the next step.";
+"connection.voice_key_mode.help" = "Set the same voice shortcut and recording mode in your input tool in the next step (avoid Fn/Globe when possible, as it is frequently claimed by macOS or apps like WeChat).";
+"connection.voice_key_mode.fn_caution_help" = "Tip: avoid Fn/Globe unless required (e.g., macOS Dictation). Fn is easily claimed or conflicted by macOS Globe actions, WeChat, and other apps—Ctrl (⌃) + Shift (⇧) + R is recommended instead.";
 "onboarding.voice_trigger.save_hint" = "New settings take effect after the voice test passes.";
 "connection.voice_key_mode.command_permission" = "Modifier-key mode requires Accessibility permission";
 "connection.action.reconnect" = "Reconnect Now";
@@ -349,6 +399,8 @@
 "permissions.upgrade_identity_help" = "If access was lost after an update, keep Remote Buddy in Applications and grant the missing permission again.";
 "diagnostics.title" = "Diagnostics";
 "diagnostics.logs.title" = "App Logs";
+"diagnostics.logs.enabled.title" = "Enable Troubleshooting Logs";
+"diagnostics.logs.enabled.detail" = "Turn off during normal use to stop writing local log files; enable when troubleshooting issues.";
 "diagnostics.logs.privacy" = "Diagnostic logs stay on this Mac and are never uploaded.";
 "diagnostics.logs.last_entry" = "Open local text logs, or copy environment and diagnostic info for troubleshooting.";
 "diagnostics.logs.show_in_finder" = "Show Logs in Finder";
@@ -785,7 +837,7 @@
 "onboarding.recovery.voice.audio_delivery_failed.detail" = "Remote Buddy received audio from the remote, but could not deliver all of it to the virtual microphone (Remote Buddy Mic). Set up audio again, then retry.";
 "onboarding.recovery.voice.audio_delivery_failed.action" = "Retry Audio Output";
 "onboarding.recovery.voice.external_tool_no_commit.title" = "Audio worked, but the voice app did not enter text";
-"onboarding.recovery.voice.external_tool_no_commit.detail" = "Remote Buddy sent audio, and the text field was ready. Check your voice typing app’s settings. It must support voice input and use the selected audio output device as its microphone. Then try again.";
+"onboarding.recovery.voice.external_tool_no_commit.detail" = "Audio was received normally, but %1$@ did not enter text. Please check %1$@ settings: 1. Ensure the microphone is set to “%2$@”; 2. Ensure the voice shortcut is manually recorded as “%3$@” and global shortcut activation is enabled.";
 "onboarding.recovery.voice.external_tool_no_commit.action" = "Check and Try Again";
 "onboarding.recovery.controls.not_confirmed.title" = "Try three different control buttons";
 "onboarding.recovery.controls.not_confirmed.detail" = "Reconnect if needed, then press three different control buttons.";
@@ -883,9 +935,9 @@
 "custom_application.accessibility.test" = "Test input field";
 
 "onboarding.voice_tool.guide.screenshot.doubao_menu" = "In the input menu, choose Doubao (豆包输入法), then Settings (设置).";
-"onboarding.voice_tool.guide.screenshot.doubao_settings" = "In Voice Input, set the shortcut for the selected mode to “%@”. Enable global voice activation and select the Remote Buddy virtual microphone.";
+"onboarding.voice_tool.guide.screenshot.doubao_settings" = "In Voice Input, choose Hold-to-Talk mode (avoid toggle/hands-free—Remote Buddy handles remote tap conversion automatically), set the shortcut to “%@”, enable global voice activation, and select the Remote Buddy virtual microphone.";
 "onboarding.voice_tool.guide.screenshot.weixin_input_menu" = "In the input menu, choose WeType (微信输入法), then Settings (设置).";
-"onboarding.voice_tool.guide.screenshot.weixin_input_settings" = "In Voice Input, set the shortcut to “%@”, match the recording mode in the current pairing plan, and enable global shortcut activation.";
+"onboarding.voice_tool.guide.screenshot.weixin_input_settings" = "In Voice Input, set the shortcut to “%@”, prefer Hold-to-Talk (Remote Buddy handles remote tap conversion automatically), and enable global shortcut activation.";
 "onboarding.voice_tool.guide.screenshot.weixin_app_shortcuts" = "The WeChat app’s global voice shortcut can conflict with any voice tool. Check whether it uses “%@” and clear only the conflicting shortcut.";
 "onboarding.voice_tool.guide.screenshot.bageshuo_menu" = "In the menu bar, click the NetEase Bageshuo icon, then select Settings.";
 "onboarding.voice_tool.guide.screenshot.bageshuo_settings" = "In Settings → Shortcuts, set the voice shortcut to “%@” and use press-to-start/stop mode.";
@@ -914,6 +966,12 @@
 "settings.integration.supported_tools" = "Supported Voice Tools";
 "settings.integration.active_badge" = "Current";
 "settings.integration.shortcut_title" = "Voice trigger";
+"settings.integration.bypass_switch_title" = "\"Global Shortcut\" Enabled";
+"settings.integration.bypass_switch_detail" = "When enabled, Remote Buddy will no longer proactively switch macOS input sources, avoiding focus loss in apps like Antigravity. Please ensure global voice shortcut is enabled in input method settings.";
+"settings.integration.bypass_switch_title.weixin" = "\"Global Shortcut\" Enabled";
+"settings.integration.bypass_switch_detail.weixin" = "When enabled, Remote Buddy will no longer proactively switch macOS input sources, avoiding focus loss in apps like Antigravity. Please ensure \"Global shortcut\" is enabled in WeChat Input Method settings.";
+"settings.integration.bypass_switch_title.doubao" = "\"Global Voice Activation\" Enabled";
+"settings.integration.bypass_switch_detail.doubao" = "When enabled, Remote Buddy will no longer proactively switch macOS input sources, avoiding focus loss in apps like Antigravity. Please ensure \"Global voice activation\" is enabled in Doubao Input Method settings.";
 
 "remote.device.illustration" = "Remote control illustration";
 
@@ -951,6 +1009,8 @@
 
 "diagnostics.logs.open_failed" = "Unable to open the log file";
 "diagnostics.logs.open_failed.detail" = "Check that your Library/Logs/RemoteBuddy folder is writable, then try again.";
+"diagnostics.logs.disabled_empty" = "No Log Files Yet";
+"diagnostics.logs.disabled_empty.detail" = "Troubleshooting logs are currently turned off, so no log file has been created. Enable \"Enable Troubleshooting Logs\" to start recording.";
 
 "update.dialog.window" = "Software Update";
 "update.dialog.permission" = "Automatically check for updates?";
@@ -1039,8 +1099,6 @@
 "remote.hid_binding.open" = "Buttons not detected? Link a compatible remote";
 "onboarding.remote.choose_device" = "Choose the remote being added";
 
-"audio.gain.per_device_help" = "Gain is saved separately and applies only to this remote.";
-
 "settings.driver.fixed_output_help" = "All remotes share this virtual microphone. Audio output is configured automatically.";
 
 "onboarding.voice_prompt.t1.fn_tap" = "Press and release the T1 voice button to start speaking, then press it once more to stop (tap conversion enabled).";
@@ -1070,14 +1128,18 @@
 
 "button_mapping.action.clear" = "Clear Assignment";
 
-"common_phrases.boundary_padding_hint" = "Leading or trailing spaces and tabs will be removed when saving or inserting. Whitespace within the text and line breaks are preserved.";
+"common_phrases.character_count" = "%d/%d characters";
+"common_phrases.character_count_single" = "%d/%d character";
+"common_phrases.trailing_invisible_hint" = "Ends with invisible characters (trailing space, tab, etc., preserved as-is)";
+"common_phrases.leading_invisible_hint" = "Starts with invisible characters (leading space, tab, etc., preserved as-is)";
+"common_phrases.both_invisible_hint" = "Starts and ends with invisible characters (spaces, tabs, etc., preserved as-is)";
 
 "connection.device.firmware" = "Firmware";
 "connection.device.model" = "Model";
 "connection.device.identity" = "Vendor / Product ID";
+"connection.device.hid_version" = "HID version";
 "connection.device.protocol" = "Voice protocol";
 "connection.device.audio" = "Audio format";
-"connection.device.frame" = "Audio frame";
 "connection.device.frame_bytes" = "%@ bytes";
 "onboarding.remote.chromecast_pairing.third" = "Select the remote in your Mac’s Bluetooth list and connect. Then press a button other than Voice to check input. When pairing again, forget the device in Bluetooth settings first if needed.";
 
@@ -1193,7 +1255,7 @@
 
 "shortcut.keyboard.main_key_required" = "Choose a main key, or keep just one standalone modifier.";
 
-"connection.voice_key.chord_help" = "Your input tool must support this chord in the selected recording mode. Set it to match and avoid shortcuts already used by other apps.";
+"connection.voice_key.chord_help" = "Set the same chord and recording mode in your input tool in the next step, and avoid shortcuts already used by other apps (avoid Fn/Globe when possible, as it is often claimed by macOS or apps like WeChat).";
 
 "shortcut.keyboard.help" = "Combine modifier and main keys, or record a shortcut directly. Left and right modifiers are distinct.";
 "shortcut.keyboard.use_shortcut" = "Use This Shortcut";
@@ -1250,6 +1312,11 @@
 "connection.g9n9n.full_support_notice" = "Voice button and all 14 standard buttons work and can be customized.";
 "connection.g9n9n.partial_support_notice" = "Voice works; only Arrow + OK emits Return/Enter and mappings cannot be modified. Since functionality is heavily limited, replacing with a verified fully supported remote or hardware revision is recommended; after replacing, remove this device and run Add Device.";
 "connection.g9n9n.compatibility_doc_link" = "Read G9N9N Compatibility Docs ↗";
+"connection.g9n9n.voice_button_mode.title" = "Voice Button Mode";
+"connection.g9n9n.voice_button_mode.hold" = "Hold to Talk";
+"connection.g9n9n.voice_button_mode.smart_toggle" = "Smart Toggle";
+"connection.g9n9n.voice_button_mode.hold_help" = "Hold the Google Assistant voice button to speak and release to stop.";
+"connection.g9n9n.voice_button_mode.smart_toggle_help" = "Tap and release to keep speaking hands-free, then press again to stop (~0.2s mic reopen pause after tap); holding over 0.7s stops on release.";
 "button_mapping.voice.settings_button" = "Open Voice Integration";
 "common_phrases.g9n9n_partial_notice" = "The selected G9N9N is in Partial Support (two-key compatibility) mode, which only supports Voice and Arrow + OK for Enter; single-key common phrases are unavailable.";
 "onboarding.chromecast.replace_hardware_advice" = "Partial Support mode omits most button features and is intended only as a fallback. Replace with a verified macOS-compatible remote unit for full support.";
@@ -1266,3 +1333,22 @@
 "onboarding.voice_tool.guide.configure_chatterfly" = "Configure the global voice shortcut";
 "onboarding.voice_tool.guide.screenshot.chatterfly_settings" = "In Tencent Chatterfly → Settings → Voice Settings, set the Voice Input shortcut to “%@” and enable the global shortcut option. Hold to talk and release to finish. The screenshot shortcut is an example; use your selected shortcut.";
 "onboarding.voice_tool.guide.screenshot.chatterfly_input_microphone" = "In Tencent Chatterfly → Settings → Audio Settings → Microphone, select Remote Buddy Mic.";
+
+// Per-device Connection usage tips
+"connection.device_guide.title" = "Usage Tips";
+"connection.device_guide.badge.xiaomi_hold_only" = "Hold to Talk Only";
+"connection.device_guide.badge.t1_toggle" = "Tap Hands-Free";
+"connection.device_guide.xiaomi.voice.title" = "Hold-to-talk only (tap mode not supported)";
+"connection.device_guide.xiaomi.voice.detail" = "Hold Voice while speaking and release to stop; hardware stops pushing audio as soon as you let go, so Smart Toggle / tap-to-talk cannot be enabled.";
+"connection.device_guide.xiaomi.limit.title" = "~60-second single-hold hardware limit";
+"connection.device_guide.xiaomi.limit.detail" = "Firmware ends the stream after ~60 seconds of continuous holding. For longer dictation, release briefly and press again to continue.";
+"connection.device_guide.t1.voice.title" = "Press once to start, press again to stop (~5 min cap)";
+"connection.device_guide.t1.voice.detail" = "Press and release Voice to speak hands-free, then press once more to stop. Automatic keepalive caps sessions at ~5 minutes to avoid battery drain.";
+"connection.device_guide.t1.hold_compat.title" = "Works with hold-to-talk voice tools";
+"connection.device_guide.t1.hold_compat.detail" = "Remote Buddy holds your tool's voice shortcut while streaming and releases on stop, so no continuous physical hold is required.";
+"connection.device_guide.g9n9n.led.title" = "Bottom white LED indicates active voice streaming";
+"connection.device_guide.g9n9n.led.detail" = "Whenever the remote microphone is open and transmitting audio in either mode, the white LED near the bottom stays lit and turns off when stopped.";
+"connection.device_guide.g9n9n.limit.title" = "Both modes exceed 60s (~5-minute safety limit)";
+"connection.device_guide.g9n9n.limit.detail" = "Automatic hardware keepalive lets both Smart Toggle and Hold-to-Talk stream past 60s, capped at ~5 minutes per session to prevent accidental battery drain.";
+"connection.device_guide.g9n9n.other_key_stops.title" = "Pressing another button stops hands-free listening";
+"connection.device_guide.g9n9n.other_key_stops.detail" = "During hands-free streaming, tapping any other physical button makes firmware stop audio immediately—finish speaking before using other keys.";

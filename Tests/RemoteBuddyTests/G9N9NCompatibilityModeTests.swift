@@ -380,7 +380,7 @@ struct G9N9NCompatibilityModeTests {
         settings.selectRemoteProfile(xiaomiID)
 
         let model = BridgeAppModel(settings: settings, initialAudioDevices: [])
-        let monitor = model.makeHIDMonitor(profileID: googleID, targetFingerprint: nil)
+        let monitor = model.makeHIDMonitor(profileID: googleID, targetFingerprint: nil, runtimePermissions: { true })
         monitor.connectSimulatedDevice(fingerprint: "google", profileID: googleID)
         defer { monitor.disconnectSimulatedDevice() }
 
@@ -437,10 +437,14 @@ struct G9N9NCompatibilityModeTests {
         #expect(AppSettings(defaults: defaults).g9n9nInputMode(for: googleID) == .full)
     }
 
-    @Test func g9n9nCompatibilityGuideLinkTargetsRepositoryDocumentation() {
+    @Test func g9n9nCompatibilityGuideLinkTargetsLocalizedWebsitePages() {
         #expect(
-            AppLinks.g9n9nCompatibilityGuide.absoluteString
-                == "https://github.com/zfdang/remote-buddy/blob/main/docs/g9n9n-compatibility.md"
+            AppLinks.g9n9nCompatibilityGuide(for: Locale(identifier: "zh_CN")).absoluteString
+                == "https://remote.zfdang.com/g9n9n-compatibility.html"
+        )
+        #expect(
+            AppLinks.g9n9nCompatibilityGuide(for: Locale(identifier: "en_US")).absoluteString
+                == "https://remote.zfdang.com/g9n9n-compatibility_en.html"
         )
     }
 

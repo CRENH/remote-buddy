@@ -22,6 +22,7 @@ final class AppSettings: ObservableObject {
         static let showStatusBarIcon = "showStatusBarIcon"
         static let openMainWindowAtLaunch = "openMainWindowAtLaunch"
         static let checksForPreReleaseUpdates = "checksForPreReleaseUpdates"
+        static let diagnosticLoggingEnabled = AppLogger.diagnosticLoggingEnabledKey
         static let voiceFnTapModeEnabled = "voiceFnTapModeEnabled"
         static let voiceKeyMode = "voiceKeyMode"
         static let lastLaunchedBuild = "launch.lastLaunchedBuild"
@@ -31,6 +32,7 @@ final class AppSettings: ObservableObject {
         static let onboardingControlSource = "onboarding.controlSource"
         static let onboardingDevice = "onboarding.device"
         static let onboardingVoiceTool = "onboarding.voiceTool"
+        static let bypassInputSourceSwitching = "voiceTool.bypassInputSourceSwitching"
         static let onboardingPreferredGesture = "onboarding.preferredGesture"
         static let onboardingVerifiedVoiceBinding = "onboarding.verifiedVoiceBinding"
         static let onboardingStagedVoiceBinding = "onboarding.stagedVoiceBinding"
@@ -200,6 +202,15 @@ final class AppSettings: ObservableObject {
         }
     }
 
+    @Published var diagnosticLoggingEnabled: Bool {
+        didSet {
+            defaults.set(diagnosticLoggingEnabled, forKey: Keys.diagnosticLoggingEnabled)
+            if defaults === UserDefaults.standard, !AppLogger.isTestProcess() {
+                AppLogger.shared.setEnabled(diagnosticLoggingEnabled)
+            }
+        }
+    }
+
     @Published var voiceFnTapModeEnabled: Bool {
         didSet {
             defaults.set(
@@ -266,6 +277,10 @@ final class AppSettings: ObservableObject {
 
     @Published var onboardingVoiceTool: OnboardingVoiceTool {
         didSet { defaults.set(onboardingVoiceTool.rawValue, forKey: Keys.onboardingVoiceTool) }
+    }
+
+    @Published var bypassInputSourceSwitching: Bool {
+        didSet { defaults.set(bypassInputSourceSwitching, forKey: Keys.bypassInputSourceSwitching) }
     }
 
     @Published var onboardingPreferredGesture: VoiceGestureMode? {
@@ -480,10 +495,13 @@ final class AppSettings: ObservableObject {
             ? true
             : defaults.bool(forKey: Keys.openMainWindowAtLaunch)
         checksForPreReleaseUpdates = defaults.bool(forKey: Keys.checksForPreReleaseUpdates)
+        diagnosticLoggingEnabled = defaults.object(forKey: Keys.diagnosticLoggingEnabled) == nil
+            ? true
+            : defaults.bool(forKey: Keys.diagnosticLoggingEnabled)
         voiceFnTapModeEnabled = defaults.bool(forKey: Keys.voiceFnTapModeEnabled)
         voiceKeyMode = VoiceKeyMode(
             rawValue: defaults.string(forKey: Keys.voiceKeyMode) ?? ""
-        ) ?? .function
+        ) ?? .suggestedShortcut
         onboardingPurpose = defaults.string(forKey: Keys.onboardingPurpose)
             .flatMap(OnboardingPurpose.init(rawValue:)) ?? .initialSetup
         onboardingCompletedVersion = defaults.integer(forKey: Keys.onboardingCompletedVersion)
@@ -500,6 +518,7 @@ final class AppSettings: ObservableObject {
         onboardingRemoteAvailability = persistedControlSource == .unselected ? .unselected : .hasRemote
         onboardingVoiceTool = defaults.string(forKey: Keys.onboardingVoiceTool)
             .flatMap(OnboardingVoiceTool.init(rawValue:)) ?? .unselected
+        bypassInputSourceSwitching = defaults.bool(forKey: Keys.bypassInputSourceSwitching)
         onboardingPreferredGesture = defaults.string(forKey: Keys.onboardingPreferredGesture)
             .flatMap(VoiceGestureMode.init(rawValue:))
         verifiedVoiceToolBinding = Self.decodeSetting(

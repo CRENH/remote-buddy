@@ -1,0 +1,43 @@
+name: Fork test
+
+# Upstream's release workflow only runs for main, which this fork does not use.
+# Build and test crenh and pull requests into it so merges are checked before release.
+on:
+  push:
+    branches: [crenh]
+  pull_request:
+    branches: [crenh]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fork-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Test sync script
+        run: bash .github/scripts/test-sync-upstream.sh
+      - name: Test release scripts
+        run: |
+          failed=0
+          for script in scripts/test-*.py; do
+            # Needs the driver source that the release build fetches first.
+            [[ "$script" == scripts/test-driver-identity.py ]] && continue
+            echo "=== $script ==="
+            python3 "$script" || failed=1
+          done
+          exit "$failed"
+      - name: Swift test
+        run: swift test --disable-keychain

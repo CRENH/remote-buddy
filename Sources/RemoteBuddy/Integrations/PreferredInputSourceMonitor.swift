@@ -2,7 +2,9 @@ import AppKit
 
 final class PreferredInputSourceMonitor {
     typealias VoiceToolProvider = () -> OnboardingVoiceTool
+    typealias BypassSwitchingProvider = () -> Bool
     typealias InputSourcePreparer = (OnboardingVoiceTool) -> OnboardingInputSourceSwitchResult
+    typealias InputSourceAvailabilityChecker = (OnboardingVoiceTool) -> Bool
     typealias CurrentInputSourceIDProvider = () -> String?
     typealias InputSourceRestorer = (String) -> OnboardingInputSourceSwitchResult
     typealias InputSourceActivationWaiter = (
@@ -23,7 +25,9 @@ final class PreferredInputSourceMonitor {
     typealias SourcePreparationFailureHandler = (OnboardingVoiceTool, OnboardingInputSourceSwitchResult) -> Void
 
     private let voiceTool: VoiceToolProvider
+    private let bypassInputSourceSwitching: BypassSwitchingProvider
     private let prepareInputSource: InputSourcePreparer
+    private let isInputSourceAvailable: InputSourceAvailabilityChecker
     private let currentInputSourceID: CurrentInputSourceIDProvider
     private let restoreInputSource: InputSourceRestorer
     private let waitForInputSourceActivation: InputSourceActivationWaiter
@@ -64,7 +68,11 @@ final class PreferredInputSourceMonitor {
 
     init(
         voiceTool: @escaping VoiceToolProvider,
+        bypassInputSourceSwitching: @escaping BypassSwitchingProvider = { false },
         prepareInputSource: @escaping InputSourcePreparer = OnboardingInputSourceSwitcher.prepareForVoiceSession,
+        isInputSourceAvailable: @escaping InputSourceAvailabilityChecker = {
+            OnboardingInputSourceSwitcher.isInputSourceAvailable(for: $0)
+        },
         currentInputSourceID: @escaping CurrentInputSourceIDProvider = OnboardingInputSourceSwitcher.currentInputSourceID,
         restoreInputSource: @escaping InputSourceRestorer = OnboardingInputSourceSwitcher.selectEnabledInputSource,
         waitForInputSourceActivation: @escaping InputSourceActivationWaiter = { target, current, continuing, completion in
@@ -82,7 +90,9 @@ final class PreferredInputSourceMonitor {
         onSourcePreparationFailure: SourcePreparationFailureHandler? = nil
     ) {
         self.voiceTool = voiceTool
+        self.bypassInputSourceSwitching = bypassInputSourceSwitching
         self.prepareInputSource = prepareInputSource
+        self.isInputSourceAvailable = isInputSourceAvailable
         self.currentInputSourceID = currentInputSourceID
         self.restoreInputSource = restoreInputSource
         self.waitForInputSourceActivation = waitForInputSourceActivation
@@ -97,7 +107,8 @@ final class PreferredInputSourceMonitor {
         shouldContinue: @escaping () -> Bool,
         now: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
         schedule: @escaping (TimeInterval, @escaping () -> Void) -> Void = { delay, work in
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+            nonisolated(unsafe) let work = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { work() }
         },
         completion: @escaping (Bool) -> Void
     ) {
@@ -270,6 +281,19 @@ final class PreferredInputSourceMonitor {
             )
         }
         guard let targetInputSourceID = selectedVoiceTool.preferredInputSourceID else { return true }
+        if bypassInputSourceSwitching() {
+            guard isInputSourceAvailable(selectedVoiceTool) else {
+                logger(
+                    "VOICE INPUT source_prepare tool=\(selectedVoiceTool.rawValue) result=unavailable managed=false"
+                )
+                onSourcePreparationFailure?(selectedVoiceTool, .unavailable)
+                return false
+            }
+            logger(
+                "VOICE INPUT source_prepare tool=\(selectedVoiceTool.rawValue) result=bypassed managed=false"
+            )
+            return true
+        }
         if var session = managedInputSourceSession {
             guard session.targetInputSourceID == targetInputSourceID else {
                 logger("VOICE INPUT session_rejected reason=target_changed")

@@ -89,6 +89,7 @@ enum OnboardingInputSourceSwitcher {
             completion?(false)
             return false
         }
+        nonisolated(unsafe) let completion = completion
         let configuration = NSWorkspace.OpenConfiguration()
         configuration.activates = activates
         NSWorkspace.shared.openApplication(at: applicationURL, configuration: configuration) { app, error in
@@ -141,6 +142,14 @@ enum OnboardingInputSourceSwitcher {
     ) -> OnboardingInputSourceSwitchResult {
         guard voiceTool.preferredInputSourceID != nil else { return .notApplicable }
         return isSelected(voiceTool) ? .selected : select(voiceTool)
+    }
+
+    static func isInputSourceAvailable(
+        for voiceTool: OnboardingVoiceTool,
+        includeAllInstalled: Bool = false
+    ) -> Bool {
+        guard let targetID = voiceTool.preferredInputSourceID else { return true }
+        return inputSource(withID: targetID, includeAllInstalled: includeAllInstalled) != nil
     }
 
     static func prepareForVoiceSession(

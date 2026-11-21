@@ -1,27 +1,34 @@
 import AppKit
+@preconcurrency import ApplicationServices
+import os
 
 /// Inserts using AXSelectedText or a temporary clipboard paste after validating
 /// public focus metadata. Target text is never read.
-final class CommonPhraseInserter {
-    enum WriteResult {
+final class CommonPhraseInserter: @unchecked Sendable {
+    enum WriteResult: Sendable {
         case inserted
         case pasteSubmitted
         case failed(String)
     }
-    typealias Writer = (String, pid_t, @escaping (WriteResult) -> Void) -> Void
+    typealias Writer = (String, pid_t, @escaping @Sendable (WriteResult) -> Void) -> Void
 
-    private struct Request {
+    private struct Request: @unchecked Sendable {
         let operationID: UInt64
         let start: TimeInterval
         let text: String
         let processID: pid_t
         let completion: (String) -> Void
     }
+
+    private struct State: @unchecked Sendable {
+        var queue: [Request] = []
+        var busy = false
+        var operation: UInt64 = 0
+    }
+
     private let write: Writer
     private let logger: (String) -> Void
-    private var queue: [Request] = []
-    private var busy = false
-    private var operation: UInt64 = 0
+    private let state = OSAllocatedUnfairLock(initialState: State())
 
     init(write: @escaping Writer = { text, processID, completion in
         writeUsingAvailableRoute(text, processID: processID, completion: completion)
@@ -31,23 +38,33 @@ final class CommonPhraseInserter {
     }
 
     func insert(_ text: String, into processID: pid_t, completion: @escaping (String) -> Void) {
-        operation &+= 1
-        logger("COMMON_PHRASES INSERT operation_id=\(operation) phase=requested")
-        queue.append(Request(operationID: operation, start: ProcessInfo.processInfo.systemUptime,
-            text: text, processID: processID, completion: completion))
+        nonisolated(unsafe) let completion = completion
+        let operationID = state.withLock { state in
+            state.operation &+= 1
+            let operationID = state.operation
+            state.queue.append(Request(operationID: operationID, start: ProcessInfo.processInfo.systemUptime,
+                text: text, processID: processID, completion: completion))
+            return operationID
+        }
+        logger("COMMON_PHRASES INSERT operation_id=\(operationID) phase=requested")
         drain()
     }
 
     func cancelPending() {
-        let pending = queue
-        queue.removeAll()
+        let pending = state.withLock { state in
+            let pending = state.queue
+            state.queue.removeAll()
+            return pending
+        }
         for request in pending { request.completion("common_phrases.error.cancelled") }
     }
 
     private func drain() {
-        guard !busy, !queue.isEmpty else { return }
-        busy = true
-        let request = queue.removeFirst()
+        guard let request = state.withLock({ state -> Request? in
+            guard !state.busy, !state.queue.isEmpty else { return nil }
+            state.busy = true
+            return state.queue.removeFirst()
+        }) else { return }
         write(request.text, request.processID) { [weak self] result in
             guard let self else { return }
             let message: String
@@ -64,13 +81,13 @@ final class CommonPhraseInserter {
             self.logger("COMMON_PHRASES INSERT operation_id=\(request.operationID) phase=completed " +
                 "result=\(status) reason=\(reason) " +
                 "elapsed_ms=\(Int((ProcessInfo.processInfo.systemUptime - request.start) * 1000))")
-            self.busy = false
+            self.state.withLock { $0.busy = false }
             request.completion(message)
             self.drain()
         }
     }
 
-    private struct PasteTarget {
+    private struct PasteTarget: @unchecked Sendable {
         let processID: pid_t
         let element: AXUIElement?
         let terminal: Bool
@@ -89,9 +106,9 @@ final class CommonPhraseInserter {
     }
 
     private static func writeUsingAvailableRoute(_ text: String, processID: pid_t,
-                                                completion: @escaping (WriteResult) -> Void) {
+                                                completion: @escaping @Sendable (WriteResult) -> Void) {
         AccessibilityMessaging.queryQueue.async {
-            func finish(_ failure: String?) { DispatchQueue.main.async { completion(failure.map { .failed($0) } ?? .inserted) } }
+            @Sendable func finish(_ failure: String?) { DispatchQueue.main.async { completion(failure.map { .failed($0) } ?? .inserted) } }
             guard canSubmit(to: processID) else { finish(submissionFailure(processID)); return }
             let app = NSRunningApplication(processIdentifier: processID)
             let bundleID = app?.bundleIdentifier ?? ""
@@ -192,7 +209,7 @@ final class CommonPhraseInserter {
         return nil
     }
 
-    private static func paste(_ text: String, target: PasteTarget, completion: @escaping (WriteResult) -> Void) {
+    private static func paste(_ text: String, target: PasteTarget, completion: @escaping @Sendable (WriteResult) -> Void) {
         DispatchQueue.main.async {
             CommonPhraseClipboardPaste.shared.paste(text, validate: { done in
                 AccessibilityMessaging.queryQueue.async {
