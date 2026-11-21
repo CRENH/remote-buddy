@@ -119,7 +119,7 @@ CI 失败（编译错误）就在同一任务内修，修到绿再勾选；同�
 
 **导入顺序（spec §6）：** 大小超限抛 `fileTooLarge` → 用 `JSONDecoder.lossy(log:)` 解文档（抛错则什么都不改）→ log 里的路径转成 `.unrecognizedValue` 项 → 应用 `general`（`AppLanguage(rawValue:)` / `AppIconIdentifier(rawValue:)` 解不出记 `.unrecognizedValue`；`disabledApplicationIntegrations` 只保留 `ApplicationIntegration` 认识的值）→ 合并自定义 App，建 `[UUID: UUID]` 对照表 → 逐个本机档案按型号选文件项（同型号先比 `name == customName`，再取第一个）→ 套用：`allowsMappingEdits(for:)` 为 false 记 `.mappingLockedByCompatibilityMode` 并跳过映射；否则映射整份替换（引用 App 的项按对照表换 ID，找不到的删掉该项并记 `.unknownApplicationReference`）；`setGainDB(_:for:)`；`g9n9nVoiceButtonMode` 用 `setG9N9NVoiceButtonMode` → 文件里本机没有的型号记 `.remoteModelNotOnThisMac` → 选中档案被改则 `reloadSelectedRemoteProfileMappings()` → `formatVersion > currentFormatVersion` 时 `isFromNewerVersion = true`。
 
-- [ ] **Step 1：写失败测试**（同一 suite）：
+- [x] **Step 1：写失败测试**（同一 suite）：
   - `roundTripRestoresMappingsGainAndVoiceButtonMode`：导出 → 改乱（`setAction`、`setGainDB(3, …)`、`setG9N9NVoiceButtonMode(.holdToTalk, …)`）→ 导入：全部回到导出时的值，`report.isClean`，`importedRemoteCount == 2`。
   - `remoteModelMissingOnThisMacIsSkipped`：文件含 T1，本机没有：`skippedItems.contains(.init(location: ["t1_remote"], reason: .remoteModelNotOnThisMac))`。
   - `sameModelPicksMatchingNameThenFirst`：文件两个 `.rc003`（名 "A"、"B"），本机一个名 "B"：套用的是 "B" 的映射；改名为 "C" 再导入：套用 "A"。
@@ -133,10 +133,10 @@ CI 失败（编译错误）就在同一任务内修，修到绿再勾选；同�
   - `importRefreshesSelectedRemoteLiveMappings`：选中档案被导入改写后，`settings.action(for: .home)`（不带 profileID）等于文件值。
   - `compatibilityModeRemoteKeepsMappings`：直接把本机 Chromecast 档案的 `g9n9nInputMode` 设为 `.twoKeyCompatibility`：映射不变，记 `.mappingLockedByCompatibilityMode`，增益照常导入。
   - `pairingDataIsUntouched`：导入前后各档案的 `bluetoothIdentifier`、`hidFingerprint`、`customName` 不变。
-- [ ] **Step 2：push，CI 失败。**
-- [ ] **Step 3：实现 `importSettingsBackup` 和报告类型。**
-- [ ] **Step 4：push，CI 绿。**
-- [ ] **Step 5：勾选 T3，commit** `feat(settings): import settings backup by remote model`。
+- [x] **Step 2：push，CI 失败。**
+- [x] **Step 3：实现 `importSettingsBackup` 和报告类型。**
+- [x] **Step 4：push，CI 绿。**
+- [x] **Step 5：勾选 T3，commit** `feat(settings): import settings backup by remote model`。
 
 ### T4 — 通用页界面与文案 [auto] depends: T3
 
