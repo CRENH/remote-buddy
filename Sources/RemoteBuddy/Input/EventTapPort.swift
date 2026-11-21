@@ -1,15 +1,20 @@
 import CoreGraphics
 import Foundation
+import os
 
 /// Bounds repeated WindowServer disable/re-enable cycles on each tap.
-final class EventTapRecovery {
-    private var attempts = 0
-    private var lastAttempt: TimeInterval?
+final class EventTapRecovery: @unchecked Sendable {
+    private struct RetryState {
+        var attempts = 0
+        var lastAttempt: TimeInterval?
+    }
+
+    private let state = OSAllocatedUnfairLock(initialState: RetryState())
     private let now: () -> TimeInterval
-    private let dispatch: (TimeInterval, @escaping () -> Void) -> Void
+    private let dispatch: (TimeInterval, @escaping @Sendable () -> Void) -> Void
 
     init(now: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
-         dispatch: @escaping (TimeInterval, @escaping () -> Void) -> Void = { delay, action in
+         dispatch: @escaping (TimeInterval, @escaping @Sendable () -> Void) -> Void = { delay, action in
              DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: action)
          }) {
         self.now = now
@@ -20,20 +25,28 @@ final class EventTapRecovery {
                  permissionsGranted: @escaping () -> Bool,
                  enable: @escaping () -> Bool, stop: @escaping () -> Void) {
         let time = now()
-        if let lastAttempt, time - lastAttempt > 30 { attempts = 0 }
-        lastAttempt = time
-        attempts += 1
-        let delay = min(8, 0.5 * pow(2, Double(attempts - 1)))
-        let exhausted = attempts > 5
+        let (delay, exhausted) = state.withLock { state -> (TimeInterval, Bool) in
+            if let lastAttempt = state.lastAttempt, time - lastAttempt > 30 {
+                state.attempts = 0
+            }
+            state.lastAttempt = time
+            state.attempts += 1
+            let delay = min(8, 0.5 * pow(2, Double(state.attempts - 1)))
+            return (delay, state.attempts > 5)
+        }
+        nonisolated(unsafe) let isCurrent = isCurrent
+        nonisolated(unsafe) let permissionsGranted = permissionsGranted
+        nonisolated(unsafe) let enable = enable
+        nonisolated(unsafe) let stop = stop
         EventTapPort.deferRecovery(type: type,
-            dispatch: { self.dispatch(delay, $0) }, isCurrent: isCurrent,
+            dispatch: { self.dispatch(delay, $0) }, isCurrent: { isCurrent() },
             permissionsGranted: { !exhausted && permissionsGranted() }, enable: {
                 guard !enable() else { return }
                 // A failed enable need not produce another WindowServer callback.
                 // Keep the same port/generation guard and bounded retry budget.
                 self.recover(type: type, isCurrent: isCurrent,
                     permissionsGranted: permissionsGranted, enable: enable, stop: stop)
-            }, stop: stop)
+            }, stop: { stop() })
     }
 }
 
@@ -51,11 +64,11 @@ enum EventTapPort {
     /// A queued recovery must not revive a port stopped or replaced in the meantime.
     static func deferRecovery(
         type: CGEventType,
-        dispatch: (@escaping () -> Void) -> Void,
-        isCurrent: @escaping () -> Bool,
-        permissionsGranted: @escaping () -> Bool,
-        enable: @escaping () -> Void,
-        stop: @escaping () -> Void
+        dispatch: (@escaping @Sendable () -> Void) -> Void,
+        isCurrent: @escaping @Sendable () -> Bool,
+        permissionsGranted: @escaping @Sendable () -> Bool,
+        enable: @escaping @Sendable () -> Void,
+        stop: @escaping @Sendable () -> Void
     ) {
         dispatch {
             guard isCurrent() else { return }

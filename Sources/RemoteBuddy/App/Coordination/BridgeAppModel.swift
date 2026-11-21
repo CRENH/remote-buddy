@@ -127,6 +127,12 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
         voiceTool: { [weak self] in
             self?.settings.onboardingVoiceTool ?? .unselected
         },
+        bypassInputSourceSwitching: { [weak self] in
+            self?.settings.bypassInputSourceSwitching ?? false
+        },
+        isInputSourceAvailable: { [weak self] tool in
+            self?.voiceToolAvailabilityChecker(tool) == .available
+        },
         onSourcePreparationFailure: { [weak self] tool, result in
             self?.handleInputSourcePreparationFailure(for: tool, result: result)
         }
@@ -198,6 +204,7 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
     var voiceKeyReleaseRetry: ScheduledOperation?
     var voiceKeyReleaseRetryGeneration: UInt64 = 0
     var scheduleVoiceKeyReleaseRetry: OperationScheduler = ScheduledOperation.mainQueue
+    var voiceKeyStateSetter: ((VoiceKeyMode, Bool) -> Bool)?
     var heldVoiceKeyMode: VoiceKeyMode?
     var pendingVoiceKeyMode: VoiceKeyMode?
     // Main-queue state; only input-source waits can pump/reenter that queue.
@@ -220,6 +227,10 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
     var rc003VoiceExtensionTimer: DispatchSourceTimer?
     var rc003VoiceExtensionOpenTimer: DispatchSourceTimer?
     var rc003VoiceExtensionDeadlineTimer: DispatchSourceTimer?
+    var g9n9nSmartToggle = G9N9NSmartToggleState()
+    weak var g9n9nSmartToggleBridge: BluetoothRemoteBridge?
+    var g9n9nSmartToggleReopenTimer: DispatchSourceTimer?
+    var g9n9nSmartToggleDeadlineTimer: DispatchSourceTimer?
     let hidEventSuppressor: KeyboardEventSuppressor
     let appSwitcherCoordinator = HIDAppSwitcherCoordinator()
     let permissionSnapshotProvider: () -> HIDPermissionSnapshot
@@ -378,8 +389,26 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
         if let terminationObserver {
             NotificationCenter.default.removeObserver(terminationObserver)
         }
+        cancelAllScheduledWork(reason: "deinit")
+    }
+
+    func cancelAllScheduledWork(reason: String = "cancelled") {
+        cancelHIDMappingRecovery(reason: reason)
+        completedUpdateHIDRecoveryWorkItem?.cancel()
+        completedUpdateHIDRecoveryWorkItem = nil
+        cancelHIDFilterRetry()
+        cancelLongRecordingTimers()
+        rc003VoiceExtensionTimer?.cancel()
+        rc003VoiceExtensionTimer = nil
+        rc003VoiceExtensionOpenTimer?.cancel()
+        rc003VoiceExtensionOpenTimer = nil
+        rc003VoiceExtensionDeadlineTimer?.cancel()
+        rc003VoiceExtensionDeadlineTimer = nil
+        cancelG9N9NSmartToggleTimers()
         applicationIntegrationStatusExpiry?.cancel()
+        applicationIntegrationStatusExpiry = nil
         voiceKeyReleaseRetry?.cancel()
+        voiceKeyReleaseRetry = nil
     }
 
     private(set) var isTerminating = false
@@ -415,14 +444,12 @@ final class BridgeAppModel: ObservableObject, BluetoothRemoteBridgeDelegate {
             return
         }
         started = false
-        cancelHIDMappingRecovery(reason: "app_stop")
-        completedUpdateHIDRecoveryWorkItem?.cancel()
-        completedUpdateHIDRecoveryWorkItem = nil
-        cancelHIDFilterRetry()
+        cancelAllScheduledWork(reason: "app_stop")
         audio.invalidatePendingWork()
         stopObservingAudioHardware()
         stopLongRecording(reason: "app_stop")
         finishRC003VoiceExtensionTest(reason: "app_stop")
+        clearG9N9NSmartToggleState(reason: "app_stop")
         voiceInputDestinationCoordinator.shutdown()
         voiceFnTapSession.shutdown()
         connections.stopAll()

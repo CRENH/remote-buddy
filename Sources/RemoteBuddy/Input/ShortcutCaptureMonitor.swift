@@ -23,7 +23,7 @@ enum ShortcutCaptureStartFailure: Error, Equatable {
     case eventTapUnavailable
 }
 
-final class ShortcutCaptureMonitor {
+final class ShortcutCaptureMonitor: @unchecked Sendable {
     typealias CallbackDispatcher = (@escaping () -> Void) -> Void
     static let captureEventMask = CGEventMask(1 << CGEventType.keyDown.rawValue) |
         CGEventMask(1 << CGEventType.flagsChanged.rawValue)
@@ -49,8 +49,9 @@ final class ShortcutCaptureMonitor {
         modifierIsPressed: @escaping (UInt16) -> Bool = {
             CGEventSource.keyState(.hidSystemState, key: $0)
         },
-        dispatchCallback: @escaping CallbackDispatcher = {
-            DispatchQueue.main.async(execute: $0)
+        dispatchCallback: @escaping CallbackDispatcher = { callback in
+            nonisolated(unsafe) let callback = callback
+            DispatchQueue.main.async { callback() }
         }
     ) {
         self.onCapture = onCapture
@@ -61,8 +62,11 @@ final class ShortcutCaptureMonitor {
     }
 
     func start() -> Result<Void, ShortcutCaptureStartFailure> {
-        if let eventTap {
-            if accessibilityTrusted(), CGEvent.tapIsEnabled(tap: eventTap) { return .success(()) }
+        lock.lock()
+        let existingTap = eventTap
+        lock.unlock()
+        if let existingTap {
+            if accessibilityTrusted(), CGEvent.tapIsEnabled(tap: existingTap) { return .success(()) }
             stop()
             return .failure(accessibilityTrusted() ? .eventTapUnavailable : .accessibilityPermissionRequired)
         }
@@ -94,8 +98,15 @@ final class ShortcutCaptureMonitor {
             return .failure(.eventTapUnavailable)
         }
 
+        lock.lock()
+        guard self.eventTap == nil else {
+            lock.unlock()
+            EventTapPort.release(port: eventTap, source: runLoopSource)
+            return .success(())
+        }
         self.eventTap = eventTap
         self.runLoopSource = runLoopSource
+        lock.unlock()
         EventTapPort.activate(port: eventTap, source: runLoopSource)
         return .success(())
     }
@@ -113,10 +124,12 @@ final class ShortcutCaptureMonitor {
     func stop() {
         lock.lock()
         captureGeneration &+= 1
-        lock.unlock()
-        EventTapPort.release(port: eventTap, source: runLoopSource)
+        let tap = eventTap
+        let source = runLoopSource
         runLoopSource = nil
         eventTap = nil
+        lock.unlock()
+        EventTapPort.release(port: tap, source: source)
     }
 
     func handle(type: CGEventType, event: CGEvent) -> Bool {

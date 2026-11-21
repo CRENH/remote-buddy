@@ -53,15 +53,26 @@ extension OnboardingView {
             onboardingTitle("onboarding.voice_trigger.title")
             Text(localization.text("onboarding.voice_tool.selected_trigger_help"))
                 .foregroundStyle(.secondary)
-            VoiceTriggerPicker(selection: settings.selectedVoiceTrigger.voiceKeyMode, onSelect: settings.selectOnboardingVoiceTrigger)
-            VStack(alignment: .leading, spacing: 6) {
+            VoiceTriggerPicker(
+                selection: settings.selectedVoiceTrigger.voiceKeyMode,
+                onSelect: { settings.selectOnboardingVoiceTrigger($0) }
+            )
+            VStack(alignment: .leading, spacing: 8) {
                 Toggle(localization.text("connection.voice_fn_tap.enabled"), isOn: Binding(
                     get: { settings.selectedVoiceTrigger.voiceFnTapModeEnabled },
-                    set: settings.selectOnboardingFnTapMode
+                    set: { settings.selectOnboardingFnTapMode($0) }
                 ))
                 Text(localization.text("connection.voice_fn_tap.hint_short"))
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 10))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                    }
             }
             Text(localization.text("onboarding.voice_trigger.save_hint"))
                 .font(.callout).foregroundStyle(.secondary)

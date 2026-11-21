@@ -25,6 +25,22 @@ extension SettingsView {
                         Text(localization.text("settings.integration.current")).font(.headline)
                         Text(localization.text(settings.onboardingVoiceTool.titleKey))
                             .font(.title3.weight(.medium))
+
+                        if settings.onboardingVoiceTool.preferredInputSourceID != nil {
+                            Divider()
+                                .padding(.vertical, 2)
+                            Toggle(isOn: $settings.bypassInputSourceSwitching) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(bypassSwitchTitle)
+                                        .font(.body)
+                                    Text(bypassSwitchDetail)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                            }
+                            .toggleStyle(.switch)
+                        }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -106,5 +122,27 @@ extension SettingsView {
         }
         .accessibilityElement(children: tool == .voiceBuddy ? .contain : .combine)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private var bypassSwitchTitle: String {
+        switch settings.onboardingVoiceTool {
+        case .weixin:
+            return localization.text("settings.integration.bypass_switch_title.weixin")
+        case .doubao:
+            return localization.text("settings.integration.bypass_switch_title.doubao")
+        default:
+            return localization.text("settings.integration.bypass_switch_title")
+        }
+    }
+
+    private var bypassSwitchDetail: String {
+        switch settings.onboardingVoiceTool {
+        case .weixin:
+            return localization.text("settings.integration.bypass_switch_detail.weixin")
+        case .doubao:
+            return localization.text("settings.integration.bypass_switch_detail.doubao")
+        default:
+            return localization.text("settings.integration.bypass_switch_detail")
+        }
     }
 }

@@ -157,10 +157,24 @@ extension SettingsView {
     }
 
     func mappingActionSummary(for button: RemoteButton, trigger: ButtonTrigger,
-                                      configuredAction: ConfiguredButtonAction? = nil) -> String {
+                              configuredAction: ConfiguredButtonAction? = nil,
+                              detailed: Bool = false) -> String {
+        if trigger != .singleClick && mappingConfiguration(for: button, trigger: .singleClick).action == .directPassthrough {
+            return "-"
+        }
         let configured = configuredAction ?? mappingConfiguration(for: button, trigger: trigger)
         guard configured.action != .disabled else {
             return localization.text("button_mapping.action.not_set")
+        }
+        if configured.action == .directPassthrough {
+            let tag = localization.text("action.direct_passthrough.tag")
+            switch button {
+            case .up: return "↑ " + tag
+            case .down: return "↓ " + tag
+            case .left: return "← " + tag
+            case .right: return "→ " + tag
+            default: return localization.text("action.direct_passthrough")
+            }
         }
         if configured.action == .customShortcut, let shortcut = configured.shortcut {
             return shortcut.visualDisplayName(using: localization)
@@ -168,6 +182,9 @@ extension SettingsView {
         if configured.action == .openCustomApplication {
             return settings.customApplicationProfile(id: configured.applicationProfileID)?.displayName
                 ?? localization.text("custom_application.not_configured")
+        }
+        if detailed {
+            return configured.action.detailedDisplayName(using: localization)
         }
         switch configured.action {
         case .arrowUp: return "↑"
@@ -178,6 +195,8 @@ extension SettingsView {
         case .volumeUp: return localization.text("action.system_volume_up_short")
         case .volumeDown: return localization.text("action.system_volume_down_short")
         case .volumeMute: return localization.text("action.system_volume_mute_short")
+        case .brightnessUp: return localization.text("action.brightness_up_short")
+        case .brightnessDown: return localization.text("action.brightness_down_short")
         default: break
         }
         return configured.action.displayName(using: localization)
