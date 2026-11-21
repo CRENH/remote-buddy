@@ -176,7 +176,8 @@ CI 失败（编译错误）就在同一任务内修，修到绿再勾选；同�
 ## Handoff
 
 - Last session ended：2026-11-21，计划刚写完，尚未开始 T0。
-- State：设计已获 Eric 批准（2026-11-21）；PR #6（同步上游 + `Fork test`）已合并，`crenh` 在 `9ddeda5`。
+- State：设计已获 Eric 批准（2026-11-21）；执行预算已获 Eric 批准（2026-11-21），要求 T0–T4 一口气做完，中途不再等确认（CI 连续 3 次失败的停止条件照旧）；PR #6（同步上游 + `Fork test`）已合并，`crenh` 在 `9ddeda5`。
+- 远程旧分支（`main`、`feat/chromecast-phrase-keys`、`feat/g9n9n-phrase-keys`、`chore/sync-upstream-cba678d`）由 Eric 在 MBP2015 上手动删除；开工前 `git -C ~/Documents/GitHub/Remote-Buddy ls-remote --heads origin` 确认一下，没删就提醒 Eric。
 - Gotchas：
   - MBP2015 编不了，测试全靠 `Fork test`。
   - `setG9N9NInputMode` 在安装向导完成后是 no-op，测试里要直接改 `remoteDeviceProfiles[i].g9n9nInputMode`。
