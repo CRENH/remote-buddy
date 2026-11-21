@@ -45,6 +45,24 @@ struct RemoteDeviceMappings: Codable, Equatable {
     var buttonApplicationProfileIDs: [String: UUID]?
     var secondaryButtonBindings: [String: [String: ConfiguredButtonAction]]
 
+    private enum CodingKeys: String, CodingKey {
+        case buttonBindings, buttonShortcuts, buttonApplicationProfileIDs, secondaryButtonBindings
+    }
+
+    /// Reads entry by entry: one action, shortcut or gesture this build does not know is
+    /// dropped on its own instead of discarding the remote's whole mapping.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        buttonBindings = try container.decodeLossyDictionary(ButtonAction.self, forKey: .buttonBindings)
+        buttonShortcuts = try container.decodeLossyDictionary(CustomKeyboardShortcut.self, forKey: .buttonShortcuts)
+        buttonApplicationProfileIDs = try container.decodeIfPresent(
+            LossyDictionary<UUID>.self, forKey: .buttonApplicationProfileIDs
+        )?.entries
+        secondaryButtonBindings = try container.decodeLossyDictionary(
+            LossyDictionary<ConfiguredButtonAction>.self, forKey: .secondaryButtonBindings
+        ).mapValues(\.entries)
+    }
+
     init(
         buttonBindings: [RemoteButton: ButtonAction],
         buttonShortcuts: [RemoteButton: CustomKeyboardShortcut],
