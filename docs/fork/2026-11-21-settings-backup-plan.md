@@ -154,14 +154,14 @@ CI 失败（编译错误）就在同一任务内修，修到绿再勾选；同�
 
 **文案 key（中英各一）：** `settings.general.backup_group`（备份与恢复 / Backup & Restore）、`settings.backup.export.title`、`settings.backup.export.help`、`settings.backup.export.action`、`settings.backup.import.title`、`settings.backup.import.help`、`settings.backup.import.action`、`settings.backup.import.confirm_title`、`settings.backup.import.confirm_message`（会覆盖当前按键映射和设置，建议先导出一份）、`settings.backup.import.done`（已导入 %d 个遥控器的设置）、`settings.backup.import.skipped_header`、`settings.backup.import.reason.unrecognized_value`（这个版本不认识）、`settings.backup.import.reason.model_not_on_this_mac`（本机没有这个型号）、`settings.backup.import.reason.unknown_application`（找不到对应的 App）、`settings.backup.import.reason.compatibility_mode`（兼容模式下不能改映射）、`settings.backup.import.missing_apps`（本机未安装：%@）、`settings.backup.import.newer_version`、`settings.backup.import.more`（另有 %d 项）、`settings.backup.import.not_settings_file`、`settings.backup.import.too_large`、`settings.backup.error.title`。
 
-- [ ] **Step 1：写失败测试：**
+- [x] **Step 1：写失败测试：**
   - `summaryListsSkippedItemsWithReasons`：一个含 `.remoteModelNotOnThisMac`（`["t1_remote"]`）和 `.unrecognizedValue`（`["chromecast_voice_remote","home"]`）的报告，用 `LocalizationStore` 的中文文本：正文含「本机没有这个型号」和「这个版本不认识」。
   - `summaryTruncatesAfterTwentyItems`：25 个跳过项：正文含「另有 5 项」。
   - `backupStringsExistInBothLanguages`：上面列出的每个 key，在中英两个 `Localizable.strings` 中都有（参照仓库里已有的本地化完整性测试写法）。
-- [ ] **Step 2：push，CI 失败。**
-- [ ] **Step 3：实现界面、`SettingsBackupMessage`、文案。**
-- [ ] **Step 4：push，CI 绿。**
-- [ ] **Step 5：勾选 T4，commit** `feat(settings): add backup and restore to the general page`；把 draft PR 转为正式（`gh pr ready`）。
+- [x] **Step 2：push，CI 失败。**
+- [x] **Step 3：实现界面、`SettingsBackupMessage`、文案。**
+- [x] **Step 4：push，CI 绿。**
+- [x] **Step 5：勾选 T4，commit** `feat(settings): add backup and restore to the general page`；把 draft PR 转为正式（`gh pr ready`）。
 
 - [ ] **T5 — 全分支审查** [needs-human: 看审查结论] depends: T4
   - 派 1 个 reviewer（`model: opus`），审 `upstream/main...feat/settings-backup` 全部改动，对照 spec 和本计划的 Review Focus。
@@ -175,8 +175,16 @@ CI 失败（编译错误）就在同一任务内修，修到绿再勾选；同�
 
 ## Handoff
 
-- Last session ended：2026-11-21，计划和设计写完，尚未开始 T0。最后一个 commit：`docs/settings-backup-design` 分支上的交接提交（`92d5ff5` 之后的这一个）。
-- State：
+- Last session ended：2026-11-21，T0–T4 完成。代码在 `feat/settings-backup`（worktree `~/.claude/worktrees/remote-buddy-settings-backup`），PR [CRENH/remote-buddy#7](https://github.com/CRENH/remote-buddy/pull/7) 已转正式，`Fork test` 绿（950 个测试）。下一步 T5。
+- 实现时与计划不同的地方（T5 审查时对照）：
+  - `LossyDictionary` / `LossyCodingKey` 也是公开工具类型；`secondaryButtonBindings` 内层为空时保留原样（不去掉按钮），与旧解码行为一致。
+  - `SettingsBackupDocument.exportedAt` / `appVersion` 为可选；`Remote` 的 `name`、`gainDB`、`g9n9nVoiceButtonMode` 也逐项解码，未知语音键模式不会让整个遥控器被丢掉。
+  - `appIconIdentifier` 不校验（App 本身接受任意字符串，显示时回退到标准图标）。
+  - 引用找不到的 App 时，删掉该按键的整项映射（单击连同动作和快捷键），按键回到默认值。
+  - `SkippedItem` 嵌套为 `SettingsBackupImportReport.SkippedItem`，报告自动去重；`SettingsBackupMessage.summary(for:using:)` 用 `LocalizationStore` 而不是闭包，以便复用按键 / 手势的显示名。
+  - 新增文案 `settings.backup.export.failed`、`settings.backup.import.item`、`settings.backup.import.read_failed`、`settings.backup.import.result_title`。
+  - `SettingsBackupSection` 多一个 `onImported` 回调：导入后调用 `localization.select`、`setDockIconVisible`、`setStatusBarIconVisible`，否则语言和 Dock / 状态栏图标要重启才生效。
+- State（开工前）：
   - 设计已获 Eric 批准（2026-11-21）；执行预算已获 Eric 批准（2026-11-21），**T0–T4 是一批，一口气做完，中途不再等确认**（同一任务 CI 连续 3 次失败的停止条件照旧）。T4 完成后向 Eric 汇报，T5（opus 全分支审查）、T6（Eric 硬件验收 + 上游 PR）随后。
   - PR #6（同步上游 + `Fork test`）已合并，`crenh` 在 `9ddeda5`；本地 `origin/HEAD` 已指向 `crenh`（LazyGit `U`/`N` 因此恢复正常）。
   - 远程旧分支（`main`、`feat/chromecast-phrase-keys`、`feat/g9n9n-phrase-keys`、`chore/sync-upstream-cba678d`）由 Eric 在 MBP2015 上手动删除（Claude 的 `git push --delete` 被权限拦截）。开工前跑 `git -C ~/Documents/GitHub/Remote-Buddy ls-remote --heads origin` 确认；没删就提醒 Eric 一句，不阻塞 T0。
@@ -189,5 +197,5 @@ CI 失败（编译错误）就在同一任务内修，修到绿再勾选；同�
   - `aboutSection` / `preferenceRow` 是 `private`，新分组只能在 `SettingsView.Preferences.swift` 的 `generalPage` 里调用。
   - 删除远程分支、`reset --hard` 这类命令会被权限拦截，换不破坏性的做法或交给 Eric。
 - Open questions：无。
-- Next step：T0（建 worktree 和 `feat/settings-backup`，完成 T1 第一个 commit 后 push 并开 draft PR 到 `crenh`），然后连续做 T1–T4。
-- Resume prompt：`读 ~/Documents/GitHub/Remote-Buddy/docs/fork/2026-11-21-settings-backup-plan.md，从 T0 继续，T0–T4 一口气做完`
+- Next step：T5（派 1 个 `opus` reviewer 审 `upstream/main...feat/settings-backup`，对照 spec、Review Focus 和上面「与计划不同的地方」），需 Eric 确认后开始。
+- Resume prompt：`读 ~/Documents/GitHub/Remote-Buddy/docs/fork/2026-11-21-settings-backup-plan.md，从 T5 继续`
