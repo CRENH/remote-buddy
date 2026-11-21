@@ -175,7 +175,12 @@ CI 失败（编译错误）就在同一任务内修，修到绿再勾选；同�
 
 ## Handoff
 
-- Last session ended：2026-11-21，T0–T4 完成。代码在 `feat/settings-backup`（worktree `~/.claude/worktrees/remote-buddy-settings-backup`），PR [CRENH/remote-buddy#7](https://github.com/CRENH/remote-buddy/pull/7) 已转正式，`Fork test` 绿（950 个测试）。下一步 T5。
+- Last session ended：2026-11-21，T0–T5 完成。代码在 `feat/settings-backup`，最后一个 commit `dccaf7c`（worktree `~/.claude/worktrees/remote-buddy-settings-backup`）；PR [CRENH/remote-buddy#7](https://github.com/CRENH/remote-buddy/pull/7) 是正式 PR、可合并，`Fork test` 绿（959 个测试）。计划在 `docs/settings-backup-design` 分支，已推送，**还没有 PR**。下一步 T6，不是多任务批次。
+- T6 交接要点：
+  - 先 `gh pr view 7 -R CRENH/remote-buddy --json state,mergedAt` 看 Eric 是否已合并。已合并：用 `~/Documents/GitHub/Claude-Code-Config/git-tools/pull-main.sh ~/Documents/GitHub/Remote-Buddy` 更新 `crenh`（主目录目前停在 docs 分支，脚本若要求切到默认分支，先 `git -C ~/Documents/GitHub/Remote-Buddy switch crenh`）。
+  - M2 打包安装步骤还没给 Eric：先在仓库里找打包 / 安装脚本（`scripts/`、`README`、`AGENTS.md`），再按 shared memory「M2: 仓库路径与 Swift 编译」（路径 `~/Documents/Projects/GitHub/Remote-Buddy`，`swift` 前要 `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`；M2 无 git，靠 Syncthing 同步）写成可复制的逐步命令，并给出验收判据。
+  - 验收通过后向上游开 PR（squash 合并 #7 不影响 `feat/settings-backup` 分支本身，上游 PR 用它）；上游 PR 正文中文、无 AI 痕迹。
+  - 计划 / 设计文档（`docs/fork/`）要进 `crenh`：T6 结束时为 `docs/settings-backup-design` 开一个到 `crenh` 的 PR。
 - 实现时与计划不同的地方（T5 审查时对照）：
   - `LossyDictionary` / `LossyCodingKey` 也是公开工具类型；`secondaryButtonBindings` 内层为空时保留原样（不去掉按钮），与旧解码行为一致。
   - `SettingsBackupDocument.exportedAt` / `appVersion` 为可选；`Remote` 的 `name`、`gainDB`、`g9n9nVoiceButtonMode` 也逐项解码，未知语音键模式不会让整个遥控器被丢掉。
