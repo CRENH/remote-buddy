@@ -292,6 +292,65 @@ struct SettingsBackupTests {
         #expect(after == before)
     }
 
+    private static let backupStringKeys = [
+        "settings.general.backup_group",
+        "settings.backup.export.title", "settings.backup.export.help", "settings.backup.export.action",
+        "settings.backup.export.failed",
+        "settings.backup.import.title", "settings.backup.import.help", "settings.backup.import.action",
+        "settings.backup.import.confirm_title", "settings.backup.import.confirm_message",
+        "settings.backup.import.done", "settings.backup.import.skipped_header", "settings.backup.import.item",
+        "settings.backup.import.reason.unrecognized_value", "settings.backup.import.reason.model_not_on_this_mac",
+        "settings.backup.import.reason.unknown_application", "settings.backup.import.reason.compatibility_mode",
+        "settings.backup.import.missing_apps", "settings.backup.import.newer_version", "settings.backup.import.more",
+        "settings.backup.import.not_settings_file", "settings.backup.import.too_large",
+        "settings.backup.import.read_failed", "settings.backup.import.result_title", "settings.backup.error.title",
+    ]
+
+    @Test func summaryListsSkippedItemsWithReasons() throws {
+        let fixture = try fixture()
+        defer { fixture.tearDown() }
+        let localization = LocalizationStore(settings: fixture.settings)
+        localization.select(.simplifiedChinese)
+        var report = SettingsBackupImportReport()
+        report.importedRemoteCount = 2
+        report.skip(["t1_remote"], .remoteModelNotOnThisMac)
+        report.skip(["chromecast_voice_remote", "home"], .unrecognizedValue)
+
+        let text = SettingsBackupMessage.summary(for: report, using: localization)
+        #expect(text.contains("2"))
+        #expect(text.contains("本机没有这个型号"))
+        #expect(text.contains("这个版本不认识"))
+        #expect(text.contains(localization.text("remote.button.full.home")))
+        #expect(text.contains(localization.text(RemoteModel.t1Remote.localizationKey)))
+    }
+
+    @Test func summaryTruncatesAfterTwentyItems() throws {
+        let fixture = try fixture()
+        defer { fixture.tearDown() }
+        let localization = LocalizationStore(settings: fixture.settings)
+        localization.select(.simplifiedChinese)
+        var report = SettingsBackupImportReport()
+        for index in 0..<25 { report.skip(["general", "value\(index)"], .unrecognizedValue) }
+
+        let text = SettingsBackupMessage.summary(for: report, using: localization)
+        #expect(text.contains("另有 5 项"))
+        #expect(!text.contains("value20"))
+    }
+
+    @Test func backupStringsExistInBothLanguages() throws {
+        let fixture = try fixture()
+        defer { fixture.tearDown() }
+        let localization = LocalizationStore(settings: fixture.settings)
+        for key in Self.backupStringKeys {
+            localization.select(.english)
+            let english = localization.text(key)
+            localization.select(.simplifiedChinese)
+            let chinese = localization.text(key)
+            #expect(english != key, "missing English text for \(key)")
+            #expect(chinese != key, "missing Chinese text for \(key)")
+        }
+    }
+
     @Test func documentWithoutFormatIsRejected() {
         for json in [#"{"formatVersion":1}"#, #"{"format":"other","formatVersion":1}"#, "[]"] {
             #expect(throws: SettingsBackupError.notASettingsFile) {
