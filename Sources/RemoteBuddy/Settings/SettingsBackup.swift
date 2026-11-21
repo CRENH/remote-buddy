@@ -5,6 +5,36 @@ enum SettingsBackupError: Error, Equatable {
     case fileTooLarge
 }
 
+/// What an import changed and, item by item, what it had to leave out.
+struct SettingsBackupImportReport: Equatable {
+    struct SkippedItem: Equatable {
+        enum Reason: Equatable {
+            case unrecognizedValue
+            case remoteModelNotOnThisMac
+            case unknownApplicationReference
+            case mappingLockedByCompatibilityMode
+        }
+
+        /// For example `["chromecast_voice_remote", "home", "longPress"]` or `["general", "appIconIdentifier"]`.
+        var location: [String]
+        var reason: Reason
+    }
+
+    var importedRemoteCount = 0
+    var skippedItems: [SkippedItem] = []
+    var missingApplications: [String] = []
+    var isFromNewerVersion = false
+
+    var isClean: Bool {
+        skippedItems.isEmpty && missingApplications.isEmpty && !isFromNewerVersion
+    }
+
+    mutating func skip(_ location: [String], _ reason: SkippedItem.Reason) {
+        let item = SkippedItem(location: location, reason: reason)
+        if !skippedItems.contains(item) { skippedItems.append(item) }
+    }
+}
+
 /// A user-exported copy of the general settings and each remote's mapping. Pairing data,
 /// onboarding state and voice settings stay out: they are only valid on the Mac that set them up.
 struct SettingsBackupDocument: Codable {
