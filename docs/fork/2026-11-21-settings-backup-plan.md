@@ -44,7 +44,7 @@ CI 失败（编译错误）就在同一任务内修，修到绿再勾选；同�
 
 ## Tasks
 
-- [ ] **T0 — 建分支和 draft PR** [needs-human: push、开 PR]
+- [x] **T0 — 建分支和 draft PR** [needs-human: push、开 PR]
   - `git -C ~/Documents/GitHub/Remote-Buddy fetch upstream`，`git -C ~/Documents/GitHub/Remote-Buddy switch --create feat/settings-backup upstream/main`。
   - 先完成 T1 的第一个 commit 再 push，然后 `gh pr create -R CRENH/remote-buddy --base crenh --head feat/settings-backup --draft`，中文标题 `feat: 按键映射与全局设置的备份和恢复`，正文写 `Closes #4` 之外的说明（本 PR 用于在 `crenh` 上验证和使用）。
   - Acceptance：`gh pr checks <N> -R CRENH/remote-buddy` 出现 `test` 检查。
@@ -66,19 +66,19 @@ CI 失败（编译错误）就在同一任务内修，修到绿再勾选；同�
 - `extension JSONDecoder { static func lossy(log: LossyDecodingLog) -> JSONDecoder }`
 - `AppSettings` 内：`private static func decodeLossySetting<T: Decodable>(_: T.Type, forKey: String, from: UserDefaults, corrupted: inout [String]) -> T?`。
 
-- [ ] **Step 1：写失败测试** `LossySettingsDecodingTests`（`@Suite("Lossy settings decoding") @MainActor`）：
+- [x] **Step 1：写失败测试** `LossySettingsDecodingTests`（`@Suite("Lossy settings decoding") @MainActor`）：
   - `mappingsDropOnlyTheUnknownAction`：JSON `{"buttonBindings":{"home":"showDesktop","ok":"future_action"},"buttonShortcuts":{},"secondaryButtonBindings":{"ok":{"longPress":{"action":"future_action"},"doubleClick":{"action":"escape"}}}}`，用 `JSONDecoder.lossy(log:)` 解 `RemoteDeviceMappings`；`#expect(parsedButtonBindings[.home] == .showDesktop)`、`parsedButtonBindings[.ok] == nil`、`parsedSecondaryButtonBindings[.ok]?[.doubleClick]?.action == .escape`、`parsedSecondaryButtonBindings[.ok]?[.longPress] == nil`、`log.droppedPaths.count == 2`。
   - `plainDecoderStillDecodesCleanMappings`：用普通 `JSONDecoder()` 解一份全部合法的映射，结果与原值相等（确认没有 log 也能工作）。
   - `profilesDropOnlyTheUnknownModelAndKeepRawBytes`：用临时 suite 建 `AppSettings`，`registerBluetoothRemote` 两个（`.rc003`、`.chromecastVoiceRemote`）；读出 `remoteDeviceProfiles` 的 data，用 `JSONSerialization` 把第一个档案的 `model` 改成 `"future_remote"` 再写回；新建 `AppSettings(defaults:)`：`#expect(remoteDeviceProfiles.count == 1)`、`remoteDeviceProfiles.first?.model == .chromecastVoiceRemote`、`corruptedSettingKeys.contains("remoteDeviceProfiles")`、`values.data(forKey: "remoteDeviceProfiles.corrupt") == 改写后的原始字节`。
   - `profileWithUnknownActionKeepsItsOtherMappings`：同上，但把 Chromecast 档案 `mappings.buttonBindings.home` 改成 `"future_action"`、`youtube` 保持合法；重载后档案仍在，`action(for: .youtube, profileID:)` 不变，`.home` 回到默认值，`corruptedSettingKeys.contains("remoteDeviceProfiles")`。
   - `cleanProfilesReportNothing`：未改动时重载，`corruptedSettingKeys.isEmpty`，`remoteDeviceProfiles.corrupt` 不存在。
-- [ ] **Step 2：commit 测试并 push，确认 CI 失败**（编译失败或断言失败都算）。
-- [ ] **Step 3：实现。**
+- [x] **Step 2：commit 测试并 push，确认 CI 失败**（编译失败或断言失败都算）。
+- [x] **Step 3：实现。**
   - `RemoteDeviceMappings.init(from:)`：四个字段都用 `decodeLossyDictionary`；`secondaryButtonBindings` 外层按按钮逐项、内层按触发方式逐项，内层空了就去掉该按钮。编码保持系统合成的不变（显式写 `CodingKeys`）。
   - `decodeLossySetting`：用 `JSONDecoder.lossy(log:)` 解；顶层解失败时，处理方式和现有 `decodeSetting` 完全一致（存 `.corrupt`、删 key、记 `decode_failed`）；解成功但 `log.droppedPaths` 非空时，存 `\(key).corrupt` = 原始字节、`corrupted.append(key)`、写日志 `SETTINGS decode_partial category=\(diagnosticSettingCategory(key)) dropped=\(count)`，返回解出的值。
   - `AppSettings.init` 中 `remoteDeviceProfiles` 改为 `decodeLossySetting(LossyArray<RemoteDeviceProfile>.self, …)?.elements`，其余逻辑不变。
-- [ ] **Step 4：push，CI 绿。**
-- [ ] **Step 5：勾选 T1，commit** `feat(settings): decode remote mappings entry by entry`（测试和实现可合为同一 commit 前的两个 commit，最终都在分支上）。
+- [x] **Step 4：push，CI 绿。**
+- [x] **Step 5：勾选 T1，commit** `feat(settings): decode remote mappings entry by entry`（测试和实现可合为同一 commit 前的两个 commit，最终都在分支上）。
 
 ### T2 — 备份文件格式与导出 [auto] depends: T1
 
