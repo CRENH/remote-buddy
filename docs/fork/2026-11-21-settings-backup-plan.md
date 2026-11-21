@@ -175,12 +175,19 @@ CI 失败（编译错误）就在同一任务内修，修到绿再勾选；同�
 
 ## Handoff
 
-- Last session ended：2026-11-21，计划刚写完，尚未开始 T0。
-- State：设计已获 Eric 批准（2026-11-21）；执行预算已获 Eric 批准（2026-11-21），要求 T0–T4 一口气做完，中途不再等确认（CI 连续 3 次失败的停止条件照旧）；PR #6（同步上游 + `Fork test`）已合并，`crenh` 在 `9ddeda5`。
-- 远程旧分支（`main`、`feat/chromecast-phrase-keys`、`feat/g9n9n-phrase-keys`、`chore/sync-upstream-cba678d`）由 Eric 在 MBP2015 上手动删除；开工前 `git -C ~/Documents/GitHub/Remote-Buddy ls-remote --heads origin` 确认一下，没删就提醒 Eric。
+- Last session ended：2026-11-21，计划和设计写完，尚未开始 T0。最后一个 commit：`docs/settings-backup-design` 分支上的交接提交（`92d5ff5` 之后的这一个）。
+- State：
+  - 设计已获 Eric 批准（2026-11-21）；执行预算已获 Eric 批准（2026-11-21），**T0–T4 是一批，一口气做完，中途不再等确认**（同一任务 CI 连续 3 次失败的停止条件照旧）。T4 完成后向 Eric 汇报，T5（opus 全分支审查）、T6（Eric 硬件验收 + 上游 PR）随后。
+  - PR #6（同步上游 + `Fork test`）已合并，`crenh` 在 `9ddeda5`；本地 `origin/HEAD` 已指向 `crenh`（LazyGit `U`/`N` 因此恢复正常）。
+  - 远程旧分支（`main`、`feat/chromecast-phrase-keys`、`feat/g9n9n-phrase-keys`、`chore/sync-upstream-cba678d`）由 Eric 在 MBP2015 上手动删除（Claude 的 `git push --delete` 被权限拦截）。开工前跑 `git -C ~/Documents/GitHub/Remote-Buddy ls-remote --heads origin` 确认；没删就提醒 Eric 一句，不阻塞 T0。
+  - 电源键（Chromecast 常用语第 11 键）单独一个上游 PR，排在本计划之后，另行 brainstorm；调查结论：常用语分配是全型号共用一张表，面板布局按型号分开；小米 RC003 / T1 的电源键有系统睡眠语义（App 在自定义按键开启时改成 F20），Chromecast 没有。
 - Gotchas：
-  - MBP2015 编不了，测试全靠 `Fork test`。
+  - MBP2015 编不了 Swift 6.2，测试全靠 `Fork test`（push 到以 `crenh` 为目标的 PR 时触发）。
+  - **计划文件只在 `docs/settings-backup-design` 分支上**，而 `feat/settings-backup` 从 `upstream/main` 切出、没有这个文件。代码放到单独的 worktree 里做，主目录留在 docs 分支上，好随时勾选计划：`git -C ~/Documents/GitHub/Remote-Buddy worktree add ~/.claude/worktrees/remote-buddy-settings-backup -b feat/settings-backup upstream/main`（worktree 放在 Syncthing 目录外，不会同步到 M2）。
+  - 公开仓库：commit / PR 不带 AI 署名、会话 ID、`@CRENH`、`(claude)`；PR 正文中文。
   - `setG9N9NInputMode` 在安装向导完成后是 no-op，测试里要直接改 `remoteDeviceProfiles[i].g9n9nInputMode`。
   - `aboutSection` / `preferenceRow` 是 `private`，新分组只能在 `SettingsView.Preferences.swift` 的 `generalPage` 里调用。
-- Next step：T0。
-- Resume prompt：`读 docs/fork/2026-11-21-settings-backup-plan.md，从 T0 继续`
+  - 删除远程分支、`reset --hard` 这类命令会被权限拦截，换不破坏性的做法或交给 Eric。
+- Open questions：无。
+- Next step：T0（建 worktree 和 `feat/settings-backup`，完成 T1 第一个 commit 后 push 并开 draft PR 到 `crenh`），然后连续做 T1–T4。
+- Resume prompt：`读 ~/Documents/GitHub/Remote-Buddy/docs/fork/2026-11-21-settings-backup-plan.md，从 T0 继续，T0–T4 一口气做完`
