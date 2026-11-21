@@ -2,7 +2,7 @@
 
 - 需求：[CRENH/remote-buddy#4](https://github.com/CRENH/remote-buddy/issues/4)
 - 日期：2026-11-21
-- 状态：待 Eric 审批
+- 状态：已获 Eric 批准（2026-11-21），已实现并验收；上游 PR [zfdang/remote-buddy#249](https://github.com/zfdang/remote-buddy/pull/249)
 - 本文件只放在 `crenh` 分支（`docs/fork/` 是本分支专用目录），不进上游 PR。
 
 ## 1. 目的

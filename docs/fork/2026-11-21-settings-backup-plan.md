@@ -168,13 +168,14 @@ CI 失败（编译错误）就在同一任务内修，修到绿再勾选；同�
   - 修完审查意见再 push，CI 绿。
   - Acceptance：审查无未处理的严重问题；PR 的 `test` 检查为 pass。
 
-- [ ] **T6 — 硬件验收与上游 PR** [needs-human: Eric 在 M2 上验收；合并 fork PR] depends: T5
+- [x] **T6 — 硬件验收与上游 PR** [needs-human: Eric 在 M2 上验收；合并 fork PR] depends: T5
   - Eric 合并本仓库 PR（建议 squash），打包安装后在 M2 上验收：导出 → 改乱几个键 → 导入 → 映射复原；在导出文件里把一个动作改成不存在的名字再导入，只跳过那一项、弹窗列出。
   - 验收通过后，同一分支向上游开 PR：`gh pr create -R zfdang/remote-buddy --base main --head CRENH:feat/settings-backup`，中文正文：#153 之后的实际丢失经历、这是备份不是兼容旧数据、逐项解码顺带修了「一个值整份作废」、测试清单、未做硬件验收的部分。
   - Acceptance：上游 PR 链接已给 Eric。
 
 ## Handoff
 
+- T6 结果（2026-11-22）：PR #7 已合并（merge commit，`crenh` 在 `16a3de3`）。Eric 在 M2 上用临时克隆 `~/Library/Caches/RemoteBuddy-build` + `bash .github/scripts/build-signed-package.sh` 打出固定证书签名的安装包（证书从 MBP2015 用 AirDrop 拷到 M2 的 `~/Library/Application Support/RemoteBuddySigning/`），验收全部通过。上游 PR：[zfdang/remote-buddy#249](https://github.com/zfdang/remote-buddy/pull/249)，按 Eric 的要求用英文正文，Eric 打算另在评论里用中文补充动机；开 PR 时与上游 `main`（`9024824`）无冲突。**本计划已全部完成**，剩下的是等上游审核。
 - Last session ended：2026-11-21，T0–T5 完成。代码在 `feat/settings-backup`，最后一个 commit `dccaf7c`（worktree `~/.claude/worktrees/remote-buddy-settings-backup`）；PR [CRENH/remote-buddy#7](https://github.com/CRENH/remote-buddy/pull/7) 是正式 PR、可合并，`Fork test` 绿（959 个测试）。计划在 `docs/settings-backup-design` 分支，已推送，**还没有 PR**。下一步 T6，不是多任务批次。
 - T6 交接要点：
   - 先 `gh pr view 7 -R CRENH/remote-buddy --json state,mergedAt` 看 Eric 是否已合并。已合并：用 `~/Documents/GitHub/Claude-Code-Config/git-tools/pull-main.sh ~/Documents/GitHub/Remote-Buddy` 更新 `crenh`（主目录目前停在 docs 分支，脚本若要求切到默认分支，先 `git -C ~/Documents/GitHub/Remote-Buddy switch crenh`）。
@@ -207,5 +208,5 @@ CI 失败（编译错误）就在同一任务内修，修到绿再勾选；同�
   - 认不出的按键 / 手势 key 被静默丢弃：`RemoteDeviceMappings` 解码时记录这些 key（数据保留），启动时因此写 `.corrupt`、导入时列在报告里。代价：未编辑过的档案每次启动都会出现「部分设置无法读取」提示，直到改过一次映射。
   - 小问题：数组里的 `null` 元素、超出范围的增益（报告列出）、`exportedAt` / `appVersion` 不再报告、`SettingsBackupSection` 不再订阅 settings、英文完成提示的单复数；补了通用设置往返、未知语言、未知型号字符串、未知按键、长按手势的 App 引用换算等测试。
   - 未处理（记为后续）：启动时 App / 快捷键引用断掉后动作留空（上游原有行为）；「部分设置无法读取」提示文案写的是「已重置为默认」，部分读入时不够准确（上游文件的文案）；自定义 App 列表启动时仍是整份解码（spec 范围外）。
-- Next step：T6——Eric 合并 [CRENH/remote-buddy#7](https://github.com/CRENH/remote-buddy/pull/7)（建议 squash），打包后在 M2 上做硬件验收；通过后同一分支向上游开 PR。
+- Next step（已完成，见上方 T6 结果）：T6——Eric 合并 [CRENH/remote-buddy#7](https://github.com/CRENH/remote-buddy/pull/7)（建议 squash），打包后在 M2 上做硬件验收；通过后同一分支向上游开 PR。
 - Resume prompt：`读 ~/Documents/GitHub/Remote-Buddy/docs/fork/2026-11-21-settings-backup-plan.md，从 T6 继续`
