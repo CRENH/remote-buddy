@@ -95,14 +95,14 @@ CI 失败（编译错误）就在同一任务内修，修到绿再勾选；同�
 - `enum SettingsBackupError: Error, Equatable { case notASettingsFile, fileTooLarge }`
 - `extension AppSettings { static let maximumSettingsBackupBytes = 4_000_000; func settingsBackupData(appVersion: String, now: Date = Date()) throws -> Data }` — `JSONEncoder` 用 `[.prettyPrinted, .sortedKeys]` 和 `.iso8601`；`remotes` 按 `remoteDeviceProfiles` 顺序，`name` 取 `customName`。
 
-- [ ] **Step 1：写失败测试**（`@Suite("Settings backup") @MainActor`）：
+- [x] **Step 1：写失败测试**（`@Suite("Settings backup") @MainActor`）：
   - `exportContainsHeaderGeneralAndRemotes`：两个遥控器、一个自定义 App；解析导出 JSON（`JSONSerialization`）：`format == "remote-buddy-settings"`、`formatVersion == 1`、`remotes` 有 2 项、`customApplications` 有 1 项、`general.showStatusBarIcon` 存在。
   - `exportLeavesOutPairingAndVoiceSettings`：导出字符串不含 `bluetoothIdentifier`、`hidFingerprint`、`compatibleHIDBinding`、`g9n9nInputMode`、`voiceKeyMode`、`voiceFnTapModeEnabled`。
   - `documentWithoutFormatIsRejected`：`{"formatVersion":1}` 和 `{"format":"other","formatVersion":1}` 解码都抛 `SettingsBackupError.notASettingsFile`。
-- [ ] **Step 2：push，CI 失败。**
-- [ ] **Step 3：实现上述类型和 `settingsBackupData`。**
-- [ ] **Step 4：push，CI 绿。**
-- [ ] **Step 5：勾选 T2，commit** `feat(settings): export settings backup`。
+- [x] **Step 2：push，CI 失败。**
+- [x] **Step 3：实现上述类型和 `settingsBackupData`。**
+- [x] **Step 4：push，CI 绿。**
+- [x] **Step 5：勾选 T2，commit** `feat(settings): export settings backup`。
 
 ### T3 — 导入 [auto] depends: T2
 
