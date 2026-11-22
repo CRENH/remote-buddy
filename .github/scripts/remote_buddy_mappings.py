@@ -168,8 +168,23 @@ def command_backup(args):
     print(f"结论：已备份 {len(backup['remotes'])} 个遥控器的映射、{len(backup['customApplications'])} 个自定义 App → {output}")
 
 
+def load_backup(path):
+    data = path.read_bytes()
+    not_backup = f'{path} 不是本脚本 backup 生成的 mappings-*.json 映射备份。'
+    if data.startswith((b'bplist', b'<?xml')):
+        raise ValueError(f'{not_backup}它是 plist（例如 defaults export 导出的完整设置），'
+                         f'要整份还原请退出 App 后运行：defaults import {DOMAIN} "{path.resolve()}"')
+    try:
+        backup = json.loads(data.decode('utf-8'))
+    except ValueError:
+        raise ValueError(not_backup) from None
+    if not isinstance(backup, dict) or backup.get('format') != FORMAT:
+        raise ValueError(not_backup)
+    return backup
+
+
 def command_restore(args):
-    backup = json.loads(args.file.read_text(encoding='utf-8'))
+    backup = load_backup(args.file)
     domain_values = read_domain(args.domain)
     profiles, apps, lines, changed_total = plan_restore(domain_values, backup)
     print('\n'.join(lines))
