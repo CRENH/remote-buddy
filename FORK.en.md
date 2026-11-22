@@ -42,17 +42,41 @@ Maintainers: keep the signing identity in `~/Library/Application Support/RemoteB
 
 This fork exports and imports all settings from Settings → General → Backup & Restore. To back up only the key mappings, or when using an upstream build, use `.github/scripts/remote_buddy_mappings.py`. It reads and writes only each remote's mappings and the custom application list; pairing, gain and other settings are left alone. Upstream and fork builds share the settings domain `com.zfdang.remote-buddy`, so it works with both.
 
-From the repository root:
+Run the commands from the repository root. The script's output is in Chinese.
+
+**Back up** (the app may stay open):
 
 ```bash
 python3 .github/scripts/remote_buddy_mappings.py backup
-python3 .github/scripts/remote_buddy_mappings.py restore ~/RemoteBuddy-Backup/mappings-<time>.json
 ```
 
-- `backup` writes to `~/RemoteBuddy-Backup/` by default.
-- `restore` is a dry run by default: it lists which backup entry each remote matches and which keys would change. Quit the app, then add `--apply` to write. Before writing it saves the full settings as `before-restore-<time>.plist` and prints the command to undo.
-- Local remotes are matched to the backup by same profile → same model and name → same model. Custom application references are remapped to the local app with the same bundle ID; apps missing locally are added to the list.
+It reports how many remotes and custom apps were saved and the file path. Backups go to `~/RemoteBuddy-Backup/` by default; `--output <path>` changes that.
+
+**Restore**:
+
+1. Dry run first (read only, the app may stay open) to see what will change:
+
+   ```bash
+   python3 .github/scripts/remote_buddy_mappings.py restore ~/RemoteBuddy-Backup/mappings-<time>.json
+   ```
+
+   One line per remote: which backup entry it matches, how, and which keys would change; the last line gives the total. Right after a backup it should be 0 keys.
+2. Quit Remote Buddy from its status bar icon. The script refuses to write while the app is running.
+3. Run the same command with `--apply` at the end. It reports how many keys changed and where it saved the full settings from before the restore (`before-restore-<time>.plist`).
+4. Reopen Remote Buddy, check the keys on the mapping page, and try them on the physical remote.
+
+**Undo**: quit the app and run the command printed in step 3:
+
+```bash
+defaults import com.zfdang.remote-buddy ~/RemoteBuddy-Backup/before-restore-<time>.plist
+```
+
+**Rules and limits**:
+
+- Local remotes are matched to the backup by same profile → same model and name → same model. On the same Mac without re-pairing, the profile match keeps several remotes of one model apart. Remotes with no matching model in the backup are left unchanged.
+- Custom application references are remapped to the local app with the same bundle ID; apps missing locally are added to the list; keys whose app can't be found are listed.
 - When restoring into an older build, a value it doesn't recognize makes it reset the whole mapping set to defaults (upstream's decoding rule), so restore into the same or a newer build where possible.
+- Tested on 2026-11-22 on an Apple Silicon Mac with two Chromecast remotes: back up → change one key in the app → quit → `--apply` → reopen: that key was restored and the other remote was unchanged.
 
 ## Relationship with upstream
 
