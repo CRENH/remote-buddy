@@ -85,6 +85,17 @@ class MappingBackupTests(unittest.TestCase):
         self.assertTrue(any('新增自定义 App：示例' in line for line in lines))
         self.assertTrue(any('找不到' in line and 'ok' in line for line in lines))
 
+    def test_plist_and_other_files_are_rejected_with_a_clear_reason(self):
+        with tempfile.TemporaryDirectory() as folder:
+            full = Path(folder) / 'full.plist'
+            full.write_bytes(plistlib.dumps(domain([profile('A', 'rc003', '客厅')]), fmt=plistlib.FMT_BINARY))
+            with self.assertRaisesRegex(ValueError, 'defaults import'):
+                rbm.load_backup(full)
+            other = Path(folder) / 'other.json'
+            other.write_text('[1, 2]', encoding='utf-8')
+            with self.assertRaisesRegex(ValueError, '不是本脚本'):
+                rbm.load_backup(other)
+
     def test_wrong_file_is_rejected(self):
         with self.assertRaises(ValueError):
             rbm.plan_restore(domain([profile('A', 'rc003', '客厅')]), {'format': 'other', 'remotes': []})
