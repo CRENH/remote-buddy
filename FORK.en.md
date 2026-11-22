@@ -6,13 +6,13 @@ This repository is a fork of [zfdang/remote-buddy](https://github.com/zfdang/rem
 
 ## Differences from upstream
 
-The extra common-phrase buttons were merged upstream in [PR #158](https://github.com/zfdang/remote-buddy/pull/158); this fork uses the upstream implementation as-is (including the Xiaomi and T1 extra buttons). It differs in one place:
+The extra common-phrase buttons ([PR #158](https://github.com/zfdang/remote-buddy/pull/158)) and Power inserting a phrase on the Chromecast remote ([PR #253](https://github.com/zfdang/remote-buddy/pull/253)) are both merged upstream; this fork uses the upstream implementation as-is.
 
-### Power inserts a common phrase on the Chromecast remote
+### Settings backup and restore
 
-- Upstream: while the common-phrase panel is open, Power closes it like Back, leaving 10 phrase buttons on the Chromecast remote.
-- This fork: Power on the Chromecast Voice Remote (G9N9N) inserts a phrase instead, for 11 buttons. Its default phrase is 「不对，再检查一下」 and can be changed on the **Edit Common Phrases** page. On the Xiaomi and T1 remotes Power still closes the panel, as upstream.
-- If your saved phrases assign anything to Power, upstream treats the whole phrase data as invalid and resets it to the built-in phrases; this fork reads it normally. Before switching from this fork to the upstream build, clear the Power assignment on the **Edit Common Phrases** page.
+- Settings → General → Backup & Restore exports the general settings and every remote's key mappings to one JSON file and imports it back, matched by remote model. Upstream declined this feature ([PR #249](https://github.com/zfdang/remote-buddy/pull/249)).
+- At launch this fork decodes remote mappings entry by entry: an unrecognized value skips only that entry and the raw data is kept, instead of resetting the whole set.
+- To back up only the key mappings, or when using an upstream build, see "Backing up only the key mappings" below.
 
 ### Self-use build settings
 
@@ -81,12 +81,12 @@ defaults import com.zfdang.remote-buddy ~/RemoteBuddy-Backup/before-restore-<tim
 ## Relationship with upstream
 
 - This repository merges upstream `main` into the `crenh` branch automatically every day, so the source keeps up with upstream; installers are published manually from time to time.
-- The common phrase extension was merged upstream on 2026-11-16 in [PR #158](https://github.com/zfdang/remote-buddy/pull/158).
+- The common phrase extension was merged upstream on 2026-11-16 in [PR #158](https://github.com/zfdang/remote-buddy/pull/158); Power inserting a phrase on the Chromecast remote was merged upstream on 2026-11-22 in [PR #253](https://github.com/zfdang/remote-buddy/pull/253).
 - Support for GY3LE, another Chromecast remote model, is planned.
 
 ## Feedback
 
-- Issues specific to this fork (the Power phrase button, the installers): open an issue in this repository.
+- Issues specific to this fork (settings backup and restore, the mapping backup script, the installers): open an issue in this repository.
 - Everything else: please report to the [upstream repository](https://github.com/zfdang/remote-buddy/issues).
 
 ## License
