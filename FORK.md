@@ -6,13 +6,13 @@
 
 ## 与上游的区别
 
-常用语扩展按键已由 [PR #158](https://github.com/zfdang/remote-buddy/pull/158) 合并进上游，本仓库直接使用上游的实现（含小米、T1 遥控器的扩展键）。本分支只多一处改动：
+常用语扩展按键（[PR #158](https://github.com/zfdang/remote-buddy/pull/158)）和 Chromecast 电源键插入常用语（[PR #253](https://github.com/zfdang/remote-buddy/pull/253)）都已合并进上游，本仓库直接使用上游的实现。
 
-### Chromecast 遥控器的电源键插入常用语
+### 设置的备份与恢复
 
-- 上游：常用语弹窗打开时，电源键和返回键一样关闭弹窗，Chromecast 遥控器有 10 个常用语键。
-- 本分支：Chromecast 遥控器（G9N9N）的电源键改为插入常用语，共 11 个键；默认常用语为「不对，再检查一下」，可在「调整常用语」页面修改。小米、T1 遥控器的电源键仍按上游关闭弹窗。
-- 保存的常用语里给电源键分配过内容时，上游版本会判定整份常用语数据无效并重置为内置常用语；本分支能正常读取。从本分支切换到上游版本前，先在「调整常用语」页面清除电源键的分配。
+- 「设置 → 通用 → 备份与恢复」可以把全局设置和各遥控器的按键映射导出成一个 JSON 文件，再导入回来，按遥控器型号对应。上游没有接受这个功能（[PR #249](https://github.com/zfdang/remote-buddy/pull/249)）。
+- 本分支启动时逐项读取遥控器映射：认不出的值只跳过那一项，原始数据另存，不会整份重置。
+- 只想备份按键映射，或者用的是上游版本，见下方「只备份按键映射」。
 
 ### 自用版本的设置
 
@@ -81,12 +81,12 @@ defaults import com.zfdang.remote-buddy ~/RemoteBuddy-Backup/before-restore-<时
 ## 与上游的关系
 
 - 本仓库每天自动把上游 `main` 合并进 `crenh` 分支，源码会持续包含上游的最新改动；安装包则不定期手动发布。
-- 常用语扩展功能已于 2026-11-16 通过 [PR #158](https://github.com/zfdang/remote-buddy/pull/158) 合并进上游。
+- 常用语扩展功能已于 2026-11-16 通过 [PR #158](https://github.com/zfdang/remote-buddy/pull/158) 合并进上游；Chromecast 电源键插入常用语已于 2026-11-22 通过 [PR #253](https://github.com/zfdang/remote-buddy/pull/253) 合并进上游。
 - 计划之后支持 Chromecast 遥控器的另一个型号 GY3LE。
 
 ## 问题反馈
 
-- 本分支版本特有的问题（电源键常用语、安装包）：请在本仓库提 issue。
+- 本分支版本特有的问题（设置备份与恢复、映射备份脚本、安装包）：请在本仓库提 issue。
 - 其他问题：请到 [上游仓库](https://github.com/zfdang/remote-buddy/issues) 反馈。
 
 ## 许可证
