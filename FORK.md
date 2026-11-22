@@ -42,17 +42,41 @@
 
 本分支版本在「设置 → 通用 → 备份与恢复」里可以导出、导入全部设置。只想备份按键映射，或者用的是上游版本，可以用 `.github/scripts/remote_buddy_mappings.py`。它只读写各遥控器的映射和自定义 App 列表，配对、增益和其他设置都不动。上游版本和本分支版本共用同一个设置域 `com.zfdang.remote-buddy`，两边都能用。
 
-在仓库根目录运行：
+命令都在仓库根目录运行。
+
+**备份**（App 开着也可以）：
 
 ```bash
 python3 .github/scripts/remote_buddy_mappings.py backup
-python3 .github/scripts/remote_buddy_mappings.py restore ~/RemoteBuddy-Backup/mappings-<时间>.json
 ```
 
-- `backup` 默认写到 `~/RemoteBuddy-Backup/`。
-- `restore` 默认只试运行，列出每个遥控器对应备份里的哪一项、哪些键会变；先退出 App，再加 `--apply` 真正写入。写入前会把完整设置另存为 `before-restore-<时间>.plist`，并打印撤销命令。
-- 本机遥控器按「同一个档案 → 型号和名称相同 → 型号相同」对应备份。备份里引用的自定义 App 按 bundle ID 换成本机的 App，本机没有的会加进列表。
+输出 `结论：已备份 N 个遥控器的映射、M 个自定义 App → ~/RemoteBuddy-Backup/mappings-<时间>.json`。备份文件默认放在 `~/RemoteBuddy-Backup/`，`--output <路径>` 可改。
+
+**恢复**：
+
+1. 先试运行（只读，App 开着也可以），看清楚会改什么：
+
+   ```bash
+   python3 .github/scripts/remote_buddy_mappings.py restore ~/RemoteBuddy-Backup/mappings-<时间>.json
+   ```
+
+   每个遥控器一行：对应备份里的哪一项、按什么对应、哪些键会变。最后一行是 `结论：试运行，什么都没改。共 N 个键会变化`。刚备份完马上试运行，应该是 0 个键。
+2. 从菜单栏图标点「退出」，彻底退出 Remote Buddy。App 还在运行时脚本会拒绝写入。
+3. 在同一条命令末尾加 `--apply` 再运行一次。输出 `结论：已写回映射，共 N 个键变化，其他设置没动`，并打印恢复前完整设置的存档位置 `before-restore-<时间>.plist`。
+4. 重新打开 Remote Buddy，在按键映射页确认这些键已经恢复，再按一下实体遥控器试试。
+
+**撤销**：退出 App 后，运行第 3 步打印的那条命令：
+
+```bash
+defaults import com.zfdang.remote-buddy ~/RemoteBuddy-Backup/before-restore-<时间>.plist
+```
+
+**规则和限制**：
+
+- 本机遥控器按「同一个档案 → 型号和名称相同 → 型号相同」对应备份。同一台 Mac 上没重新配对过时，按同一个档案对应，同型号的几个遥控器不会混。备份里没有对应型号的遥控器保持不变。
+- 备份里引用的自定义 App 按 bundle ID 换成本机的 App，本机没有的会加进列表；引用不到 App 的键会列出来。
 - 恢复到更旧的版本时，旧版本认不出的值会让它把整份映射重置为默认（上游的读取规则），尽量恢复到同版本或更新的版本。
+- 2026-11-22 在 Apple Silicon Mac 上实测：两个 Chromecast 遥控器，备份 → 在 App 里改一个键 → 退出 → `--apply` → 重开 App，那个键恢复，另一个遥控器不变。
 
 ## 与上游的关系
 
