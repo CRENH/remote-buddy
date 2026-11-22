@@ -38,6 +38,22 @@ To check an installed app, run `codesign --display -r- "/Applications/Remote Bud
 
 Maintainers: keep the signing identity in `~/Library/Application Support/RemoteBuddySigning/` (see upstream [docs/build-and-signing.md](docs/build-and-signing.md) for how to generate one), then run `bash .github/scripts/build-signed-package.sh` from the repository root. The installer is written to `dist/release/`.
 
+## Backing up only the key mappings (works with upstream builds too)
+
+This fork exports and imports all settings from Settings → General → Backup & Restore. To back up only the key mappings, or when using an upstream build, use `.github/scripts/remote_buddy_mappings.py`. It reads and writes only each remote's mappings and the custom application list; pairing, gain and other settings are left alone. Upstream and fork builds share the settings domain `com.zfdang.remote-buddy`, so it works with both.
+
+From the repository root:
+
+```bash
+python3 .github/scripts/remote_buddy_mappings.py backup
+python3 .github/scripts/remote_buddy_mappings.py restore ~/RemoteBuddy-Backup/mappings-<time>.json
+```
+
+- `backup` writes to `~/RemoteBuddy-Backup/` by default.
+- `restore` is a dry run by default: it lists which backup entry each remote matches and which keys would change. Quit the app, then add `--apply` to write. Before writing it saves the full settings as `before-restore-<time>.plist` and prints the command to undo.
+- Local remotes are matched to the backup by same profile → same model and name → same model. Custom application references are remapped to the local app with the same bundle ID; apps missing locally are added to the list.
+- When restoring into an older build, a value it doesn't recognize makes it reset the whole mapping set to defaults (upstream's decoding rule), so restore into the same or a newer build where possible.
+
 ## Relationship with upstream
 
 - This repository merges upstream `main` into the `crenh` branch automatically every day, so the source keeps up with upstream; installers are published manually from time to time.
