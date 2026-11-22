@@ -38,6 +38,22 @@
 
 维护者打包：签名身份放在 `~/Library/Application Support/RemoteBuddySigning/`（生成方法见上游 [docs/build-and-signing.md](docs/build-and-signing.md)），在仓库根目录运行 `bash .github/scripts/build-signed-package.sh`，安装包输出到 `dist/release/`。
 
+## 只备份按键映射（上游版本也能用）
+
+本分支版本在「设置 → 通用 → 备份与恢复」里可以导出、导入全部设置。只想备份按键映射，或者用的是上游版本，可以用 `.github/scripts/remote_buddy_mappings.py`。它只读写各遥控器的映射和自定义 App 列表，配对、增益和其他设置都不动。上游版本和本分支版本共用同一个设置域 `com.zfdang.remote-buddy`，两边都能用。
+
+在仓库根目录运行：
+
+```bash
+python3 .github/scripts/remote_buddy_mappings.py backup
+python3 .github/scripts/remote_buddy_mappings.py restore ~/RemoteBuddy-Backup/mappings-<时间>.json
+```
+
+- `backup` 默认写到 `~/RemoteBuddy-Backup/`。
+- `restore` 默认只试运行，列出每个遥控器对应备份里的哪一项、哪些键会变；先退出 App，再加 `--apply` 真正写入。写入前会把完整设置另存为 `before-restore-<时间>.plist`，并打印撤销命令。
+- 本机遥控器按「同一个档案 → 型号和名称相同 → 型号相同」对应备份。备份里引用的自定义 App 按 bundle ID 换成本机的 App，本机没有的会加进列表。
+- 恢复到更旧的版本时，旧版本认不出的值会让它把整份映射重置为默认（上游的读取规则），尽量恢复到同版本或更新的版本。
+
 ## 与上游的关系
 
 - 本仓库每天自动把上游 `main` 合并进 `crenh` 分支，源码会持续包含上游的最新改动；安装包则不定期手动发布。
